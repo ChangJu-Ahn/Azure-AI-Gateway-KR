@@ -119,25 +119,25 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A[Client Request] --> B[① DNS Resolve<br/>APIM 도메인의 IP 주소를 찾습니다]
-    B --> C[② TLS Handshake<br/>HTTPS 암호화 연결을 맺습니다]
+    A[Client Request] --> B[① DNS Resolve]
+    B --> C[② TLS Handshake]
     C --> D[③ APIM Gateway 도달]
-    D --> E{API / Operation<br/>매칭 성공?}
-    E -- No --> F[404 OperationNotFound]
-    E -- Yes --> G[④ Inbound Policy 실행<br/>• authentication-managed-identity<br/>• azure-openai-token-limit<br/>• azure-openai-semantic-cache-lookup<br/>• set-backend-service]
-    G --> H{IP Filter / Rate Limit<br/>JWT / Sub Key<br/>통과?}
-    H -- No --> I[401 / 403 / 429 반환]
-    H -- Yes --> J[⑤ Backend 결정<br/>단일 백엔드 또는 백엔드 풀]
-    J --> K[⑥ Load Balancer / Backend Pool<br/>East US / Sweden / West US 중 선택]
-    K --> L[⑦ Backend Policy 실행<br/>• retry - 429/500 시 다른 인스턴스로 재시도<br/>• forward-request]
-    L --> M[⑧ Backend 호출<br/>Azure OpenAI / Gemini 등 AI 모델 호출]
-    M --> N[⑨ Backend 응답<br/>AI 모델이 응답 반환 - 토큰 사용량 포함]
-    N --> O[⑩ Outbound Policy 실행<br/>• azure-openai-emit-token-metric<br/>• azure-openai-semantic-cache-store<br/>• set-header]
-    O --> P[⑪ 최종 Response 반환]
+    D --> E{API / Operation 매칭?}
+    E -- No --> F[❌ 404 Not Found]
+    E -- Yes --> G[④ Inbound Policy]
+    G --> H{인증 / Rate Limit 통과?}
+    H -- No --> I[❌ 401 / 403 / 429]
+    H -- Yes --> J[⑤ Backend 결정]
+    J --> K[⑥ Load Balancer]
+    K --> L[⑦ Backend Policy]
+    L --> M[⑧ AI 모델 호출]
+    M --> N[⑨ 응답 수신]
+    N --> O[⑩ Outbound Policy]
+    O --> P[✅ ⑪ 최종 Response]
 
-    style F fill:#f66,color:#fff
-    style I fill:#f66,color:#fff
-    style P fill:#4a9,color:#fff
+    style F fill:#e74c3c,color:#fff
+    style I fill:#e74c3c,color:#fff
+    style P fill:#27ae60,color:#fff
 ```
 
 > ※ 어떤 단계에서든 에러 발생 시 → `<on-error>` 정책이 실행됩니다
