@@ -1,0 +1,4 @@
+<!-- Managed Identity 인증 정책 조각 -->
+<fragment>
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+</fragment>

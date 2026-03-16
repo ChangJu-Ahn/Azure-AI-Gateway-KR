@@ -1,0 +1,218 @@
+### Azure API Management AI Gateway - API 테스트
+### VS Code REST Client 확장 필요
+### https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+@apimUrl = https://<apim-name>.azure-api.net
+@subscriptionKey = <your-subscription-key>
+@apiVersion = 2025-04-01-preview
+@deploymentName = gpt-4.1-nano
+
+###############################################################################
+# Lab 2: 기본 호출 테스트
+###############################################################################
+
+### 2-1. Health Check
+GET {{apimUrl}}/status-0123456789abcdef
+
+### 2-2. 기본 Chat Completion
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "안녕하세요! 간단히 인사해주세요."}
+    ],
+    "max_tokens": 50,
+    "temperature": 0.7
+}
+
+### 2-3. 잘못된 Subscription Key (401 기대)
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: invalid-key-12345
+
+{
+    "messages": [{"role": "user", "content": "test"}],
+    "max_tokens": 5
+}
+
+### 2-4. Subscription Key 없이 호출 (401 기대)
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+
+{
+    "messages": [{"role": "user", "content": "test"}],
+    "max_tokens": 5
+}
+
+###############################################################################
+# Lab 3: 로드밸런싱 테스트
+# → 여러 번 호출하여 x-backend-url 응답 헤더를 확인하세요
+#   3개 백엔드(eastus, swedencentral, westus)로 분산되어야 합니다
+###############################################################################
+
+### 3-1. 로드밸런싱 호출 #1 → 응답의 x-backend-url 헤더 확인
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Which backend am I on? Reply in 3 words."}],
+    "max_tokens": 10
+}
+
+### 3-2. 로드밸런싱 호출 #2
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Which backend am I on? Reply in 3 words."}],
+    "max_tokens": 10
+}
+
+### 3-3. 로드밸런싱 호출 #3
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Which backend am I on? Reply in 3 words."}],
+    "max_tokens": 10
+}
+
+### 3-4. 로드밸런싱 호출 #4
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Which backend am I on? Reply in 3 words."}],
+    "max_tokens": 10
+}
+
+###############################################################################
+# Lab 4: 정책 테스트
+###############################################################################
+
+### 4-1. 토큰 Rate Limiting 테스트 (큰 토큰으로 호출, 반복하면 429 기대)
+# → 응답 헤더의 x-ratelimit-remaining-tokens 값 변화 확인
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Write a detailed essay about cloud computing."}],
+    "max_tokens": 2000
+}
+
+### 4-2. 캐싱 테스트 - 1차 호출 (캐시 미스, 느림)
+# → 응답 시간 기록
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "What is the capital of South Korea?"}],
+    "max_tokens": 20
+}
+
+### 4-3. 캐싱 테스트 - 2차 호출 (캐시 히트, 빠름)
+# → 동일 프롬프트, 응답 시간 비교
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "What is the capital of South Korea?"}],
+    "max_tokens": 20
+}
+
+### 4-4. 캐싱 테스트 - 유사 프롬프트 (시맨틱 캐시 히트?)
+# → 의미가 같지만 표현이 다른 질문
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Tell me the capital city of Korea"}],
+    "max_tokens": 20
+}
+
+###############################################################################
+# Lab 5: 멀티 모델 라우팅 테스트
+###############################################################################
+
+### 5-1. Azure OpenAI (기본 라우팅, 헤더 없음)
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Which AI model are you? Reply in one line."}],
+    "max_tokens": 30
+}
+
+### 5-2. Google Gemini (x-model-provider: gemini)
+# → 동일 OpenAI 포맷으로 요청하되, 헤더로 Gemini 라우팅
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+x-model-provider: gemini
+
+{
+    "messages": [{"role": "user", "content": "Which AI model are you? Reply in one line."}],
+    "max_tokens": 30
+}
+
+### 5-3. 잘못된 Provider (기본 OpenAI로 Fallback)
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+x-model-provider: invalid-provider
+
+{
+    "messages": [{"role": "user", "content": "Which AI model are you? Reply in one line."}],
+    "max_tokens": 30
+}
+
+###############################################################################
+# Lab 7: 고급 패턴 테스트
+###############################################################################
+
+### 7-1. SSE 스트리밍 응답
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Count from 1 to 5, one per line."}],
+    "max_tokens": 50,
+    "stream": true
+}
+
+### 7-2. 큰 프롬프트 + 작은 max_tokens (토큰 사용량 확인용)
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [
+        {"role": "system", "content": "You are a concise assistant. Maximum 1 sentence."},
+        {"role": "user", "content": "서울의 인구는 몇 명인가요?"}
+    ],
+    "max_tokens": 30
+}
+
+### 7-3. IP 제한 테스트 (ip-filter 정책 적용 후)
+# → IP 차단 정책 적용 시 403 기대
+POST {{apimUrl}}/openai/deployments/{{deploymentName}}/chat/completions?api-version={{apiVersion}}
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{subscriptionKey}}
+
+{
+    "messages": [{"role": "user", "content": "Am I blocked?"}],
+    "max_tokens": 10
+}

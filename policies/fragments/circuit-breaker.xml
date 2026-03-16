@@ -1,0 +1,35 @@
+<!-- Circuit Breaker 정책 조각 (Bicep에서 백엔드에 적용) -->
+<!--
+    이 조각은 참조용입니다.
+    Circuit Breaker는 Bicep의 Backend 리소스에서 설정합니다.
+
+    failureCondition:
+      - count: 3 (60초 내 3회 실패 시 회로 열림)
+      - statusCodeRanges: 429, 500-503
+      - tripDuration: 30초 동안 해당 백엔드 차단
+      - acceptRetryAfter: Retry-After 헤더 존중
+-->
+<fragment>
+    <!--
+        Circuit Breaker는 APIM 정책이 아닌 Backend 리소스 설정입니다.
+        infra/modules/apim.bicep의 백엔드 정의를 참조하세요.
+
+        Bicep 예시:
+        circuitBreaker: {
+          rules: [{
+            failureCondition: {
+              count: 3
+              errorReasons: ['Server errors']
+              interval: 'PT10S'
+              statusCodeRanges: [
+                { min: 429, max: 429 }
+                { min: 500, max: 503 }
+              ]
+            }
+            name: 'openAiCircuitBreaker'
+            tripDuration: 'PT30S'
+            acceptRetryAfter: true
+          }]
+        }
+    -->
+</fragment>

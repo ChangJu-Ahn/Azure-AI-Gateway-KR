@@ -1,0 +1,21 @@
+<!-- 시맨틱 캐싱 정책 조각 -->
+
+<!-- Inbound: 캐시 조회 -->
+<fragment>
+    <!-- 유사도 0.8 이상이면 캐시에서 응답 반환 -->
+    <azure-openai-semantic-cache-lookup
+        score-threshold="0.8"
+        embeddings-backend-id="embedding-backend"
+        embeddings-backend-auth="system-assigned" />
+</fragment>
+
+<!--
+    Outbound에 추가할 캐시 저장 정책:
+
+    <azure-openai-semantic-cache-store duration="3600" />
+
+    사전 준비:
+    - text-embedding-ada-002 또는 text-embedding-3-small 모델 배포 필요
+    - embedding-backend라는 이름의 APIM 백엔드 등록 필요
+    - Azure Redis Cache 또는 APIM 내장 캐시 활성화
+-->

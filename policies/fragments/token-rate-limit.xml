@@ -1,0 +1,11 @@
+<!-- 토큰 기반 Rate Limiting 정책 조각 -->
+<fragment>
+    <azure-openai-token-limit
+        counter-key="@(context.Subscription.Id)"
+        tokens-per-minute="10000"
+        estimate-prompt-tokens="true"
+        remaining-tokens-variable-name="remainingTokens"
+        remaining-tokens-header-name="x-ratelimit-remaining-tokens"
+        tokens-consumed-variable-name="tokensConsumed"
+        tokens-consumed-header-name="x-ratelimit-tokens-consumed" />
+</fragment>

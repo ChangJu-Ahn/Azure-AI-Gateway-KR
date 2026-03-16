@@ -1,0 +1,12 @@
+<!-- 재시도 및 폴백 정책 조각 -->
+<fragment>
+    <retry condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)"
+           count="3"
+           interval="1"
+           max-interval="10"
+           delta="1"
+           first-fast-retry="false">
+        <set-backend-service backend-id="openai-backend-pool" />
+        <forward-request buffer-request-body="true" />
+    </retry>
+</fragment>

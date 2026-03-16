@@ -1,0 +1,29 @@
+<!--
+    로드밸런서 정책
+    백엔드 풀을 활용하여 다중 Azure OpenAI 인스턴스에 트래픽을 분산합니다.
+-->
+<policies>
+    <inbound>
+        <base />
+        <!-- Managed Identity 인증 -->
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+        <!-- 백엔드 풀로 라우팅 -->
+        <set-backend-service backend-id="openai-backend-pool" />
+    </inbound>
+
+    <backend>
+        <base />
+    </backend>
+
+    <outbound>
+        <base />
+        <!-- 사용된 백엔드 정보를 응답 헤더에 추가 (디버깅용) -->
+        <set-header name="x-backend-url" exists-action="override">
+            <value>@(context.Request.Url.Host)</value>
+        </set-header>
+    </outbound>
+
+    <on-error>
+        <base />
+    </on-error>
+</policies>

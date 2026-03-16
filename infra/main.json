@@ -1,0 +1,971 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "3294881879043211693"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "리소스 배포 위치"
+      }
+    },
+    "apimName": {
+      "type": "string",
+      "metadata": {
+        "description": "APIM 인스턴스 이름"
+      }
+    },
+    "apimSku": {
+      "type": "string",
+      "defaultValue": "Consumption",
+      "metadata": {
+        "description": "APIM SKU (Consumption, Developer, StandardV2)"
+      }
+    },
+    "publisherEmail": {
+      "type": "string",
+      "metadata": {
+        "description": "APIM 관리자 이메일"
+      }
+    },
+    "publisherName": {
+      "type": "string",
+      "defaultValue": "AI Gateway Lab",
+      "metadata": {
+        "description": "APIM 게시자 이름"
+      }
+    },
+    "aoaiEastUsName": {
+      "type": "string",
+      "defaultValue": "aoai-eastus-001",
+      "metadata": {
+        "description": "Azure OpenAI 리소스 이름 (East US)"
+      }
+    },
+    "aoaiSwedenName": {
+      "type": "string",
+      "defaultValue": "aoai-swedencentral-001",
+      "metadata": {
+        "description": "Azure OpenAI 리소스 이름 (Sweden Central)"
+      }
+    },
+    "aoaiWestUsName": {
+      "type": "string",
+      "defaultValue": "aoai-westus-001",
+      "metadata": {
+        "description": "Azure OpenAI 리소스 이름 (West US)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "monitoring",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "4656412681785884524"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "배포 위치"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "log-ai-gateway",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "appi-ai-gateway",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', 'log-ai-gateway')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', 'log-ai-gateway')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appInsightsId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/components', 'appi-ai-gateway')]"
+            },
+            "appInsightsInstrumentationKey": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', 'appi-ai-gateway'), '2020-02-02').InstrumentationKey]"
+            },
+            "appInsightsName": {
+              "type": "string",
+              "value": "appi-ai-gateway"
+            },
+            "logAnalyticsId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', 'log-ai-gateway')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "openai-eastus",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('aoaiEastUsName')]"
+          },
+          "location": {
+            "value": "eastus"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "7953955865401143550"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI 리소스 이름"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "배포 위치"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2024-10-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "kind": "OpenAI",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "customSubDomainName": "[parameters('name')]",
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2024-10-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'gpt-4.1-nano')]",
+              "sku": {
+                "name": "Standard",
+                "capacity": 30
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "gpt-4.1-nano",
+                  "version": "2024-07-18"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2024-10-01').endpoint]"
+            },
+            "resourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "openai-sweden",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('aoaiSwedenName')]"
+          },
+          "location": {
+            "value": "swedencentral"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "7953955865401143550"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI 리소스 이름"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "배포 위치"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2024-10-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "kind": "OpenAI",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "customSubDomainName": "[parameters('name')]",
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2024-10-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'gpt-4.1-nano')]",
+              "sku": {
+                "name": "Standard",
+                "capacity": 30
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "gpt-4.1-nano",
+                  "version": "2024-07-18"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2024-10-01').endpoint]"
+            },
+            "resourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "openai-westus",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('aoaiWestUsName')]"
+          },
+          "location": {
+            "value": "westus"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "7953955865401143550"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI 리소스 이름"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "배포 위치"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2024-10-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "kind": "OpenAI",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "customSubDomainName": "[parameters('name')]",
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2024-10-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'gpt-4.1-nano')]",
+              "sku": {
+                "name": "Standard",
+                "capacity": 30
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "gpt-4.1-nano",
+                  "version": "2024-07-18"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2024-10-01').endpoint]"
+            },
+            "resourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "apim",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('apimName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "sku": {
+            "value": "[parameters('apimSku')]"
+          },
+          "publisherEmail": {
+            "value": "[parameters('publisherEmail')]"
+          },
+          "publisherName": {
+            "value": "[parameters('publisherName')]"
+          },
+          "appInsightsId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring'), '2025-04-01').outputs.appInsightsId.value]"
+          },
+          "appInsightsInstrumentationKey": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring'), '2025-04-01').outputs.appInsightsInstrumentationKey.value]"
+          },
+          "openaiEastUsEndpoint": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-eastus'), '2025-04-01').outputs.endpoint.value]"
+          },
+          "openaiSwedenEndpoint": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-sweden'), '2025-04-01').outputs.endpoint.value]"
+          },
+          "openaiWestUsEndpoint": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-westus'), '2025-04-01').outputs.endpoint.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "6824334642322019883"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM 인스턴스 이름"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "배포 위치"
+              }
+            },
+            "sku": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM SKU"
+              }
+            },
+            "publisherEmail": {
+              "type": "string",
+              "metadata": {
+                "description": "관리자 이메일"
+              }
+            },
+            "publisherName": {
+              "type": "string",
+              "metadata": {
+                "description": "게시자 이름"
+              }
+            },
+            "appInsightsId": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights 리소스 ID"
+              }
+            },
+            "appInsightsInstrumentationKey": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights Instrumentation Key"
+              }
+            },
+            "openaiEastUsEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI East US 엔드포인트"
+              }
+            },
+            "openaiSwedenEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI Sweden Central 엔드포인트"
+              }
+            },
+            "openaiWestUsEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI West US 엔드포인트"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ApiManagement/service",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('sku')]",
+                "capacity": "[if(equals(parameters('sku'), 'Consumption'), 0, 1)]"
+              },
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "publisherEmail": "[parameters('publisherEmail')]",
+                "publisherName": "[parameters('publisherName')]"
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/loggers",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'appinsights-logger')]",
+              "properties": {
+                "loggerType": "applicationInsights",
+                "credentials": {
+                  "instrumentationKey": "[parameters('appInsightsInstrumentationKey')]"
+                },
+                "isBuffered": true,
+                "resourceId": "[parameters('appInsightsId')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/diagnostics",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'applicationinsights')]",
+              "properties": {
+                "loggerId": "[resourceId('Microsoft.ApiManagement/service/loggers', parameters('name'), 'appinsights-logger')]",
+                "alwaysLog": "allErrors",
+                "sampling": {
+                  "percentage": 100,
+                  "samplingType": "fixed"
+                },
+                "logClientIp": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/loggers', parameters('name'), 'appinsights-logger')]",
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'aoai-eastus')]",
+              "properties": {
+                "url": "[format('{0}openai', parameters('openaiEastUsEndpoint'))]",
+                "protocol": "http",
+                "circuitBreaker": {
+                  "rules": [
+                    {
+                      "failureCondition": {
+                        "count": 3,
+                        "errorReasons": [
+                          "Server errors"
+                        ],
+                        "interval": "PT10S",
+                        "statusCodeRanges": [
+                          {
+                            "min": 429,
+                            "max": 429
+                          },
+                          {
+                            "min": 500,
+                            "max": 503
+                          }
+                        ]
+                      },
+                      "name": "openAiCircuitBreaker",
+                      "tripDuration": "PT30S",
+                      "acceptRetryAfter": true
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'aoai-swedencentral')]",
+              "properties": {
+                "url": "[format('{0}openai', parameters('openaiSwedenEndpoint'))]",
+                "protocol": "http",
+                "circuitBreaker": {
+                  "rules": [
+                    {
+                      "failureCondition": {
+                        "count": 3,
+                        "errorReasons": [
+                          "Server errors"
+                        ],
+                        "interval": "PT10S",
+                        "statusCodeRanges": [
+                          {
+                            "min": 429,
+                            "max": 429
+                          },
+                          {
+                            "min": 500,
+                            "max": 503
+                          }
+                        ]
+                      },
+                      "name": "openAiCircuitBreaker",
+                      "tripDuration": "PT30S",
+                      "acceptRetryAfter": true
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'aoai-westus')]",
+              "properties": {
+                "url": "[format('{0}openai', parameters('openaiWestUsEndpoint'))]",
+                "protocol": "http",
+                "circuitBreaker": {
+                  "rules": [
+                    {
+                      "failureCondition": {
+                        "count": 3,
+                        "errorReasons": [
+                          "Server errors"
+                        ],
+                        "interval": "PT10S",
+                        "statusCodeRanges": [
+                          {
+                            "min": 429,
+                            "max": 429
+                          },
+                          {
+                            "min": 500,
+                            "max": 503
+                          }
+                        ]
+                      },
+                      "name": "openAiCircuitBreaker",
+                      "tripDuration": "PT30S",
+                      "acceptRetryAfter": true
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-09-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'openai-backend-pool')]",
+              "properties": {
+                "type": "Pool",
+                "pool": {
+                  "services": [
+                    {
+                      "id": "[format('/backends/{0}', 'aoai-eastus')]",
+                      "priority": 1,
+                      "weight": 1
+                    },
+                    {
+                      "id": "[format('/backends/{0}', 'aoai-swedencentral')]",
+                      "priority": 1,
+                      "weight": 1
+                    },
+                    {
+                      "id": "[format('/backends/{0}', 'aoai-westus')]",
+                      "priority": 1,
+                      "weight": 1
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]",
+                "[resourceId('Microsoft.ApiManagement/service/backends', parameters('name'), 'aoai-eastus')]",
+                "[resourceId('Microsoft.ApiManagement/service/backends', parameters('name'), 'aoai-swedencentral')]",
+                "[resourceId('Microsoft.ApiManagement/service/backends', parameters('name'), 'aoai-westus')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "gatewayUrl": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('name')), '2023-09-01-preview').gatewayUrl]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('name')), '2023-09-01-preview', 'full').identity.principalId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'monitoring')]",
+        "[resourceId('Microsoft.Resources/deployments', 'openai-eastus')]",
+        "[resourceId('Microsoft.Resources/deployments', 'openai-sweden')]",
+        "[resourceId('Microsoft.Resources/deployments', 'openai-westus')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "role-eastus",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "openaiAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-eastus'), '2025-04-01').outputs.name.value]"
+          },
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'apim'), '2025-04-01').outputs.principalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "8621825710746044616"
+            }
+          },
+          "parameters": {
+            "openaiAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI 리소스 이름"
+              }
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM Managed Identity의 Principal ID"
+              }
+            }
+          },
+          "variables": {
+            "cognitiveServicesOpenAIUserRole": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('openaiAccountName'))]",
+              "name": "[guid(parameters('principalId'), resourceId('Microsoft.CognitiveServices/accounts', parameters('openaiAccountName')), variables('cognitiveServicesOpenAIUserRole'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('cognitiveServicesOpenAIUserRole'))]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'apim')]",
+        "[resourceId('Microsoft.Resources/deployments', 'openai-eastus')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "role-sweden",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "openaiAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-sweden'), '2025-04-01').outputs.name.value]"
+          },
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'apim'), '2025-04-01').outputs.principalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "8621825710746044616"
+            }
+          },
+          "parameters": {
+            "openaiAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI 리소스 이름"
+              }
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM Managed Identity의 Principal ID"
+              }
+            }
+          },
+          "variables": {
+            "cognitiveServicesOpenAIUserRole": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('openaiAccountName'))]",
+              "name": "[guid(parameters('principalId'), resourceId('Microsoft.CognitiveServices/accounts', parameters('openaiAccountName')), variables('cognitiveServicesOpenAIUserRole'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('cognitiveServicesOpenAIUserRole'))]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'apim')]",
+        "[resourceId('Microsoft.Resources/deployments', 'openai-sweden')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "role-westus",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "openaiAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-westus'), '2025-04-01').outputs.name.value]"
+          },
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'apim'), '2025-04-01').outputs.principalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "8621825710746044616"
+            }
+          },
+          "parameters": {
+            "openaiAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI 리소스 이름"
+              }
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM Managed Identity의 Principal ID"
+              }
+            }
+          },
+          "variables": {
+            "cognitiveServicesOpenAIUserRole": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('openaiAccountName'))]",
+              "name": "[guid(parameters('principalId'), resourceId('Microsoft.CognitiveServices/accounts', parameters('openaiAccountName')), variables('cognitiveServicesOpenAIUserRole'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('cognitiveServicesOpenAIUserRole'))]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'apim')]",
+        "[resourceId('Microsoft.Resources/deployments', 'openai-westus')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "apimGatewayUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'apim'), '2025-04-01').outputs.gatewayUrl.value]"
+    },
+    "apimName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'apim'), '2025-04-01').outputs.name.value]"
+    },
+    "appInsightsName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring'), '2025-04-01').outputs.appInsightsName.value]"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+# Azure
+.azure/
+*.tfstate
+*.tfstate.backup
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment
+.env
+.env.local
+*.env
+scripts/env.sh
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (if any test scripts)
+node_modules/
+
+# Python (if any test scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Bicep compiled
+*.json.bak
+
+# Secrets
+**/secrets/
+*.pem
+*.key
