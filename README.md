@@ -543,15 +543,10 @@ pip install -r requirements.txt
 
 ### 전체 워크플로우 요약
 
-```
- 배포                 테스트 (노트북)                   정리
-┌──────────┐   ┌──────────────────────────┐   ┌──────────┐
-│ deploy.sh│──▶│ 📓 test-roundrobin.ipynb    │   │cleanup.sh│
-│ (Bicep)  │   │ 📓 test-failover.ipynb      │──▶│(az group │
-│          │   │ 📓 test-multitenant.ipynb   │   │ delete)  │
-│ 자동생성: │   │ 📓 test-security.ipynb     │   │          │
-│ .env   │   │ 📓 test-performance.ipynb   │   │ 전체삭제 │
-└──────────┘   └──────────────────────────┘   └──────────┘
+```mermaid
+graph LR
+    A[deploy.sh<br/>Bicep 배포<br/>→ .env 자동생성] --> B[테스트 노트북<br/>roundrobin / failover<br/>multitenant / security<br/>performance]
+    B --> C[cleanup.sh<br/>az group delete<br/>전체 삭제]
 ```
 
 ---
