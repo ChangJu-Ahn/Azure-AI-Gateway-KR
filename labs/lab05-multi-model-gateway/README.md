@@ -190,15 +190,12 @@ curl -X POST "${APIM_URL}/openai/deployments/gpt-4.1-nano/chat/completions?api-v
 
 ### 멀티 모델 Gateway의 장점
 
-```
-클라이언트 (동일한 OpenAI 포맷)
-         │
-    APIM AI Gateway
-    ┌────┼────┐
-    │    │    │
-    ▼    ▼    ▼
-  OpenAI Gemini Claude
-  (원본) (변환) (변환)
+```mermaid
+graph TD
+    Client[클라이언트<br/>동일한 OpenAI 포맷] --> GW[APIM AI Gateway]
+    GW --> OAI[OpenAI<br/>원본]
+    GW --> GEM[Gemini<br/>변환]
+    GW --> CLA[Claude<br/>변환]
 ```
 
 1. **백엔드 추상화**: 클라이언트는 백엔드 변경을 인지할 필요 없음

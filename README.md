@@ -84,29 +84,21 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 
 ## 아키텍처 개요
 
-```
-                          ┌─────────────────────────────────────────────────┐
-                          │          Azure API Management (AI Gateway)      │
-                          │                                                 │
-  Client App ────────────►│  ┌───────────┐  ┌──────────┐  ┌─────────────┐  │
-                          │  │  Policies  │  │ Backend  │  │  Monitoring │  │
-                          │  │            │  │  Pool    │  │  & Logging  │  │
-                          │  │• Auth      │  │          │  │             │  │
-                          │  │• Rate Limit│  │• Round   │  │• App        │  │
-                          │  │• Token Count│ │  Robin   │  │  Insights   │  │
-                          │  │• Retry     │  │• Weighted│  │• Metrics    │  │
-                          │  │• Caching   │  │• Priority│  │• Alerts     │  │
-                          │  │• Transform │  │          │  │             │  │
-                          │  └─────┬──────┘  └────┬─────┘  └─────────────┘  │
-                          └────────┼──────────────┼─────────────────────────┘
-                                   │              │
-          ┌────────────────────────┼──────────────┼───────────────────┐
-          │                        │              │                   │
-    ┌─────▼─────┐ ┌────────▼───────┐ ┌─────▼─────┐ ┌─────▼─────┐ ┌─────▼─────┐
-    │  Azure    │ │  Azure         │ │  Azure    │ │  Google   │ │  Other    │
-    │  OpenAI   │ │  OpenAI        │ │  OpenAI   │ │  Gemini   │ │  AI       │
-    │ (East US) │ │ (Sweden Central)│ │ (West US) │ │           │ │  Models   │
-    └───────────┘ └────────────────┘ └───────────┘ └───────────┘ └───────────┘
+```mermaid
+graph TD
+    Client[Client App] -->|REST API| APIM
+
+    subgraph APIM[Azure API Management - AI Gateway]
+        Policies[Policies<br/>• Auth<br/>• Rate Limit<br/>• Token Count<br/>• Retry<br/>• Caching<br/>• Transform]
+        Pool[Backend Pool<br/>• Round Robin<br/>• Weighted<br/>• Priority]
+        Monitor[Monitoring<br/>• App Insights<br/>• Metrics<br/>• Alerts]
+    end
+
+    APIM --> EUS[Azure OpenAI<br/>East US]
+    APIM --> SWE[Azure OpenAI<br/>Sweden Central]
+    APIM --> WUS[Azure OpenAI<br/>West US]
+    APIM --> GEM[Google Gemini]
+    APIM --> OTHER[Other AI Models]
 ```
 
 ## 핵심 학습 목표
@@ -125,74 +117,30 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 클라이언트가 AI Gateway에 API 호출을 하면, 요청은 아래 단계를 **순서대로** 거칩니다.  
 각 단계에서 조건에 맞지 않으면 즉시 에러를 반환하고, 더 이상 진행하지 않습니다.
 
-```
-Client Request
-     │
-     ▼
-┌─────────────┐
-│ DNS Resolve  │  ① APIM 도메인(*.azure-api.net)의 IP 주소를 찾습니다
-└──────┬──────┘
-       ▼
-┌─────────────┐
-│TLS Handshake│  ② HTTPS 암호화 연결을 맺습니다 (인증서 검증)
-└──────┬──────┘
-       ▼
-┌──────────────┐
-│ APIM Gateway │  ③ 요청이 APIM 게이트웨이에 도달합니다
-│    도달      │
-└──────┬───────┘
-       ▼
-  ◆ API / Operation ◆───── No ──► [404 OperationNotFound]
-  ◆   매칭 성공?     ◆                    │
-       │ Yes                               ▼
-       ▼                             Response 반환
-┌──────────────┐
-│   Inbound    │  ④ 정책 파이프라인 시작
-│ Policy 실행  │     • authentication-managed-identity (인증)
-└──────┬───────┘     • azure-openai-token-limit (토큰 할당량)
-       │             • azure-openai-semantic-cache-lookup (캐시)
-       ▼             • set-backend-service (라우팅)
-  ◆ IP Filter /    ◆
-  ◆ Rate Limit /   ◆───── No ──► [401 / 403 / 429 반환]
-  ◆ JWT / Sub Key  ◆                    │
-  ◆    통과?       ◆                    ▼
-       │ Yes                       Response 반환
-       ▼
-┌──────────────┐  ⑤ 라우팅 대상 결정
-│ Backend 결정  │     • 단일 백엔드 또는 백엔드 풀(Load Balancer)
-└──────┬───────┘     • Round Robin / Weighted / Priority
-       ▼
-┌──────────────┐
-│ Load Balancer│  ⑥ 백엔드 풀에서 인스턴스 선택
-│/ Backend Pool│     • East US / Sweden / West US 중 하나
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│  Backend     │  ⑦ Backend Policy 실행
-│ Policy 실행  │     • retry (429/500 시 다른 인스턴스로 재시도)
-└──────┬───────┘     • forward-request (실제 HTTP 호출)
-       ▼
-┌──────────────┐
-│ Backend 호출  │  ⑧ Azure OpenAI / Gemini 등 실제 AI 모델 호출
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│ Backend 응답  │  ⑨ AI 모델이 응답 반환 (토큰 사용량 포함)
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│  Outbound    │  ⑩ 응답 처리 정책 실행
-│ Policy 실행  │     • azure-openai-emit-token-metric (토큰 메트릭)
-└──────┬───────┘     • azure-openai-semantic-cache-store (캐시 저장)
-       │             • set-header (디버그 헤더 추가)
-       ▼
-┌──────────────┐
-│ 최종 Response │  ⑪ 클라이언트에게 최종 응답 반환
-│    반환       │
-└──────────────┘
+```mermaid
+flowchart TD
+    A[Client Request] --> B[① DNS Resolve<br/>APIM 도메인의 IP 주소를 찾습니다]
+    B --> C[② TLS Handshake<br/>HTTPS 암호화 연결을 맺습니다]
+    C --> D[③ APIM Gateway 도달]
+    D --> E{API / Operation<br/>매칭 성공?}
+    E -- No --> F[404 OperationNotFound]
+    E -- Yes --> G[④ Inbound Policy 실행<br/>• authentication-managed-identity<br/>• azure-openai-token-limit<br/>• azure-openai-semantic-cache-lookup<br/>• set-backend-service]
+    G --> H{IP Filter / Rate Limit<br/>JWT / Sub Key<br/>통과?}
+    H -- No --> I[401 / 403 / 429 반환]
+    H -- Yes --> J[⑤ Backend 결정<br/>단일 백엔드 또는 백엔드 풀]
+    J --> K[⑥ Load Balancer / Backend Pool<br/>East US / Sweden / West US 중 선택]
+    K --> L[⑦ Backend Policy 실행<br/>• retry - 429/500 시 다른 인스턴스로 재시도<br/>• forward-request]
+    L --> M[⑧ Backend 호출<br/>Azure OpenAI / Gemini 등 AI 모델 호출]
+    M --> N[⑨ Backend 응답<br/>AI 모델이 응답 반환 - 토큰 사용량 포함]
+    N --> O[⑩ Outbound Policy 실행<br/>• azure-openai-emit-token-metric<br/>• azure-openai-semantic-cache-store<br/>• set-header]
+    O --> P[⑪ 최종 Response 반환]
 
-※ 어떤 단계에서든 에러 발생 시 → <on-error> 정책이 실행됩니다
+    style F fill:#f66,color:#fff
+    style I fill:#f66,color:#fff
+    style P fill:#4a9,color:#fff
 ```
+
+> ※ 어떤 단계에서든 에러 발생 시 → `<on-error>` 정책이 실행됩니다
 
 ### 단계별 설명
 

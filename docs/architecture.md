@@ -8,25 +8,28 @@ AI Gateway는 Azure API Management를 활용하여 다양한 AI 모델 엔드포
 
 ### 직접 호출의 문제점
 
-```
-App A ──→ Azure OpenAI (East US)      ❌ 장애 시 대응 불가
-App B ──→ Azure OpenAI (West US)      ❌ 각 앱이 개별 관리
-App C ──→ Google Gemini               ❌ 통합 모니터링 불가
+```mermaid
+graph LR
+    A[App A] -->|❌ 장애 시 대응 불가| EUS[Azure OpenAI<br/>East US]
+    B[App B] -->|❌ 각 앱이 개별 관리| WUS[Azure OpenAI<br/>West US]
+    C[App C] -->|❌ 통합 모니터링 불가| GEM[Google Gemini]
 ```
 
 ### AI Gateway 적용 후
 
-```
-App A ─┐
-App B ─┼──→ APIM (AI Gateway) ──→ Azure OpenAI (East US)
-App C ─┘         │               ──→ Azure OpenAI (West US)
-                 │               ──→ Google Gemini
-                 │
-                 ├── 토큰 Rate Limiting
-                 ├── 로드밸런싱 & Failover
-                 ├── 시맨틱 캐싱
-                 ├── 모니터링 & 메트릭
-                 └── 통합 인증
+```mermaid
+graph LR
+    A[App A] --> GW[APIM<br/>AI Gateway]
+    B[App B] --> GW
+    C[App C] --> GW
+    GW --> EUS[Azure OpenAI<br/>East US]
+    GW --> WUS[Azure OpenAI<br/>West US]
+    GW --> GEM[Google Gemini]
+    GW -.- F1[토큰 Rate Limiting]
+    GW -.- F2[로드밸런싱 & Failover]
+    GW -.- F3[시맨틱 캐싱]
+    GW -.- F4[모니터링 & 메트릭]
+    GW -.- F5[통합 인증]
 ```
 
 ## 핵심 구성 요소

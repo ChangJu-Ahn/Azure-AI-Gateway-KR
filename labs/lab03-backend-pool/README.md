@@ -278,15 +278,11 @@ Circuit Breaker가 동작하면 다음 priority 그룹으로 자동 전환됩니
 환경 변수를 먼저 설정한 뒤 각 노트북 셀을 순서대로 실행하세요.
 
 **기대 결과:**
-```
-  ┌──────────────────────────────────────┬───────┬────────┐
-  │ 백엔드                               │ 요청수 │ 비율   │
-  ├──────────────────────────────────────┼───────┼────────┤
-  │ aoai-eus-{suffix}.openai.azure.com    │     4 │   33% │
-  │ aoai-swe-{suffix}.openai.azure.com    │     4 │   33% │
-  │ aoai-wus-{suffix}.openai.azure.com    │     4 │   33% │
-  └──────────────────────────────────────┴───────┴────────┘
-```
+| 백엔드 | 요청수 | 비율 |
+|---|---|---|
+| aoai-eus-{suffix}.openai.azure.com | 4 | 33% |
+| aoai-swe-{suffix}.openai.azure.com | 4 | 33% |
+| aoai-wus-{suffix}.openai.azure.com | 4 | 33% |
 
 **VS Code REST Client:** `scripts/test-endpoints.http`의 `Lab 3` 섹션에서 호출 #1~#4를 반복 실행하며 응답 헤더의 `x-backend-url` 값을 비교하세요.
 
@@ -300,19 +296,16 @@ Circuit Breaker가 동작하면 다음 priority 그룹으로 자동 전환됩니
 
 ### Circuit Breaker 동작 흐름
 
-```
-정상 상태 (Closed)
-     │
-     │ 429/5xx 에러 1회 발생
-     ▼
-회로 열림 (Open) ── 해당 백엔드로 요청 차단
-     │
-     │ 30초 경과 (tripDuration)
-     ▼
-반열림 (Half-Open) ── 일부 요청 허용하여 복구 확인
-     │
-     │ 성공 시 → Closed / 실패 시 → Open
-     ▼
+```mermaid
+stateDiagram-v2
+    [*] --> Closed: 정상 상태
+    Closed --> Open: 429/5xx 에러 1회 발생
+    Open --> HalfOpen: 30초 경과 (tripDuration)
+    HalfOpen --> Closed: 성공 시
+    HalfOpen --> Open: 실패 시
+
+    note right of Open: 해당 백엔드로 요청 차단
+    note right of HalfOpen: 일부 요청 허용하여 복구 확인
 ```
 
 ## 다음 단계

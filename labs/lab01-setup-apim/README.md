@@ -93,14 +93,14 @@ pip install -r requirements.txt
 
 ### APIM 핵심 구성 요소
 
-```
-Client → Gateway → API → Operation → Backend
-              │
-              └── Policy Pipeline
-                  ├── Inbound (요청 전처리)
-                  ├── Backend (백엔드 호출)
-                  ├── Outbound (응답 후처리)
-                  └── On-Error (에러 처리)
+```mermaid
+graph LR
+    Client --> Gateway --> API --> Operation --> Backend
+    Gateway -.- PP[Policy Pipeline]
+    PP -.- IN[Inbound - 요청 전처리]
+    PP -.- BK[Backend - 백엔드 호출]
+    PP -.- OUT[Outbound - 응답 후처리]
+    PP -.- ERR[On-Error - 에러 처리]
 ```
 
 ## 다음 단계
