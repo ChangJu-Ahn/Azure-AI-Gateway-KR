@@ -1,6 +1,6 @@
 using '../main.bicep'
 
-param suffix = '<your-suffix>'
+param suffix = 'aigateway-20260317'
 param apimSku = 'Consumption'
-param publisherEmail = '<your-email>'
+param publisherEmail = 'changjuahn@microsoft.com'
 param publisherName = 'AI Gateway Lab'

@@ -17,5 +17,6 @@
     사전 준비:
     - text-embedding-ada-002 또는 text-embedding-3-small 모델 배포 필요
     - embedding-backend라는 이름의 APIM 백엔드 등록 필요
-    - Azure Redis Cache 또는 APIM 내장 캐시 활성화
+    - Azure Redis Cache가 infra/modules/redis.bicep으로 자동 배포됨
+    - APIM 외부 캐시(External Cache)가 infra/modules/apim.bicep에서 자동 연결됨
 -->

@@ -37,9 +37,9 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 2 | 특정 리전(PTU)에 트래픽을 70% 보내고, 나머지를 PayGo 리전으로 **분산**하고 싶다 |
 | 3 | 429(Rate Limit) 에러가 연속 발생하면 **자동으로 다른 리전으로 전환**(Circuit Breaker) 되게 하고 싶다 |
 | 4 | Primary 리전이 복구되면 **수동 개입 없이 자동으로 트래픽을 복원**하고 싶다 |
-| 5 | 글로벌 서비스라 **사용자 위치에 가까운 리전**으로 우선 라우팅하고 싶다 || 6 | 백엔드 풀만으로는 장애 백엔드에 계속 요청이 가는데, **장애 감지 후 자동 제외**되게 하고 싶다 (→ Circuit Breaker 필수) |
-| 7 | PTU 리전은 429가 나도 계속 쓰고 싶지만, PayGo 리전은 429 시 **즉시 다른 리전으로 전환**하고 싶다 (→ `acceptRetryAfter` 설정) |
-| 8 | 모델 배포 실패(404)나 서버 오류(500) 시에도 **자동으로 정상 리전으로 전환**하고 싶다 (→ Circuit Breaker 에러 코드 커스터마이징) |
+| 5 | 백엔드 풀만으로는 장애 백엔드에 계속 요청이 가는데, **장애 감지 후 자동 제외**되게 하고 싶다 (→ Circuit Breaker 필수) |
+| 6 | PTU 리전은 429가 나도 계속 쓰고 싶지만, PayGo 리전은 429 시 **즉시 다른 리전으로 전환**하고 싶다 (→ `acceptRetryAfter` 설정) |
+| 7 | 모델 배포 실패(404)나 서버 오류(500) 시에도 **자동으로 정상 리전으로 전환**하고 싶다 (→ Circuit Breaker 에러 코드 커스터마이징) |
 ### Lab 4: AI 전용 정책 (Rate Limit, Caching, Retry)
 
 | # | 비즈니스 요구사항 |
@@ -48,7 +48,6 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 2 | 동일하거나 유사한 질문이 반복될 때 **캐시로 즉시 응답**하여 비용을 절감하고 싶다 |
 | 3 | 429 에러 발생 시 클라이언트가 직접 재시도하지 않고, **게이트웨이가 자동 재시도**하게 하고 싶다 |
 | 4 | 프롬프트+응답의 **토큰 사용량을 실시간 메트릭**으로 수집하여 비용을 모니터링하고 싶다 |
-| 5 | Free/Standard/Premium **티어별로 다른 토큰 할당량**을 적용하고 싶다 |
 
 ### Lab 5: 멀티 모델 Gateway (Gemini, Claude 등)
 
@@ -58,7 +57,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 2 | 클라이언트 코드 변경 없이 **백엔드 모델을 교체**(예: Gemini -> GPT-5.2)할 수 있게 하고 싶다 |
 | 3 | 모델 프로바이더가 장애일 때 **다른 프로바이더로 자동 Fallback**하고 싶다 |
 | 4 | 각 프로바이더마다 다른 인증 방식(API Key, OAuth 등)을 **게이트웨이에서 통합 관리**하고 싶다 |
-| 5 | 신규 모델(Claude, Llama 등)을 추가할 때 **클라이언트 배포 없이 게이트웨이 설정만으로** 연결하고 싶다 |
+| 5 | 기존 모델 Retirement, 혹은 신규 모델(Claude, Llama 등)을 추가할 때 **클라이언트 배포 없이 게이트웨이 설정만으로** 연결하고 싶다 |
 
 ### Lab 6: 모니터링 & 로깅
 
@@ -94,9 +93,13 @@ graph TD
         Monitor[Monitoring<br/>• App Insights<br/>• Metrics<br/>• Alerts]
     end
 
-    APIM --> EUS[Azure OpenAI<br/>East US]
-    APIM --> SWE[Azure OpenAI<br/>Sweden Central]
-    APIM --> WUS[Azure OpenAI<br/>West US]
+    subgraph AOAIPool[Azure OpenAI Backend Pool]
+        EUS[East US]
+        SWE[Sweden Central]
+        WUS[West US]
+    end
+
+    Pool --> AOAIPool
     APIM --> GEM[Google Gemini]
     APIM --> OTHER[Other AI Models]
 ```
@@ -186,8 +189,7 @@ AI Gateway/
 │   │   ├── gemini-backend.bicep        # Gemini 백엔드 설정
 │   │   └── monitoring.bicep            # App Insights & Log Analytics
 │   └── parameters/
-│       ├── dev.bicepparam              # 개발 환경 파라미터
-│       └── prod.bicepparam             # 운영 환경 파라미터
+│       └── dev.bicepparam              # 개발 환경 파라미터
 │
 ├── policies/                           # APIM 정책 XML 파일
 │   ├── ai-gateway-policy.xml           # AI Gateway 메인 정책
@@ -494,7 +496,6 @@ az login
 
 # 인프라 배포 (Consumption SKU + AOAI 3개 리전 + App Insights)
 ./scripts/deploy.sh          # dev 환경 (기본, Consumption SKU)
-# ./scripts/deploy.sh prod   # prod 환경 (StandardV2 SKU, $300+/월)
 ```
 
 > 💡 **CLI 대신 Azure Portal로 배포하고 싶다면?**  

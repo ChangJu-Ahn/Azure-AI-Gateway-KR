@@ -20,8 +20,11 @@ else
     SUFFIX=$(grep "param suffix" "$PARAMS_FILE" | sed "s/.*= '//;s/'.*//")
 fi
 
-if [ -z "$SUFFIX" ]; then
-    echo "❌ suffix를 결정할 수 없습니다. bicepparam에 suffix가 있거나 두 번째 인자로 전달하세요."
+if [ -z "$SUFFIX" ] || [[ "$SUFFIX" == *"<"* ]] || [[ "$SUFFIX" == *">"* ]]; then
+    echo "❌ suffix가 설정되지 않았습니다."
+    echo "   다음 중 하나를 수행하세요:"
+    echo "   1) infra/parameters/${ENVIRONMENT}.bicepparam의 suffix를 실제 값으로 변경"
+    echo "   2) 두 번째 인자로 suffix 전달: ./scripts/deploy.sh dev mysuffix"
     exit 1
 fi
 
@@ -67,8 +70,15 @@ APIM_NAME=$(az deployment group show \
     --query 'properties.outputs.apimName.value' \
     --output tsv 2>/dev/null || echo "")
 
+REDIS_HOST=$(az deployment group show \
+    --resource-group "$RESOURCE_GROUP" \
+    --name ai-gateway-deployment \
+    --query 'properties.outputs.redisHostName.value' \
+    --output tsv 2>/dev/null || echo "")
+
 echo "Gateway URL: ${APIM_URL}"
 echo "APIM Name:   ${APIM_NAME}"
+echo "Redis Host:  ${REDIS_HOST}"
 
 # .env 생성 (기존 파일이 있으면 백업 후 덮어쓰기)
 if [ -f ".env" ]; then

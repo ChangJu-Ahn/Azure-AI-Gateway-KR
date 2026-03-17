@@ -20,6 +20,7 @@ var apimName = 'apim-ai-gw-${suffix}'
 var aoaiEastUsName = 'aoai-eus-${suffix}'
 var aoaiSwedenName = 'aoai-swe-${suffix}'
 var aoaiWestUsName = 'aoai-wus-${suffix}'
+var redisName = 'redis-ai-gw-${suffix}'
 
 // ─── Monitoring ───
 module monitoring 'modules/monitoring.bicep' = {
@@ -55,6 +56,15 @@ module openaiWestUs 'modules/openai.bicep' = {
   }
 }
 
+// ─── Azure Cache for Redis (시맨틱 캐싱용) ───
+module redis 'modules/redis.bicep' = {
+  name: 'redis'
+  params: {
+    name: redisName
+    location: location
+  }
+}
+
 // ─── API Management ───
 module apim 'modules/apim.bicep' = {
   name: 'apim'
@@ -69,6 +79,7 @@ module apim 'modules/apim.bicep' = {
     openaiEastUsEndpoint: openaiEastUs.outputs.endpoint
     openaiSwedenEndpoint: openaiSweden.outputs.endpoint
     openaiWestUsEndpoint: openaiWestUs.outputs.endpoint
+    redisCacheConnectionString: redis.outputs.connectionString
   }
 }
 
@@ -101,3 +112,4 @@ module roleWestUs 'modules/role-assignment.bicep' = {
 output apimGatewayUrl string = apim.outputs.gatewayUrl
 output apimName string = apim.outputs.name
 output appInsightsName string = monitoring.outputs.appInsightsName
+output redisHostName string = redis.outputs.hostName

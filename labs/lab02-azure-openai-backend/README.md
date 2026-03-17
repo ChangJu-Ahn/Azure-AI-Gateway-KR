@@ -34,7 +34,9 @@ az resource list --resource-group $RESOURCE_GROUP --output table
 
 ## 실습 단계
 
-### 1단계: APIM에 Azure OpenAI API 등록
+### 1단계: APIM에 Azure OpenAI API 등록   
+> 여기서는 **방법 B**, 그리고 **Chat Completion**만으로 진행하도록 합니다.
+
 ![alt text](image.png)
 
 **방법 A: OpenAPI 스펙 임포트**

@@ -28,6 +28,10 @@ param openaiSwedenEndpoint string
 @description('Azure OpenAI West US 엔드포인트')
 param openaiWestUsEndpoint string
 
+@description('Azure Redis Cache 연결 문자열 (시맨틱 캐싱용)')
+@secure()
+param redisCacheConnectionString string
+
 // ─── APIM Service ───
 resource apimService 'Microsoft.ApiManagement/service@2023-09-01-preview' = {
   name: name
@@ -210,6 +214,17 @@ resource backendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-previe
         }
       ]
     }
+  }
+}
+
+// ─── External Cache (Azure Redis – 시맨틱 캐싱용) ───
+resource externalCache 'Microsoft.ApiManagement/service/caches@2023-09-01-preview' = {
+  parent: apimService
+  name: 'default'
+  properties: {
+    connectionString: redisCacheConnectionString
+    useFromLocation: 'default'
+    description: 'Azure Redis Cache for semantic caching'
   }
 }
 
