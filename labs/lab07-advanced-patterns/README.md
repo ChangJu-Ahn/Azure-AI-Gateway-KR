@@ -243,7 +243,7 @@ resource paygoPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview'
 
 ### 노트북 테스트
 
-`labs/lab07-advanced-patterns/test-security.ipynb`를 실행하세요.
+`labs/lab04-policies/test-ip-filter.ipynb`를 실행하세요. (IP 필터 및 보안 테스트는 Lab 4로 이동되었습니다)
 
 노트북에서 다음을 테스트합니다:
 

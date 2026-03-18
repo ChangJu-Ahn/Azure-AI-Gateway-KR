@@ -8,13 +8,15 @@
         <!-- Managed Identity 인증 -->
         <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
 
-        <!-- 시맨틱 캐시 조회 (캐시 히트 시 토큰 소비 없이 바로 outbound로 이동) -->
-        <azure-openai-semantic-cache-lookup
-            score-threshold="0.8"
-            embeddings-backend-id="embedding-backend"
-            embeddings-backend-auth="system-assigned" />
+        <!--
+            시맨틱 캐시 (별도 배포 필요: ./scripts/deploy-semantic-caching.sh)
+            <azure-openai-semantic-cache-lookup
+                score-threshold="0.8"
+                embeddings-backend-id="embedding-backend"
+                embeddings-backend-auth="system-assigned" />
+        -->
 
-        <!-- 토큰 기반 Rate Limiting (캐시 미스 시에만 토큰 차감) -->
+        <!-- 토큰 기반 Rate Limiting -->
         <azure-openai-token-limit
             counter-key="@(context.Subscription.Id)"
             tokens-per-minute="10000"
@@ -43,8 +45,10 @@
 
     <outbound>
         <base />
-        <!-- 시맨틱 캐시 저장 -->
-        <azure-openai-semantic-cache-store duration="3600" />
+        <!--
+            시맨틱 캐시 저장 (별도 배포 필요: ./scripts/deploy-semantic-caching.sh)
+            <azure-openai-semantic-cache-store duration="3600" />
+        -->
 
         <!-- 토큰 메트릭 수집 (모델별·백엔드별 TPM 추적) -->
         <azure-openai-emit-token-metric namespace="ai-gateway-metrics">

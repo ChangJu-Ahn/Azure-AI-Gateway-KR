@@ -14,7 +14,7 @@
 
 | 리소스 | 과금 방식 |
 |--------|-----------|
-| API Management (Consumption 외) | 시간당 과금 |
+| API Management (Developer) | 시간당 과금 (월 ~$50) |
 | Azure OpenAI | 프로비저닝 시 토큰 기반 과금 |
 | Application Insights | 데이터 수집량 기반 |
 | Log Analytics | 데이터 보존량 기반 |

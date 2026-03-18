@@ -4,7 +4,7 @@
 
 ## 목표
 
-- APIM 인스턴스 생성 (Consumption 티어 - 최저 비용)
+- APIM 인스턴스 생성 (Developer 티어 - AI 정책 전체 지원)
 - APIM 포털 구조 이해 (API, Product, Subscription)
 - Gateway URL 확인 및 기본 Health Check
 
@@ -89,7 +89,13 @@ pip install -r requirements.txt
 | 비용 | 호출당 과금 | 월 ~$50 | 월 ~$300+ |
 | SLA | 없음 | 없음 | 99.95% |
 | VNet | 불가 | 가능 | 가능 |
-| 용도 | 테스트/저사용량 | 개발/테스트 | 프로덕션 |
+| AI 토큰 정책 | ❌ 불가 | ✅ 가능 | ✅ 가능 |
+| 배포 시간 | 즉시 | 30~45분 | 30~45분 |
+| 용도 | 저사용량 | 개발/테스트 | 프로덕션 |
+
+> ⚠️ **이 실습에서는 Developer SKU를 권장합니다.**  
+> Consumption에서는 `azure-openai-token-limit`, `rate-limit-by-key` 등 핵심 AI 정책을 사용할 수 없습니다.  
+> `infra/parameters/dev.bicepparam`의 `apimSku`가 `Developer`인지 확인하세요.
 
 ### APIM 핵심 구성 요소
 

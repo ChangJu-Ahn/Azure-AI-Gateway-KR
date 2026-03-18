@@ -62,7 +62,9 @@ Azure REST API 공식 스펙을 임포트하면, Chat Completions·Embeddings·C
 
 **방법 B: 수동 등록 (권장)**
 
-필요한 Operation만 직접 정의합니다. 불필요한 엔드포인트 노출을 방지할 수 있습니다.
+필요한 Operation만 직접 정의합니다. 불필요한 엔드포인트 노출을 방지할 수 있습니다.   
+아래는 배포가 완료되었을 때의 예시이고, 이 중에서 하나의 AOAI를 기반으로 입력합니다.
+![alt text](image-2.png)
 
 1. Azure Portal → APIM → APIs → **Add API** → **HTTP**
 2. 설정:
@@ -75,9 +77,6 @@ Azure REST API 공식 스펙을 임포트하면, Chat Completions·Embeddings·C
      - Display name: `ChatCompletions`
      - Name: `chatcompletions` (자동 입력됨)
      - URL: **POST** `/deployments/{deployment-id}/chat/completions`
-   - (선택) 추가 Operation:
-     - Display name: `Embeddings`
-     - URL: **POST** `/deployments/{deployment-id}/embeddings`
 
 **방법 C: Azure AI Foundry 기반 등록**
 

@@ -24,9 +24,9 @@
     },
     "apimSku": {
       "type": "string",
-      "defaultValue": "Consumption",
+      "defaultValue": "Developer",
       "metadata": {
-        "description": "APIM SKU (Consumption, Developer, StandardV2)"
+        "description": "APIM SKU (Developer, StandardV2, Consumption)"
       }
     },
     "publisherEmail": {

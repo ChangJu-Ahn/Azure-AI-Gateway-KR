@@ -70,15 +70,8 @@ APIM_NAME=$(az deployment group show \
     --query 'properties.outputs.apimName.value' \
     --output tsv 2>/dev/null || echo "")
 
-REDIS_HOST=$(az deployment group show \
-    --resource-group "$RESOURCE_GROUP" \
-    --name ai-gateway-deployment \
-    --query 'properties.outputs.redisHostName.value' \
-    --output tsv 2>/dev/null || echo "")
-
 echo "Gateway URL: ${APIM_URL}"
 echo "APIM Name:   ${APIM_NAME}"
-echo "Redis Host:  ${REDIS_HOST}"
 
 # .env 생성 (기존 파일이 있으면 백업 후 덮어쓰기)
 if [ -f ".env" ]; then

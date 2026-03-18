@@ -213,15 +213,16 @@ AI Gateway/
 │   │   └── test-failover.ipynb         # 테스트: 장애 대응 & Circuit Breaker
 │   ├── lab04-policies/                 # Lab 4: AI 전용 정책 적용
 │   │   ├── README.md
-│   │   └── test-multitenant.ipynb      # 테스트: 멀티 테넌트 토큰 할당량
+│   │   ├── test-token-limit.ipynb      # 테스트: 요청 수 vs 토큰 기반 제한 비교
+│   │   ├── test-ip-filter.ipynb        # 테스트: IP 필터링 & 접근 제어
+│   │   └── test-cors-jwt.ipynb         # 테스트: CORS & JWT 인증
 │   ├── lab05-multi-model-gateway/      # Lab 5: 멀티 모델 통합 (Gemini 등)
 │   │   └── README.md
 │   ├── lab06-monitoring/               # Lab 6: 모니터링 & 로깅
 │   │   ├── README.md
 │   │   └── test-performance.ipynb      # 테스트: 동시 부하 & 성능 측정
 │   ├── lab07-advanced-patterns/        # Lab 7: 고급 패턴
-│   │   ├── README.md
-│   │   └── test-security.ipynb         # 테스트: 접근 제어 & 보안 검증
+│   │   └── README.md
 │   └── lab08-cleanup/                  # Lab 8: 리소스 정리
 │       └── README.md
 │
@@ -272,18 +273,20 @@ APIM 인스턴스를 생성하고 기본 구조를 이해합니다.
    az group create --name rg-ai-gw-{suffix} --location koreacentral
    ```
 
-2. **APIM 인스턴스 배포** (Consumption 티어 - 최저 비용)
+2. **APIM 인스턴스 배포** (Developer 티어 - AI 정책 전체 사용 가능)
    ```bash
    az deployment group create \
      --resource-group rg-ai-gw-{suffix} \
      --template-file infra/main.bicep \
      --parameters infra/parameters/dev.bicepparam
    ```
+   > ℹ️ Developer SKU는 배포에 30~45분 소요됩니다. Consumption보다 시간이 걸리지만,
+   > `azure-openai-token-limit`, `rate-limit-by-key` 등 AI 전용 정책을 모두 사용할 수 있습니다.
 
 3. **포털 접속** 및 기본 API 구성 확인
 
 **학습 포인트:**
-- APIM SKU별 차이 (Consumption vs Developer vs Standard v2)
+- APIM SKU별 차이 (Developer vs Consumption vs Standard v2)
 - API, Product, Subscription 개념
 - Gateway URL 확인
 
@@ -348,36 +351,28 @@ AI 워크로드에 특화된 APIM 정책을 구성합니다.
 
 **주요 작업:**
 
-1. **토큰 기반 Rate Limiting**
+1. **요청 수 기반 Rate Limiting** (`rate-limit`)
+   ```xml
+   <rate-limit calls="5" renewal-period="60" />
+   ```
+
+2. **토큰 기반 Rate Limiting** (`azure-openai-token-limit`)
    ```xml
    <azure-openai-token-limit
      counter-key="@(context.Subscription.Id)"
-     tokens-per-minute="10000"
+     tokens-per-minute="2000"
      estimate-prompt-tokens="true"
-     remaining-tokens-variable-name="remainingTokens" />
+     remaining-tokens-header-name="x-ratelimit-remaining-tokens" />
    ```
 
-2. **토큰 메트릭 수집**
-   ```xml
-   <azure-openai-emit-token-metric namespace="ai-gateway">
-     <dimension name="Subscription ID" />
-     <dimension name="Model" />
-   </azure-openai-emit-token-metric>
-   ```
+3. **요청 수 vs 토큰 기반 제한 비교 실습**
 
-3. **시맨틱 캐싱**
-   ```xml
-   <azure-openai-semantic-cache-lookup
-     score-threshold="0.8"
-     embeddings-backend-id="embedding-backend" />
-   ```
-
-4. **Retry & Circuit Breaker** 정책 적용
+4. **LLM 범용 토큰 제어 (`llm-token-limit`) 개념 학습**
 
 **학습 포인트:**
-- `azure-openai-*` 전용 정책 패밀리
-- 토큰 단위 과금 제어
-- 시맨틱 캐싱을 통한 비용 절감
+- 요청 수 제한(`rate-limit`)과 토큰 제한(`azure-openai-token-limit`)의 동작 차이
+- Azure OpenAI 전용 vs LLM 범용 정책 선택 기준
+- SKU별 정책 지원 범위 (Consumption에서는 토큰 제한 불가)
 
 ---
 
@@ -422,23 +417,30 @@ Azure OpenAI 외에 다른 AI 모델도 APIM 뒤에 통합합니다.
 
 > 📁 `labs/lab06-monitoring/`
 
-AI Gateway의 성능과 사용량을 모니터링합니다.
+AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytics와 Application Insights의 차이를 이해하고, 비즈니스 시나리오에 맞는 모니터링 전략을 수립합니다.
 
 **주요 작업:**
 
-1. **Application Insights 연동**
-2. **커스텀 메트릭 대시보드 구성**
-   - 모델별 토큰 사용량
+1. **APIM Analytics vs Application Insights 비교**
+   - APIM 내장 Analytics로 빠른 상태 점검
+   - Application Insights로 AI 특화 심층 분석
+2. **Application Insights 연동**
+3. **토큰 메트릭 수집 정책 적용**
+   - 모델별·백엔드별 TPM, 구독별 토큰 사용량
+4. **커스텀 메트릭 대시보드 구성**
    - 요청 지연 시간 (P50, P95, P99)
    - 에러율 (429 Too Many Requests 등)
-3. **알림 규칙 설정**
+5. **비즈니스 시나리오별 모니터링 전략**
+   - 팀별 비용 차지백, 실시간 알림, 응답 품질 분석
+6. **알림 규칙 설정**
    - 토큰 사용량 임계치 초과 시 알림
-4. **진단 로그** 활성화
 
 **학습 포인트:**
+- APIM Analytics: 설정 없이 바로 쓸 수 있는 빠른 상태 점검
+- App Insights: 토큰 비용 추적, 모델별 TPM, 요청/응답 Body 분석
 - `emit-metric` / `azure-openai-emit-token-metric` 활용
 - KQL(Kusto Query Language)로 로그 분석
-- Azure Monitor Workbook 활용
+- 비즈니스 목적(차지백, 알림, 품질 분석)에 맞는 모니터링 선택
 
 ---
 
@@ -494,8 +496,9 @@ cd ai-gateway
 # Azure 로그인
 az login
 
-# 인프라 배포 (Consumption SKU + AOAI 3개 리전 + App Insights)
-./scripts/deploy.sh          # dev 환경 (기본, Consumption SKU)
+# 인프라 배포 (Developer SKU + AOAI 3개 리전 + App Insights)
+./scripts/deploy.sh          # dev 환경 (기본, Developer SKU)
+# ⏱️ Developer SKU는 배포에 30~45분 소요됩니다
 ```
 
 > 💡 **CLI 대신 Azure Portal로 배포하고 싶다면?**  
@@ -529,8 +532,9 @@ pip install -r requirements.txt
 |--------|----------|------|
 | 라운드로빈 | 3개 백엔드 균등 분산 검증 | `labs/lab03-backend-pool/test-roundrobin.ipynb` |
 | Failover | 장애 백엔드 자동 제외 & 복구 | `labs/lab03-backend-pool/test-failover.ipynb` |
-| 멀티 테넌트 | 팀별 토큰 할당량 독립 검증 | `labs/lab04-policies/test-multitenant.ipynb` |
-| 보안 | 인증 실패, IP 차단, 잘못된 모델 | `labs/lab07-advanced-patterns/test-security.ipynb` |
+| 호출 제한 | 요청 수 vs 토큰 기반 제한 비교 | `labs/lab04-policies/test-token-limit.ipynb` |
+| IP 필터/보안 | 인증 실패, IP 차단, 잘못된 모델 | `labs/lab04-policies/test-ip-filter.ipynb` |
+| CORS/JWT | CORS Preflight, JWT 인증 | `labs/lab04-policies/test-cors-jwt.ipynb` |
 | 성능 | 응답시간 P50/P90/P99, 동시 부하 | `labs/lab06-monitoring/test-performance.ipynb` |
 
 ### 4단계: 정리 (Clean Up)
@@ -540,14 +544,6 @@ pip install -r requirements.txt
 ```bash
 # 모든 Azure 리소스 삭제 (리소스 그룹 전체 삭제)
 ./scripts/cleanup.sh
-```
-
-### 전체 워크플로우 요약
-
-```mermaid
-graph LR
-    A[deploy.sh<br/>Bicep 배포<br/>→ .env 자동생성] --> B[테스트 노트북<br/>roundrobin / failover<br/>multitenant / security<br/>performance]
-    B --> C[cleanup.sh<br/>az group delete<br/>전체 삭제]
 ```
 
 ---
