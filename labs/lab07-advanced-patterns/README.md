@@ -7,7 +7,6 @@
 - A/B 테스트 라우팅
 - Azure Content Safety 연계
 - SSE 스트리밍 지원
-- 멀티 테넌트 관리
 - PTU vs PayGo 밸런싱
 
 ## 실습 시나리오
@@ -123,63 +122,7 @@ Server-Sent Events 기반 스트리밍 응답을 처리합니다.
 </outbound>
 ```
 
-### 시나리오 4: 멀티 테넌트 관리
-
-APIM Product/Subscription을 활용하여 테넌트별 접근 제어와 할당량을 관리합니다.
-
-```bicep
-// 테넌트별 Product 생성
-resource productTierFree 'Microsoft.ApiManagement/service/products@2023-09-01-preview' = {
-  parent: apimService
-  name: 'ai-gateway-free'
-  properties: {
-    displayName: 'AI Gateway - Free Tier'
-    description: '무료 티어: 분당 1,000 토큰'
-    subscriptionRequired: true
-    approvalRequired: false
-    state: 'published'
-  }
-}
-
-resource productTierPro 'Microsoft.ApiManagement/service/products@2023-09-01-preview' = {
-  parent: apimService
-  name: 'ai-gateway-pro'
-  properties: {
-    displayName: 'AI Gateway - Pro Tier'
-    description: 'Pro 티어: 분당 50,000 토큰'
-    subscriptionRequired: true
-    approvalRequired: true
-    state: 'published'
-  }
-}
-```
-
-**티어별 토큰 제한 정책:**
-
-> **적용 위치: Inbound processing** — Product ID에 따라 다른 토큰 제한을 적용합니다.
-
-```xml
-<!-- Inbound processing에 적용 -->
-<inbound>
-    <base />
-    <choose>
-        <when condition="@(context.Product.Id == "ai-gateway-free")">
-            <azure-openai-token-limit
-                counter-key="@(context.Subscription.Id)"
-                tokens-per-minute="1000"
-                estimate-prompt-tokens="true" />
-        </when>
-        <when condition="@(context.Product.Id == "ai-gateway-pro")">
-            <azure-openai-token-limit
-                counter-key="@(context.Subscription.Id)"
-                tokens-per-minute="50000"
-                estimate-prompt-tokens="true" />
-        </when>
-    </choose>
-</inbound>
-```
-
-### 시나리오 5: PTU vs PayGo 밸런싱
+### 시나리오 4: PTU vs PayGo 밸런싱
 
 Provisioned Throughput Unit(PTU)를 우선 사용하고, 초과 시 PayGo로 Spillover합니다.
 
@@ -231,7 +174,6 @@ resource paygoPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview'
 - [ ] 토큰 Rate Limiting으로 비용 제어
 - [ ] Application Insights로 메트릭/로그 수집
 - [ ] Content Safety로 유해 콘텐츠 필터링
-- [ ] Product/Subscription으로 멀티 테넌트 관리
 - [ ] PTU + PayGo 밸런싱으로 비용 최적화
 - [ ] 스트리밍 지원 (buffer-response="false")
 
@@ -240,34 +182,6 @@ resource paygoPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview'
 모든 Lab을 완료하셨습니다. 이 레포지토리의 패턴을 활용하여 프로덕션 AI Gateway를 구축해 보세요.
 
 ## 테스트 방법
-
-### 노트북 테스트
-
-`labs/lab04-policies/test-ip-filter.ipynb`를 실행하세요. (IP 필터 및 보안 테스트는 Lab 4로 이동되었습니다)
-
-노트북에서 다음을 테스트합니다:
-
-| 테스트 | 내용 | 기대 결과 |
-|--------|------|----------|
-| IP 제한 | `ip-filter` 정책 적용 시 차단 확인 | 403 Forbidden |
-| 스트리밍 | SSE `stream: true` 호출 | `data: {...}` 청크 응답 |
-| A/B 라우팅 | 10회 호출 시 `x-ab-group` 헤더 분포 | control/experiment 분산 |
-
-### IP 제한 테스트 절차
-
-1. 내 공인 IP 확인: `curl https://api.ipify.org`
-2. APIM 정책의 **`<inbound>`** 섹션에 IP 필터 추가 (내 IP를 **제외**하고 테스트):
-   ```xml
-   <!-- inbound 섹션에 추가 -->
-   <inbound>
-       <base />
-       <ip-filter action="forbid">
-           <address>YOUR_IP</address>
-       </ip-filter>
-   </inbound>
-   ```
-3. 호출 시 403 확인
-4. 정책을 `action="allow"`로 변경하고 내 IP 추가 → 200 확인
 
 ### VS Code REST Client
 

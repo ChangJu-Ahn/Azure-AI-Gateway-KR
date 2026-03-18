@@ -76,8 +76,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 1 | 새 모델 버전(GPT-4o latest)을 **트래픽 10%로 카나리 배포**하고 성능을 비교하고 싶다 |
 | 2 | 사용자 입력에 욕설/유해 콘텐츠가 포함되면 **AI 모델 호출 전에 차단**하고 싶다 |
 | 3 | ChatGPT처럼 **실시간 스트리밍 응답**(SSE)을 게이트웨이를 거쳐 제공하고 싶다 |
-| 4 | 특정 IP 대역만 AI API에 접근할 수 있도록 **네트워크 수준 접근 제어**를 하고 싶다 |
-| 5 | 외부 파트너에게 AI API를 제공하되, **파트너별 SLA와 할당량을 다르게** 적용하고 싶다 |
+| 4 | PTU 리전에서 429가 발생하면 **자동으로 PayGo 리전으로 Spillover**하고 싶다 |
 
 ---
 
@@ -217,12 +216,14 @@ AI Gateway/
 │   │   ├── test-ip-filter.ipynb        # 테스트: IP 필터링 & 접근 제어
 │   │   └── test-cors-jwt.ipynb         # 테스트: CORS & JWT 인증
 │   ├── lab05-multi-model-gateway/      # Lab 5: 멀티 모델 통합 (Gemini 등)
-│   │   └── README.md
+│   │   ├── README.md
+│   │   └── test-gemini.ipynb            # 테스트: Gemini 라우팅 & 응답 정규화
 │   ├── lab06-monitoring/               # Lab 6: 모니터링 & 로깅
 │   │   ├── README.md
 │   │   └── test-performance.ipynb      # 테스트: 동시 부하 & 성능 측정
 │   ├── lab07-advanced-patterns/        # Lab 7: 고급 패턴
-│   │   └── README.md
+│   │   ├── README.md
+│   │   └── test-advanced.ipynb          # 테스트: A/B 라우팅 & SSE 스트리밍
 │   └── lab08-cleanup/                  # Lab 8: 리소스 정리
 │       └── README.md
 │
@@ -458,14 +459,11 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
    - Azure Content Safety로 요청/응답 필터링
 3. **Streaming 지원**
    - SSE(Server-Sent Events) 기반 스트리밍 응답 처리
-4. **멀티 테넌트 관리**
-   - Subscription/Product별 모델 접근 제어 및 할당량 관리
-5. **비용 최적화**
-   - PTU(Provisioned Throughput Unit) vs PayGo 밸런싱
+4. **PTU vs PayGo 밸런싱**
+   - PTU 우선 사용 + 초과 시 PayGo Spillover
 
 **학습 포인트:**
 - 실제 프로덕션 환경의 AI Gateway 운영 전략
-- APIM Product/Subscription을 활용한 멀티 테넌트 관리
 - 비용 효율적인 AI 인프라 운영
 
 ---
@@ -536,6 +534,8 @@ pip install -r requirements.txt
 | IP 필터/보안 | 인증 실패, IP 차단, 잘못된 모델 | `labs/lab04-policies/test-ip-filter.ipynb` |
 | CORS/JWT | CORS Preflight, JWT 인증 | `labs/lab04-policies/test-cors-jwt.ipynb` |
 | 성능 | 응답시간 P50/P90/P99, 동시 부하 | `labs/lab06-monitoring/test-performance.ipynb` |
+| Gemini 통합 | OpenAI↔Gemini 라우팅 & 응답 정규화 | `labs/lab05-multi-model-gateway/test-gemini.ipynb` |
+| 고급 패턴 | A/B 라우팅 분포, SSE 스트리밍 | `labs/lab07-advanced-patterns/test-advanced.ipynb` |
 
 ### 4단계: 정리 (Clean Up)
 
