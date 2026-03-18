@@ -26,6 +26,15 @@
             tokens-consumed-variable-name="tokensConsumed"
             tokens-consumed-header-name="x-ratelimit-tokens-consumed" />
 
+        <!-- 토큰 메트릭 수집 (inbound에 배치 — 공식 문서 기준) -->
+        <azure-openai-emit-token-metric namespace="ai-gateway-metrics">
+            <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
+            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+            <dimension name="API ID" value="@(context.Api.Id)" />
+            <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
+            <dimension name="Backend ID" />
+        </azure-openai-emit-token-metric>
+
         <!-- 백엔드 풀 로드밸런싱 -->
         <set-backend-service backend-id="openai-backend-pool" />
     </inbound>
@@ -50,22 +59,13 @@
             <azure-openai-semantic-cache-store duration="3600" />
         -->
 
-        <!-- 토큰 메트릭 수집 (모델별·백엔드별 TPM 추적) -->
-        <azure-openai-emit-token-metric namespace="ai-gateway-metrics">
-            <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
-            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
-            <dimension name="API ID" value="@(context.Api.Id)" />
+        <!-- 커스텀 메트릭: 응답 지연 시간 (outbound에 배치) -->
+        <emit-metric name="ai-gateway-latency" namespace="ai-gateway-metrics"
+                     value="@(context.Elapsed.TotalMilliseconds)">
+            <dimension name="API ID" />
             <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
-            <dimension name="Backend" value="@(context.Request.Url.Host)" />
-        </azure-openai-emit-token-metric>
-
-        <!-- 커스텀 메트릭: 응답 지연 시간 -->
-        <emit-metric name="ai-gateway-latency" namespace="ai-gateway-metrics">
-            <dimension name="API" value="@(context.Api.Name)" />
-            <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
-            <dimension name="Backend" value="@(context.Request.Url.Host)" />
+            <dimension name="Backend ID" />
             <dimension name="Status" value="@(context.Response.StatusCode.ToString())" />
-            <value>@(context.Elapsed.TotalMilliseconds)</value>
         </emit-metric>
     </outbound>
 

@@ -11,7 +11,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 3 | 백엔드 풀 & 로드밸런싱 | ✅ 완료 |
 | Lab 4 | AI 전용 정책 (Rate Limit, Caching, Retry) | ✅ 완료 |
 | Lab 5 | 멀티 모델 Gateway (Gemini, Claude 등) | 🔄 확인중 |
-| Lab 6 | 모니터링 & 로깅 | 🔄 확인중 |
+| Lab 6 | 모니터링 & 로깅 | ✅ 완료 |
 | Lab 7 | 고급 패턴 (A/B 테스트, Content Safety 등) | 🔄 확인중 |
 | Lab 8 | 리소스 정리 | ✅ 완료 |
 

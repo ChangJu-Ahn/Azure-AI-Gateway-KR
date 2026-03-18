@@ -377,12 +377,12 @@ customMetrics
 <outbound>
     <base />
     <!-- 모델별·백엔드별 응답 지연 시간(ms) 수집 -->
-    <emit-metric name="ai-gateway-latency" namespace="ai-gateway-metrics">
+    <emit-metric name="ai-gateway-latency" namespace="ai-gateway-metrics"
+                 value="@(context.Elapsed.TotalMilliseconds)">
         <dimension name="API" value="@(context.Api.Name)" />
         <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
         <dimension name="Backend" value="@(context.Request.Url.Host)" />
         <dimension name="Status" value="@(context.Response.StatusCode.ToString())" />
-        <value>@(context.Elapsed.TotalMilliseconds)</value>
     </emit-metric>
 </outbound>
 ```
@@ -556,12 +556,12 @@ customMetrics
         </azure-openai-emit-token-metric>
 
         <!-- 7. 커스텀 지연 시간 메트릭 -->
-        <emit-metric name="ai-gateway-latency" namespace="ai-gateway-metrics">
+        <emit-metric name="ai-gateway-latency" namespace="ai-gateway-metrics"
+                     value="@(context.Elapsed.TotalMilliseconds)">
             <dimension name="API" value="@(context.Api.Name)" />
             <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
             <dimension name="Backend" value="@(context.Request.Url.Host)" />
             <dimension name="Status" value="@(context.Response.StatusCode.ToString())" />
-            <value>@(context.Elapsed.TotalMilliseconds)</value>
         </emit-metric>
     </outbound>
 

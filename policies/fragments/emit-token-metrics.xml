@@ -1,11 +1,13 @@
 <!-- 토큰 메트릭 수집 정책 조각 -->
-<!-- 모델별·백엔드별 TPM 추적을 위해 Backend 차원 포함 -->
+<!-- 적용 위치: Inbound (공식 문서 기준) -->
+<!-- 모델별·백엔드별 TPM 추적을 위해 Backend ID 차원 포함 -->
+<!-- 커스텀 dimension은 정책당 최대 5개까지 허용됩니다 -->
 <fragment>
     <azure-openai-emit-token-metric namespace="ai-gateway-metrics">
         <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
         <dimension name="Client IP" value="@(context.Request.IpAddress)" />
         <dimension name="API ID" value="@(context.Api.Id)" />
         <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
-        <dimension name="Backend" value="@(context.Request.Url.Host)" />
+        <dimension name="Backend ID" />
     </azure-openai-emit-token-metric>
 </fragment>
