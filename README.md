@@ -9,7 +9,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 1 | APIM 기본 설정 | ✅ 완료 |
 | Lab 2 | Azure OpenAI 백엔드 연결 | ✅ 완료 |
 | Lab 3 | 백엔드 풀 & 로드밸런싱 | ✅ 완료 |
-| Lab 4 | AI 전용 정책 (Rate Limit, Caching, Retry) | 🔄 확인중 |
+| Lab 4 | AI 전용 정책 (Rate Limit, Caching, Retry) | ✅ 완료 |
 | Lab 5 | 멀티 모델 Gateway (Gemini, Claude 등) | 🔄 확인중 |
 | Lab 6 | 모니터링 & 로깅 | 🔄 확인중 |
 | Lab 7 | 고급 패턴 (A/B 테스트, Content Safety 등) | 🔄 확인중 |
@@ -368,7 +368,13 @@ AI 워크로드에 특화된 APIM 정책을 구성합니다.
 
 3. **요청 수 vs 토큰 기반 제한 비교 실습**
 
-4. **LLM 범용 토큰 제어 (`llm-token-limit`) 개념 학습**
+4. **조건부 정책 (`<choose>`)으로 티어별 차등 제한**
+   - `x-client-id` 헤더 기반으로 premium/standard/free 차등 rate limit 적용
+   - Product 없이 API 레벨에서 세분화된 제한 구현
+
+5. **LLM 범용 토큰 제어 (`llm-token-limit`) 실습**
+   - `<choose>` + `llm-token-limit` 조합으로 티어별 TPM 차등 적용
+   - Azure OpenAI 전용 vs 멀티 LLM 범용 정책 비교
 
 **학습 포인트:**
 - 요청 수 제한(`rate-limit`)과 토큰 제한(`azure-openai-token-limit`)의 동작 차이

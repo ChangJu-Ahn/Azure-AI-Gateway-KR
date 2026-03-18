@@ -17,6 +17,29 @@ az account set --subscription "<구독 ID>"
 
 ## 실습 단계
 
+### 0단계: 인프라 파라미터 설정
+
+배포 전에 `infra/parameters/dev.bicepparam` 파일을 열어 **본인 환경에 맞게 수정**합니다:
+
+```bicep
+using '../main.bicep'
+
+param suffix = 'mygateway-0318'         // ← 고유한 접미사로 변경 (리소스 이름에 사용)
+param apimSku = 'Developer'              // Developer 권장 (AI 정책 전체 지원)
+param publisherEmail = 'you@example.com' // ← 본인 이메일로 변경 (APIM 관리자 알림용)
+param publisherName = 'AI Gateway Lab'
+```
+
+| 파라미터 | 설명 | 예시 |
+|---|---|---|
+| `suffix` | 리소스 이름 접미사. Azure 전역에서 고유해야 함 | `ailab-0318`, `team1-dev` |
+| `apimSku` | APIM SKU. **Developer** 권장 | `Developer`, `Consumption` |
+| `publisherEmail` | APIM 관리자 이메일 (배포 완료 알림 수신) | `your@email.com` |
+| `publisherName` | APIM 게시자 이름 | `AI Gateway Lab` |
+
+> ⚠️ `suffix`는 Azure OpenAI, APIM 등 리소스 이름에 포함됩니다 (예: `apim-ai-gw-{suffix}`).
+> 이미 존재하는 이름이면 배포가 실패하므로, 날짜나 이니셜을 포함하여 **고유하게** 지정하세요.
+
 ### 1단계: 전체 인프라 배포
 
 ```bash
@@ -28,6 +51,15 @@ az account set --subscription "<구독 ID>"
 > 1. 리소스 그룹 `rg-ai-gw-{suffix}` 생성
 > 2. Bicep으로 APIM + Azure OpenAI × 3 + 백엔드 풀 + 모니터링 배포
 > 3. `.env` 자동 생성 (APIM URL 포함)
+>
+> ⏱️ **Developer SKU는 배포에 30~45분이 소요됩니다.**
+> 터미널에서 `az deployment group create` 명령이 완료될 때까지 기다려야 합니다.
+> Azure는 배포 완료 이메일을 보내지 않으므로, 아래 방법으로 확인하세요:
+> - **터미널**: `deploy.sh`가 "✅ 배포 완료!" 메시지를 출력할 때까지 대기
+> - **Azure Portal**: 리소스 그룹 → **배포(Deployments)** → 상태가 `Succeeded`로 변경 확인
+> - **CLI 수동 확인**: `az deployment group show --resource-group rg-ai-gw-{suffix} --name ai-gateway-deployment --query properties.provisioningState`
+>
+> 배포 대기 중에는 Lab 1 아래의 핵심 개념(SKU 비교, APIM 구성 요소)을 미리 읽어두면 좋습니다.
 >
 > **모델 배포 용량(TPM):** 기본 **5K TPM**(5,000 토큰/분)으로 배포됩니다.
 > 이는 Lab 3의 429/Circuit Breaker 테스트를 쉽게 하기 위한 설정입니다.
@@ -46,6 +78,9 @@ az resource list --resource-group $RESOURCE_GROUP --output table
 # APIM Gateway URL 확인
 echo $APIM_URL
 ```
+
+실제로 배포가 완료되면 최초 설정한 이메일로 다음과 같은 알림이 공유됩니다.
+![alt text](image-1.png)
 
 ### 3단계: Python 환경 설정
 

@@ -46,6 +46,11 @@ az group create \
 
 # Bicep 배포
 echo "🚀 인프라 배포 시작..."
+echo ""
+echo "⏱️  Developer SKU는 배포에 30~45분이 소요됩니다."
+echo "   이 터미널을 닫지 마세요. 배포 완료 시 자동으로 결과가 출력됩니다."
+echo "   Azure Portal → 리소스 그룹 → 배포(Deployments)에서도 진행 상태를 확인할 수 있습니다."
+echo ""
 az deployment group create \
     --resource-group "$RESOURCE_GROUP" \
     --template-file infra/main.bicep \

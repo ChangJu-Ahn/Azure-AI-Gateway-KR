@@ -416,12 +416,15 @@ Lab 4에는 정책 유형별로 별도 노트북이 준비되어 있습니다:
 | `test-cors-jwt.ipynb` | CORS Preflight + JWT 인증 | JWT: Azure AD 앱 등록 (선택, 없으면 스킵) |
 
 #### test-token-limit.ipynb
-팀별 Subscription Key로 토큰 할당량이 독립적으로 동작하는지 검증합니다:
-1. **토큰 Rate Limiting**: 큰 max_tokens로 연속 호출하여 429 응답 유발
-2. **독립 카운터**: 팀 A 차단 중 팀 B 정상 호출 확인
-3. **프리미엄 팀**: 대량 호출에도 문제없는지 확인
+Product 기반 제한과 API 레벨 조건부 정책을 모두 실습합니다:
 
-> ⚠️ Product/Subscription을 먼저 설정해야 합니다. 노트북 하단 가이드를 참고하세요.
+**실습 A**: 요청 수 기반 제한 (`rate-limit`, Product 레벨, 5회/분)
+**실습 B**: 토큰 기반 제한 (`azure-openai-token-limit`, Product 레벨, 2,000 TPM)
+**실습 C**: 조건부 정책 (`<choose>` + `rate-limit-by-key`, API 레벨) — `x-client-id` 헤더로 tieer별 차등 제한
+**실습 D**: 조건부 LLM 토큰 제한 (`<choose>` + `llm-token-limit`, API 레벨) — 티어별 TPM 차등 적용
+
+> ⚠️ 실습 A, B는 Product/Subscription을 먼저 설정해야 합니다 (노트북에서 자동 생성).
+> 실습 C, D는 기존 Built-in Subscription Key로 테스트합니다.
 
 #### test-ip-filter.ipynb
 IP 필터 정책을 자동으로 적용/복원하며 테스트합니다:
