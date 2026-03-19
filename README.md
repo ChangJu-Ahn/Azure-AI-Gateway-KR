@@ -1,4 +1,4 @@
-# Azure API Management AI Gateway 실습 레포지토리
+# Azure AI Gateway(API Management) 실습 레포지토리
 
 Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Google Gemini, Anthropic Claude 등)을 통합 관리하는 **AI Gateway** 패턴을 실습하는 레포지토리입니다.
 
