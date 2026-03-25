@@ -393,6 +393,62 @@ Lab 3에서는 **서로 다른 리전**의 Azure OpenAI를 로드밸런싱했습
 2. **비용 분산**: 여러 프로젝트/계정의 크레딧을 활용
 3. **장애 격리**: 특정 키가 차단되어도 나머지로 서비스 지속
 
+### (선택) Content Safety 적용 — 모든 LLM에 공통 적용
+
+APIM의 `llm-content-safety` 정책을 사용하면, **백엔드가 Azure OpenAI든 Gemini든** 동일한 콘텐츠 안전 검사를 적용할 수 있습니다.
+사용자 프롬프트에 유해 콘텐츠(혐오, 폭력, 자해, 성적 콘텐츠)가 포함되면 LLM 호출 전에 차단합니다.
+
+#### 사전 준비
+
+1. **Azure AI Content Safety 리소스** 생성 (Azure Portal → "Content Safety" 검색 → Create)
+2. APIM에 Content Safety 백엔드 등록:
+
+```bash
+az apim backend create \
+  --resource-group $RESOURCE_GROUP \
+  --service-name $APIM_NAME \
+  --backend-id content-safety-backend \
+  --protocol http \
+  --url "https://<your-content-safety>.cognitiveservices.azure.com/contentsafety"
+```
+
+3. APIM Managed Identity에 Content Safety 리소스 접근 권한 부여
+
+#### Gemini API 정책에 추가
+
+5단계 정책의 `<inbound>` 섹션에 `llm-content-safety`를 추가하면 됩니다:
+
+```xml
+<policies>
+    <inbound>
+        <base />
+        <!-- ① 유해 콘텐츠 검사 (LLM 호출 전에 차단) -->
+        <llm-content-safety backend-id="content-safety-backend">
+            <text-content>
+                <category name="Hate" threshold="Medium" />
+                <category name="Violence" threshold="Medium" />
+                <category name="SelfHarm" threshold="Medium" />
+                <category name="Sexual" threshold="Medium" />
+            </text-content>
+        </llm-content-safety>
+        <!-- ② 백엔드 풀 라우팅 -->
+        <set-backend-service backend-id="gemini-backend-pool" />
+    </inbound>
+    ...
+</policies>
+```
+
+> 💡 **멀티 모델 Gateway에서 Content Safety의 장점**
+>
+> | | Content Safety 없이 | Content Safety 적용 |
+> |---|---|---|
+> | Azure OpenAI | 자체 필터 있음 (모델 내장) | 게이트웨이 레벨에서 추가 필터 |
+> | Gemini | Google Safety 필터 의존 | **Azure AI 기준으로 통일** |
+> | Claude | Anthropic 필터 의존 | **Azure AI 기준으로 통일** |
+>
+> APIM 레벨에서 Content Safety를 적용하면 **모든 백엔드 모델에 동일한 안전 기준**을 강제할 수 있습니다.
+> 각 모델 프로바이더의 안전 필터에 의존하지 않아도 됩니다.
+
 ## 다음 단계
 
 → [Lab 6: 모니터링 & 로깅](../lab06-monitoring/README.md)
