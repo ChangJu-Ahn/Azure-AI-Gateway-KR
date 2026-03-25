@@ -4,13 +4,9 @@
     "status": 200,
     "backend": "aoai-eus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1237",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:15:54 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:04:52 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
       "azureml-model-session": "d20260306020336-1dd167ad4e20",
@@ -21,10 +17,11 @@
       "x-ratelimit-limit-tokens": "5000",
       "x-ratelimit-remaining-requests": "4",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "17750",
+      "x-ratelimit-reset-requests": "12000",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "a4cc51be-5be1-4991-80fe-4fbc79f0068e",
-      "apim-request-id": "4337df5f-781b-4f4e-9334-dd9e6cc23694",
+      "x-request-id": "b8116f3f-be39-4000-bd10-cc3013fd0220",
+      "apim-request-id": "aa78a85d-3d51-4dbf-a2de-91fb9bef1f1e",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -72,8 +69,8 @@
           }
         }
       ],
-      "created": 1773735353,
-      "id": "chatcmpl-DKJsf6JUBeTWBowVD60BKw1u7Fp1G",
+      "created": 1774418692,
+      "id": "chatcmpl-DNBeGHdtkBM1DO5UQK33bESEKa3LO",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -127,58 +124,41 @@
     "status": 200,
     "backend": "aoai-swe-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1035",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:15:55 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-      "apim-request-id": "4a7febda-283c-465e-b4c7-5a162c252b39",
-      "X-Content-Type-Options": "nosniff",
-      "x-ms-region": "Sweden Central",
-      "x-ratelimit-remaining-requests": "1",
-      "x-ratelimit-limit-requests": "5",
-      "x-ratelimit-remaining-tokens": "4993",
-      "x-ratelimit-limit-tokens": "5000",
-      "azureml-model-session": "d20260215023540-156536edf8cd",
+      "Date": "Wed, 25 Mar 2026 06:04:54 GMT",
+      "azureai-processed-tier": "default",
+      "azureai-requested-tier": "default",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
+      "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
-      "X-Request-ID": "7c2a4058-4a02-4933-ae73-524ae265dc8d",
+      "x-ratelimit-limit-requests": "5",
+      "x-ratelimit-limit-tokens": "5000",
+      "x-ratelimit-remaining-requests": "4",
+      "x-ratelimit-remaining-tokens": "4964",
+      "x-ratelimit-reset-requests": "12000",
+      "x-ratelimit-reset-tokens": "432",
+      "x-request-id": "a0614c9c-fe4a-410a-a0aa-e63e04f598ba",
+      "apim-request-id": "1e634253-0703-444e-8f29-8350584cfb63",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
+      "X-Content-Type-Options": "nosniff",
+      "x-ms-region": "Sweden Central",
       "x-backend-url": "aoai-swe-aigateway-20260317.openai.azure.com",
       "Request-Context": "appId=cid-v1:65ce92df-13dd-4232-8395-3c9a7e379e8b"
     },
     "body": {
       "choices": [
         {
-          "content_filter_results": {
-            "hate": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "protected_material_code": {
-              "detected": false,
-              "filtered": false
-            },
-            "protected_material_text": {
-              "detected": false,
-              "filtered": false
-            },
-            "self_harm": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "sexual": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "violence": {
-              "filtered": false,
-              "severity": "safe"
+          "content_filter_result": {
+            "error": {
+              "code": "content_filter_error",
+              "message": "The contents are not filtered"
             }
           },
+          "content_filter_results": {},
           "finish_reason": "stop",
           "index": 0,
           "logprobs": null,
@@ -190,8 +170,8 @@
           }
         }
       ],
-      "created": 1773735355,
-      "id": "chatcmpl-DKJshxqyM5zDVPcZmTPuKvfJ46QZg",
+      "created": 1774418694,
+      "id": "chatcmpl-DNBeIHsmtzq1r34TgRJhZiDdJWeZW",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -203,8 +183,8 @@
               "severity": "safe"
             },
             "jailbreak": {
-              "detected": false,
-              "filtered": false
+              "filtered": false,
+              "detected": false
             },
             "self_harm": {
               "filtered": false,
@@ -221,6 +201,7 @@
           }
         }
       ],
+      "service_tier": "default",
       "system_fingerprint": "fp_490a4ad033",
       "usage": {
         "completion_tokens": 2,
@@ -244,27 +225,24 @@
     "status": 200,
     "backend": "aoai-wus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1291",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:15:57 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:04:56 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
-      "azureml-model-session": "d20260215023540-156536edf8cd",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
       "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
       "x-ratelimit-limit-requests": "5",
       "x-ratelimit-limit-tokens": "5000",
-      "x-ratelimit-remaining-requests": "1",
+      "x-ratelimit-remaining-requests": "4",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "44472",
+      "x-ratelimit-reset-requests": "12000",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "16a78255-8627-4ced-b622-92ed5bd1aae4",
-      "apim-request-id": "1aeedc7f-a9df-4677-8a43-07ee9d8897b8",
+      "x-request-id": "fd4e7f22-9f36-946a-997f-c01092bed919",
+      "apim-request-id": "e1634c23-02cb-4606-9240-56bd1a97c83d",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -312,8 +290,8 @@
           }
         }
       ],
-      "created": 1773735356,
-      "id": "chatcmpl-DKJsiQcPp1XI2hQUpqkaBf9H0dvhd",
+      "created": 1774418696,
+      "id": "chatcmpl-DNBeKIyaS21AV2RZ7WHUXDa6XhNJ2",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -323,6 +301,10 @@
             "hate": {
               "filtered": false,
               "severity": "safe"
+            },
+            "indirect_attack": {
+              "detected": false,
+              "filtered": false
             },
             "jailbreak": {
               "detected": false,
@@ -367,13 +349,9 @@
     "status": 200,
     "backend": "aoai-eus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1242",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:15:58 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:04:58 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
       "azureml-model-session": "d20260306020336-1dd167ad4e20",
@@ -384,10 +362,11 @@
       "x-ratelimit-limit-tokens": "5000",
       "x-ratelimit-remaining-requests": "3",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "24684",
+      "x-ratelimit-reset-requests": "18082",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "af4ed6b9-7d24-46f5-b065-42852696b804",
-      "apim-request-id": "f73fd153-6bf6-45af-b24e-93e4fdb896e2",
+      "x-request-id": "e48e1afb-b00f-41e5-bda2-29579acd5f43",
+      "apim-request-id": "d744e5d5-0aa5-4226-accd-4478a16c561e",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -429,14 +408,14 @@
           "logprobs": null,
           "message": {
             "annotations": [],
-            "content": "3",
+            "content": "Three.",
             "refusal": null,
             "role": "assistant"
           }
         }
       ],
-      "created": 1773735358,
-      "id": "chatcmpl-DKJskWc8lkl9mVg0LT7lRVOOcGRXA",
+      "created": 1774418697,
+      "id": "chatcmpl-DNBeLpxYaNjGh5Wt8VVi8SFMbbvYm",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -469,7 +448,7 @@
       "service_tier": "default",
       "system_fingerprint": "fp_490a4ad033",
       "usage": {
-        "completion_tokens": 2,
+        "completion_tokens": 3,
         "completion_tokens_details": {
           "accepted_prediction_tokens": 0,
           "audio_tokens": 0,
@@ -481,7 +460,7 @@
           "audio_tokens": 0,
           "cached_tokens": 0
         },
-        "total_tokens": 13
+        "total_tokens": 14
       }
     }
   },
@@ -490,26 +469,28 @@
     "status": 200,
     "backend": "aoai-swe-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1241",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:00 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-      "apim-request-id": "b8d99d2a-f4e0-4a97-9d50-49f2f4b11e65",
-      "X-Content-Type-Options": "nosniff",
-      "x-ms-region": "Sweden Central",
-      "x-ratelimit-remaining-requests": "0",
-      "x-ratelimit-limit-requests": "5",
-      "x-ratelimit-remaining-tokens": "4989",
-      "x-ratelimit-limit-tokens": "5000",
-      "azureml-model-session": "d20260215023540-156536edf8cd",
+      "Date": "Wed, 25 Mar 2026 06:04:59 GMT",
+      "azureai-processed-tier": "default",
+      "azureai-requested-tier": "default",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
+      "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
-      "X-Request-ID": "5db92613-e4f1-452b-a46f-e6e2a2aea675",
+      "x-ratelimit-limit-requests": "5",
+      "x-ratelimit-limit-tokens": "5000",
+      "x-ratelimit-remaining-requests": "3",
+      "x-ratelimit-remaining-tokens": "4964",
+      "x-ratelimit-reset-requests": "19157",
+      "x-ratelimit-reset-tokens": "432",
+      "x-request-id": "b3f02ea1-6385-4de8-84cd-a0149df09f57",
+      "apim-request-id": "55fe941f-b72c-47b5-81f3-b51d45be6ae8",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
+      "X-Content-Type-Options": "nosniff",
+      "x-ms-region": "Sweden Central",
       "x-backend-url": "aoai-swe-aigateway-20260317.openai.azure.com",
       "Request-Context": "appId=cid-v1:65ce92df-13dd-4232-8395-3c9a7e379e8b"
     },
@@ -522,12 +503,12 @@
               "severity": "safe"
             },
             "protected_material_code": {
-              "detected": false,
-              "filtered": false
+              "filtered": false,
+              "detected": false
             },
             "protected_material_text": {
-              "detected": false,
-              "filtered": false
+              "filtered": false,
+              "detected": false
             },
             "self_harm": {
               "filtered": false,
@@ -553,8 +534,8 @@
           }
         }
       ],
-      "created": 1773735360,
-      "id": "chatcmpl-DKJsmVuogfUVxwnRwPnqMmrYMB17f",
+      "created": 1774418699,
+      "id": "chatcmpl-DNBeN8pHOibtmYCijhDgzbZCq0Sc6",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -566,8 +547,8 @@
               "severity": "safe"
             },
             "jailbreak": {
-              "detected": false,
-              "filtered": false
+              "filtered": false,
+              "detected": false
             },
             "self_harm": {
               "filtered": false,
@@ -584,6 +565,7 @@
           }
         }
       ],
+      "service_tier": "default",
       "system_fingerprint": "fp_490a4ad033",
       "usage": {
         "completion_tokens": 3,
@@ -607,27 +589,24 @@
     "status": 200,
     "backend": "aoai-wus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1295",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:02 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:05:00 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
-      "azureml-model-session": "d20260215023540-156536edf8cd",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
       "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
       "x-ratelimit-limit-requests": "5",
       "x-ratelimit-limit-tokens": "5000",
-      "x-ratelimit-remaining-requests": "1",
+      "x-ratelimit-remaining-requests": "3",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "51313",
+      "x-ratelimit-reset-requests": "19875",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "715ffb30-b7eb-444b-84dd-454d01f232af",
-      "apim-request-id": "4479583d-63fc-45b0-899c-f5ee235e571c",
+      "x-request-id": "6a4bddaf-0359-48df-9f8d-a751ca7be873",
+      "apim-request-id": "0db61267-5e0a-4494-acf9-e2d4b7d2de18",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -675,8 +654,8 @@
           }
         }
       ],
-      "created": 1773735362,
-      "id": "chatcmpl-DKJsoP0xH7sTzjcoFdJqCww8TaCmZ",
+      "created": 1774418700,
+      "id": "chatcmpl-DNBeO08E6QuevYSjAKwNtGYVuZOCS",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -686,6 +665,10 @@
             "hate": {
               "filtered": false,
               "severity": "safe"
+            },
+            "indirect_attack": {
+              "detected": false,
+              "filtered": false
             },
             "jailbreak": {
               "detected": false,
@@ -730,13 +713,9 @@
     "status": 200,
     "backend": "aoai-eus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1240",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:04 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:05:01 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
       "azureml-model-session": "d20260306020336-1dd167ad4e20",
@@ -745,12 +724,13 @@
       "x-ms-rai-invoked": "true",
       "x-ratelimit-limit-requests": "5",
       "x-ratelimit-limit-tokens": "5000",
-      "x-ratelimit-remaining-requests": "2",
+      "x-ratelimit-remaining-requests": "3",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "31714",
+      "x-ratelimit-reset-requests": "26404",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "e602c212-29bf-424d-b7d6-b27b02ae268e",
-      "apim-request-id": "55cc4acc-819f-4a4f-abdd-4603d5a75a8a",
+      "x-request-id": "49506eeb-9496-4643-9304-0d5586ba48da",
+      "apim-request-id": "85101ed7-5ade-4315-a15a-43556f8da995",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -798,8 +778,8 @@
           }
         }
       ],
-      "created": 1773735363,
-      "id": "chatcmpl-DKJspoI1ZuSThQQxsgBJWQnjq3eIR",
+      "created": 1774418701,
+      "id": "chatcmpl-DNBePmiLq2llwp4j98FtZmwQivr7v",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -850,30 +830,81 @@
   },
   {
     "call": 8,
-    "status": 429,
+    "status": 200,
     "backend": "aoai-swe-aigateway-20260317.openai.azure.com",
     "headers": {
-      "Content-Length": "394",
+      "Content-Length": "801",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:05 GMT",
-      "Cache-Control": "private",
-      "Retry-After": "20",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-      "x-ratelimit-reset-requests": "20",
+      "Date": "Wed, 25 Mar 2026 06:05:02 GMT",
+      "azureai-processed-tier": "default",
+      "azureai-requested-tier": "default",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
+      "skip-error-remapping": "true",
+      "x-accel-buffering": "no",
+      "x-ms-rai-invoked": "true",
       "x-ratelimit-limit-requests": "5",
+      "x-ratelimit-limit-tokens": "5000",
+      "x-ratelimit-remaining-requests": "3",
+      "x-ratelimit-remaining-tokens": "4964",
+      "x-ratelimit-reset-requests": "27538",
+      "x-ratelimit-reset-tokens": "432",
+      "x-request-id": "868e9e6a-18c4-4c5b-8b46-21c9e6be2ca4",
+      "apim-request-id": "1347708e-1535-44cb-a782-4b93536299d6",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
-      "apim-request-id": "1657ff81-ec1f-4a66-b840-0ad22e0c651d",
       "X-Content-Type-Options": "nosniff",
-      "policy-id": "DeploymentRatelimit-Call",
       "x-ms-region": "Sweden Central",
       "x-backend-url": "aoai-swe-aigateway-20260317.openai.azure.com",
       "Request-Context": "appId=cid-v1:65ce92df-13dd-4232-8395-3c9a7e379e8b"
     },
     "body": {
-      "error": {
-        "code": "RateLimitReached",
-        "message": "Your requests to gpt-4.1-nano for gpt-4.1-nano in Sweden Central have exceeded the call rate limit for your current OpenAI S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-04-01-preview. Please retry after 20 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease."
+      "choices": [
+        {
+          "content_filter_result": {
+            "error": {
+              "code": "content_filter_error",
+              "message": "The contents are not filtered"
+            }
+          },
+          "content_filter_results": {},
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "annotations": [],
+            "content": "7",
+            "refusal": null,
+            "role": "assistant"
+          }
+        }
+      ],
+      "created": 1774418702,
+      "id": "chatcmpl-DNBeQ8HYK5BErZfLCbiQDFuTrdFxG",
+      "model": "gpt-4.1-nano-2025-04-14",
+      "object": "chat.completion",
+      "prompt_filter_results": [
+        {
+          "prompt_index": 0,
+          "content_filter_results": {}
+        }
+      ],
+      "service_tier": "default",
+      "system_fingerprint": "fp_490a4ad033",
+      "usage": {
+        "completion_tokens": 2,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 11,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 13
       }
     }
   },
@@ -882,27 +913,24 @@
     "status": 200,
     "backend": "aoai-wus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1296",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:06 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:05:04 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
-      "azureml-model-session": "d20260215023540-156536edf8cd",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
       "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
       "x-ratelimit-limit-requests": "5",
       "x-ratelimit-limit-tokens": "5000",
-      "x-ratelimit-remaining-requests": "0",
+      "x-ratelimit-remaining-requests": "3",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "58961",
+      "x-ratelimit-reset-requests": "28057",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "a2c36e3c-0ed0-4bed-a8c8-bb795881685c",
-      "apim-request-id": "a24fef9e-1c3d-4d34-9fc1-0e79fcc46304",
+      "x-request-id": "4fa8f4e0-5b2c-49e7-8e34-cf19dde0749c",
+      "apim-request-id": "069ba08f-0fee-47e1-b50b-9b162e2858ff",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -950,8 +978,8 @@
           }
         }
       ],
-      "created": 1773735366,
-      "id": "chatcmpl-DKJssPvkzU9ap6O0UqLsKcIHFVqsj",
+      "created": 1774418704,
+      "id": "chatcmpl-DNBeSIrUbDuLmxAPzNfXMi3ybTpaC",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -961,6 +989,10 @@
             "hate": {
               "filtered": false,
               "severity": "safe"
+            },
+            "indirect_attack": {
+              "detected": false,
+              "filtered": false
             },
             "jailbreak": {
               "detected": false,
@@ -1005,21 +1037,24 @@
     "status": 200,
     "backend": "aoai-eus-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1245",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:08 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:05:05 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
       "azureml-model-session": "d20260306020336-1dd167ad4e20",
       "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
-      "X-Request-ID": "c291e834-65b1-44dd-93f6-df8c224c202c",
-      "apim-request-id": "8b9eaaf0-16f0-4e6b-8b09-33c51d3c65a3",
+      "x-ratelimit-limit-requests": "5",
+      "x-ratelimit-limit-tokens": "5000",
+      "x-ratelimit-remaining-requests": "2",
+      "x-ratelimit-remaining-tokens": "4964",
+      "x-ratelimit-reset-requests": "34597",
+      "x-ratelimit-reset-tokens": "432",
+      "x-request-id": "466b89c2-dff5-4ae2-b4ab-f08f5f71cdd8",
+      "apim-request-id": "35672cc6-7aff-4c4a-9adf-64eb3ed6b883",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -1067,8 +1102,8 @@
           }
         }
       ],
-      "created": 1773735368,
-      "id": "chatcmpl-DKJsurlhHD9T7aEJWyKLpq7t8GSEh",
+      "created": 1774418705,
+      "id": "chatcmpl-DNBeTRCCd8GZ47Wh8LMDFn9iFwO8e",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -1120,29 +1155,146 @@
   {
     "call": 11,
     "status": 200,
-    "backend": "aoai-wus-aigateway-20260317.openai.azure.com",
+    "backend": "aoai-swe-aigateway-20260317.openai.azure.com",
     "headers": {
+      "Content-Length": "1240",
       "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:10 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Date": "Wed, 25 Mar 2026 06:05:06 GMT",
       "azureai-processed-tier": "default",
       "azureai-requested-tier": "default",
-      "azureml-model-session": "d20260215023540-156536edf8cd",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
       "skip-error-remapping": "true",
       "x-accel-buffering": "no",
       "x-ms-rai-invoked": "true",
       "x-ratelimit-limit-requests": "5",
       "x-ratelimit-limit-tokens": "5000",
-      "x-ratelimit-remaining-requests": "-1",
+      "x-ratelimit-remaining-requests": "2",
       "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "67171",
+      "x-ratelimit-reset-requests": "35686",
       "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "c70799ef-e5d2-4e8a-8eb9-996fbd186840",
-      "apim-request-id": "74fbbe73-a2e1-410f-9e4f-f47a9cc0f6bd",
+      "x-request-id": "6a53bd01-6c60-478c-9aac-8d0a44143ed9",
+      "apim-request-id": "c6cbc0e8-4c44-4ce8-bfa9-a4a86cd244c1",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "x-ms-client-request-id": "Not-Set",
+      "x-ms-deployment-name": "gpt-4.1-nano",
+      "X-Content-Type-Options": "nosniff",
+      "x-ms-region": "Sweden Central",
+      "x-backend-url": "aoai-swe-aigateway-20260317.openai.azure.com",
+      "Request-Context": "appId=cid-v1:65ce92df-13dd-4232-8395-3c9a7e379e8b"
+    },
+    "body": {
+      "choices": [
+        {
+          "content_filter_results": {
+            "hate": {
+              "filtered": false,
+              "severity": "safe"
+            },
+            "protected_material_code": {
+              "filtered": false,
+              "detected": false
+            },
+            "protected_material_text": {
+              "filtered": false,
+              "detected": false
+            },
+            "self_harm": {
+              "filtered": false,
+              "severity": "safe"
+            },
+            "sexual": {
+              "filtered": false,
+              "severity": "safe"
+            },
+            "violence": {
+              "filtered": false,
+              "severity": "safe"
+            }
+          },
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "annotations": [],
+            "content": "Ten.",
+            "refusal": null,
+            "role": "assistant"
+          }
+        }
+      ],
+      "created": 1774418706,
+      "id": "chatcmpl-DNBeU4m4QxBJLLSCd9wy0TWnjuNC6",
+      "model": "gpt-4.1-nano-2025-04-14",
+      "object": "chat.completion",
+      "prompt_filter_results": [
+        {
+          "prompt_index": 0,
+          "content_filter_results": {
+            "hate": {
+              "filtered": false,
+              "severity": "safe"
+            },
+            "jailbreak": {
+              "filtered": false,
+              "detected": false
+            },
+            "self_harm": {
+              "filtered": false,
+              "severity": "safe"
+            },
+            "sexual": {
+              "filtered": false,
+              "severity": "safe"
+            },
+            "violence": {
+              "filtered": false,
+              "severity": "safe"
+            }
+          }
+        }
+      ],
+      "service_tier": "default",
+      "system_fingerprint": "fp_490a4ad033",
+      "usage": {
+        "completion_tokens": 3,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 11,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 14
+      }
+    }
+  },
+  {
+    "call": 12,
+    "status": 200,
+    "backend": "aoai-wus-aigateway-20260317.openai.azure.com",
+    "headers": {
+      "Content-Length": "1297",
+      "Content-Type": "application/json",
+      "Date": "Wed, 25 Mar 2026 06:05:08 GMT",
+      "azureai-processed-tier": "default",
+      "azureai-requested-tier": "default",
+      "azureml-model-session": "d20260309110337-9d2119efedf7",
+      "skip-error-remapping": "true",
+      "x-accel-buffering": "no",
+      "x-ms-rai-invoked": "true",
+      "x-ratelimit-limit-requests": "5",
+      "x-ratelimit-limit-tokens": "5000",
+      "x-ratelimit-remaining-requests": "2",
+      "x-ratelimit-remaining-tokens": "4964",
+      "x-ratelimit-reset-requests": "36504",
+      "x-ratelimit-reset-tokens": "432",
+      "x-request-id": "999c187c-8424-440f-a2f6-c124b373500d",
+      "apim-request-id": "d8f7a3e0-28d6-45aa-8a8b-e87c5e1aa98e",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "x-ms-client-request-id": "Not-Set",
       "x-ms-deployment-name": "gpt-4.1-nano",
       "X-Content-Type-Options": "nosniff",
@@ -1184,137 +1336,14 @@
           "logprobs": null,
           "message": {
             "annotations": [],
-            "content": "Ten.",
-            "refusal": null,
-            "role": "assistant"
-          }
-        }
-      ],
-      "created": 1773735370,
-      "id": "chatcmpl-DKJswxjhC3Qw4y6cSaNa5zXoXTFZJ",
-      "model": "gpt-4.1-nano-2025-04-14",
-      "object": "chat.completion",
-      "prompt_filter_results": [
-        {
-          "prompt_index": 0,
-          "content_filter_results": {
-            "hate": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "jailbreak": {
-              "detected": false,
-              "filtered": false
-            },
-            "self_harm": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "sexual": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "violence": {
-              "filtered": false,
-              "severity": "safe"
-            }
-          }
-        }
-      ],
-      "service_tier": "default",
-      "system_fingerprint": "fp_490a4ad033",
-      "usage": {
-        "completion_tokens": 3,
-        "completion_tokens_details": {
-          "accepted_prediction_tokens": 0,
-          "audio_tokens": 0,
-          "reasoning_tokens": 0,
-          "rejected_prediction_tokens": 0
-        },
-        "prompt_tokens": 11,
-        "prompt_tokens_details": {
-          "audio_tokens": 0,
-          "cached_tokens": 0
-        },
-        "total_tokens": 14
-      }
-    }
-  },
-  {
-    "call": 12,
-    "status": 200,
-    "backend": "aoai-eus-aigateway-20260317.openai.azure.com",
-    "headers": {
-      "Content-Type": "application/json",
-      "Date": "Tue, 17 Mar 2026 08:16:11 GMT",
-      "Cache-Control": "private",
-      "Content-Encoding": "gzip",
-      "Transfer-Encoding": "chunked",
-      "Vary": "Accept-Encoding",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-      "azureai-processed-tier": "default",
-      "azureai-requested-tier": "default",
-      "azureml-model-session": "d20260306020336-1dd167ad4e20",
-      "skip-error-remapping": "true",
-      "x-accel-buffering": "no",
-      "x-ms-rai-invoked": "true",
-      "x-ratelimit-limit-requests": "5",
-      "x-ratelimit-limit-tokens": "5000",
-      "x-ratelimit-remaining-requests": "2",
-      "x-ratelimit-remaining-tokens": "4964",
-      "x-ratelimit-reset-requests": "35213",
-      "x-ratelimit-reset-tokens": "432",
-      "X-Request-ID": "387680a1-0828-40a6-afce-95c8a2031e78",
-      "apim-request-id": "08b85df5-37e7-4885-815e-5a2ec3ceafda",
-      "x-ms-client-request-id": "Not-Set",
-      "x-ms-deployment-name": "gpt-4.1-nano",
-      "X-Content-Type-Options": "nosniff",
-      "x-ms-region": "East US",
-      "x-backend-url": "aoai-eus-aigateway-20260317.openai.azure.com",
-      "Request-Context": "appId=cid-v1:65ce92df-13dd-4232-8395-3c9a7e379e8b"
-    },
-    "body": {
-      "choices": [
-        {
-          "content_filter_results": {
-            "hate": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "protected_material_code": {
-              "filtered": false,
-              "detected": false
-            },
-            "protected_material_text": {
-              "filtered": false,
-              "detected": false
-            },
-            "self_harm": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "sexual": {
-              "filtered": false,
-              "severity": "safe"
-            },
-            "violence": {
-              "filtered": false,
-              "severity": "safe"
-            }
-          },
-          "finish_reason": "stop",
-          "index": 0,
-          "logprobs": null,
-          "message": {
-            "annotations": [],
             "content": "Eleven.",
             "refusal": null,
             "role": "assistant"
           }
         }
       ],
-      "created": 1773735372,
-      "id": "chatcmpl-DKJsym0rg74sZGuFpwgEHYlnKUcjP",
+      "created": 1774418707,
+      "id": "chatcmpl-DNBeVbh8DnOnOfQm3sRtfLNs995WS",
       "model": "gpt-4.1-nano-2025-04-14",
       "object": "chat.completion",
       "prompt_filter_results": [
@@ -1325,9 +1354,13 @@
               "filtered": false,
               "severity": "safe"
             },
+            "indirect_attack": {
+              "detected": false,
+              "filtered": false
+            },
             "jailbreak": {
-              "filtered": false,
-              "detected": false
+              "detected": false,
+              "filtered": false
             },
             "self_harm": {
               "filtered": false,
