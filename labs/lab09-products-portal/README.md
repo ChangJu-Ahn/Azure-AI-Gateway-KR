@@ -1,6 +1,7 @@
 # Lab 9: Products & 개발자 포털 (구독 격리)
 
-> 🚧 **드래프트** — 스니펫은 정확하나, 실제 배포 후 E2E 검증 예정입니다.
+> ✅ **라이브 검증됨** — `test-products-portal.ipynb` 로 실제 배포(APIM Developer SKU)에서
+> 구독 격리·TPM 429·토큰 quota 403·요청 quota 403·구독별 토큰 관측(App Insights)을 E2E 확인했습니다.
 
 APIM Products · Subscriptions · Developer Portal 로 각 팀이 **격리된 구독 키**를 셀프서비스로 발급받게 합니다. API 접근과 토큰 예산을 subscriber 별로 격리합니다.
 
@@ -40,6 +41,10 @@ graph TD
 ```
 
 ## 실습 단계
+
+> 🧪 **테스트 노트북**: [`test-products-portal.ipynb`](./test-products-portal.ipynb) 가 아래 단계(Product/구독 생성 →
+> 두 레버 정책 적용 → 격리·429·403·관측 시나리오 → 정리)를 자동 실행·검증합니다.
+> `az login` 후 노트북을 실행하면 실제 배포에 대해 결과를 눈으로 확인할 수 있습니다.
 
 ### 1단계: Product 생성 & 통합 API 연결
 
@@ -114,6 +119,9 @@ az apim subscription show --resource-group $RESOURCE_GROUP --service-name $APIM_
 - **구독 키** = subscriber 격리의 단위 (API 접근 + 토큰 카운터)
 - **Developer Portal** = 셀프서비스 구독 창구 → [개발자 포털 가이드](../../docs/developer-portal-guide.md)
 - **counter-key** `@(context.Subscription.Id)` 를 사용하면 구독별로 TPM·quota 가 독립적으로 집계됩니다.
+- **구독별 관측**: `llm-emit-token-metric` 로 `Subscription ID` 차원 토큰을 App Insights 에 남깁니다.
+  단, `emit-metric` 계열은 **커스텀 메트릭 사전 활성화**(App Insights *Custom metrics* + APIM Diagnostics `metrics: true`)가
+  되어 있어야 전송됩니다 → 절차: [Lab 6 · 2단계](../lab06-monitoring/README.md).
 
 ## 다음 단계
 
