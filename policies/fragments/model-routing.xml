@@ -1,7 +1,7 @@
 <!-- model prefix 기반 백엔드 라우팅 + 프로바이더별 인증 주입 -->
 <!-- 클라이언트는 OpenAI 포맷으로 model 필드에 "provider/model" 을 전송 -->
-<!--   예: "openai/gpt-4o", "bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0", -->
-<!--       "anthropic/claude-3-5-sonnet-20241022", "gemini/gemini-2.0-flash" -->
+<!--   예: "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20241022", -->
+<!--       "gemini/gemini-2.0-flash" -->
 <!--   prefix 없으면 Azure OpenAI(기본)로 라우팅 -->
 <!-- 적용 위치: Inbound -->
 <fragment>
@@ -22,12 +22,6 @@
             <set-backend-service backend-id="openai-direct-backend" />
             <set-header name="Authorization" exists-action="override">
                 <value>@("Bearer " + "{{openai-api-key}}")</value>
-            </set-header>
-        </when>
-        <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;bedrock&quot;)">
-            <set-backend-service backend-id="bedrock-backend" />
-            <set-header name="Authorization" exists-action="override">
-                <value>@("Bearer " + "{{aws-bedrock-api-key}}")</value>
             </set-header>
         </when>
         <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;anthropic&quot;)">

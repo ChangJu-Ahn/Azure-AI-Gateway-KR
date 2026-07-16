@@ -13,7 +13,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 5 | 멀티 모델 Gateway (Gemini, Claude 등) | ✅ 완료 |
 | Lab 6 | 모니터링 & 로깅 | ✅ 완료 |
 | Lab 7 | 고급 패턴 (A/B 테스트, Content Safety 등) | 🔄 확인중 |
-| Lab 8 | 멀티 클라우드 통합 게이트웨이 (Bedrock, Anthropic, OpenAI, Gemini) | 🚧 드래프트 |
+| Lab 8 | 멀티 클라우드 통합 게이트웨이 (OpenAI · Anthropic · Google Gemini) | 🚧 드래프트 |
 | Lab 9 | Products & 개발자 포털 (구독 격리) | 🚧 드래프트 |
 | Lab 10 | 구독별 거버넌스 & Azure Monitor 대시보드 | 🚧 드래프트 |
 | Lab 11 | 리소스 정리 | ✅ 완료 |
@@ -87,7 +87,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 
 | # | 비즈니스 요구사항 |
 |---|-----------------|
-| 1 | Azure뿐 아니라 **AWS Bedrock·Anthropic·OpenAI·Gemini**를 하나의 엔드포인트로 호출하고 싶다 |
+| 1 | Azure뿐 아니라 **Azure 외부의 OpenAI·Anthropic·Google Gemini**를 하나의 엔드포인트로 호출하고 싶다 |
 | 2 | 클라이언트 코드는 그대로 두고 `model` 값만 바꿔 **프로바이더를 전환**하고 싶다 |
 | 3 | 프로바이더가 달라도 **토큰 제어·메트릭을 동일한 정책**으로 적용하고 싶다 |
 

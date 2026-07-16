@@ -4,7 +4,7 @@
 
 **Goal:** 기존 APIM AI Gateway 랩 시리즈에 멀티 클라우드 통합(Lab 8) · 구독 격리(Lab 9) · 통합 관측/거버넌스(Lab 10) 드래프트 랩을 추가하고, Lab 6 로깅 한계를 정직하게 패치하며, cleanup 랩을 lab11로 재번호한다.
 
-**Architecture:** 단일 OpenAI 호환 엔드포인트가 5개 프로바이더(Azure OpenAI · OpenAI · AWS Bedrock · Anthropic · Gemini)를 프론트한다. 프로바이더 무관 `llm-*` 정책으로 토큰 제어·메트릭·캐시를 동일 적용하고, Products/Developer Portal로 subscriber를 격리하며, Azure Monitor Workbook + Event Hub 로깅으로 모든 프로토콜을 관측한다.
+**Architecture:** 단일 OpenAI 호환 엔드포인트가 4개 프로바이더(Azure OpenAI · OpenAI · Anthropic · Gemini)를 프론트한다. 프로바이더 무관 `llm-*` 정책으로 토큰 제어·메트릭·캐시를 동일 적용하고, Products/Developer Portal로 subscriber를 격리하며, Azure Monitor Workbook + Event Hub 로깅으로 모든 프로토콜을 관측한다.
 
 **Tech Stack:** Azure API Management(정책 XML), Bicep, Azure Monitor / Application Insights / Log Analytics(KQL), Event Hub, Jupyter(테스트 노트북, 초안은 선택), Markdown(한국어 랩 문서).
 
@@ -111,8 +111,8 @@
 ```xml
 <!-- model prefix 기반 백엔드 라우팅 + 프로바이더별 인증 주입 -->
 <!-- 클라이언트는 OpenAI 포맷으로 model 필드에 "provider/model" 을 전송 -->
-<!--   예: "openai/gpt-4o", "bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0", -->
-<!--       "anthropic/claude-3-5-sonnet-20241022", "gemini/gemini-2.0-flash" -->
+<!--   예: "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20241022", -->
+<!--       "gemini/gemini-2.0-flash" -->
 <!--   prefix 없으면 Azure OpenAI(기본)로 라우팅 -->
 <!-- 적용 위치: Inbound -->
 <fragment>
@@ -133,12 +133,6 @@
             <set-backend-service backend-id="openai-direct-backend" />
             <set-header name="Authorization" exists-action="override">
                 <value>@("Bearer " + "{{openai-api-key}}")</value>
-            </set-header>
-        </when>
-        <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;bedrock&quot;)">
-            <set-backend-service backend-id="bedrock-backend" />
-            <set-header name="Authorization" exists-action="override">
-                <value>@("Bearer " + "{{aws-bedrock-api-key}}")</value>
             </set-header>
         </when>
         <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;anthropic&quot;)">
@@ -242,14 +236,14 @@ Copilot-Session: 7e69b8e0-415b-4e97-b588-95639731f063"
 
 > 🚧 **드래프트** — 스니펫은 정확하나, 실제 프로바이더 키 확보 후 E2E 검증 예정입니다.
 
-하나의 OpenAI 호환 엔드포인트로 Azure OpenAI · OpenAI · AWS Bedrock · Anthropic · Google Gemini를 통합 관리합니다. 클라이언트는 `model` 필드만 바꾸면 프로바이더가 전환되고, 게이트웨이가 토큰 제어·메트릭·Fallback을 동일하게 적용합니다.
+하나의 OpenAI 호환 엔드포인트로 Azure OpenAI(기본) 와 Azure 외부의 OpenAI · Anthropic · Google Gemini를 통합 관리합니다. 클라이언트는 `model` 필드만 바꾸면 프로바이더가 전환되고, 게이트웨이가 토큰 제어·메트릭·Fallback을 동일하게 적용합니다.
 
 ## 목표
-- 5개 프로바이더를 단일 OpenAI 호환 API 로 통합 (Approach A: 통합 계약)
+- Azure OpenAI(기본) + Azure 외부 3사(OpenAI·Anthropic·Google Gemini)를 단일 OpenAI 호환 API 로 통합 (Approach A: 통합 계약)
 - 프로바이더별 백엔드 풀로 로드밸런싱 (Lab 3/5 개념 재사용)
 - 프로바이더 무관 `llm-*` 정책으로 토큰 제어·메트릭 통일 (+ Provider 차원)
 - 크로스클라우드 Fallback
-- AWS Bedrock 을 **2025 신규 Bearer API key + OpenAI 호환 엔드포인트**로 연결 (SigV4 불필요)
+- 외부 3사(OpenAI·Anthropic·Google Gemini)는 모두 OpenAI 호환 엔드포인트를 제공 → 별도 SDK 없이 동일 계약으로 통합
 
 ## 왜 llm-* 정책인가 (azure-openai-* 와 차이)
 ## 아키텍처
@@ -269,7 +263,7 @@ Copilot-Session: 7e69b8e0-415b-4e97-b588-95639731f063"
 | 토큰 메트릭 | `azure-openai-emit-token-metric` | `llm-emit-token-metric` (+ Provider 차원) |
 | 시맨틱 캐시 | `azure-openai-semantic-cache-*` | `llm-semantic-cache-*` |
 
-> 💡 Bedrock·Anthropic·Gemini 는 모두 OpenAI 호환 응답의 `usage` 필드를 반환하므로,
+> 💡 OpenAI·Anthropic·Gemini 는 모두 OpenAI 호환 응답의 `usage` 필드를 반환하므로,
 > `llm-*` 정책이 프로바이더와 무관하게 동일하게 토큰을 계량합니다.
 ```
 
@@ -282,10 +276,9 @@ graph TD
     GW -->|model prefix 라우팅| R{provider}
     R -->|azure / (기본)| AOAI["Azure OpenAI 풀<br/>Lab3 재사용 · Managed Identity"]
     R -->|openai/*| OAI["OpenAI 직접"]
-    R -->|bedrock/*| BR["AWS Bedrock<br/>Bearer API key (2025)"]
     R -->|anthropic/*| ANT["Anthropic"]
     R -->|gemini/*| GEM["Gemini 풀<br/>Lab5 재사용"]
-    AOAI & OAI & BR & ANT & GEM -.->|429/5xx 시 retry| FB["Fallback"]
+    AOAI & OAI & ANT & GEM -.->|429/5xx 시 retry| FB["Fallback"]
 ​```
 ```
 
@@ -297,13 +290,12 @@ graph TD
 |---|---|---|---|
 | Azure OpenAI | 기존 풀 (Lab 2/3) | Managed Identity | `gpt-4.1-nano` (prefix 없음) |
 | OpenAI 직접 | `https://api.openai.com/v1` | `Bearer {{openai-api-key}}` | `openai/gpt-4o` |
-| AWS Bedrock | `https://bedrock-runtime.{region}.amazonaws.com/openai/v1` | `Bearer {{aws-bedrock-api-key}}` | `bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0` |
 | Anthropic | `https://api.anthropic.com/v1` | `Bearer {{anthropic-api-key}}` | `anthropic/claude-3-5-sonnet-20241022` |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `Bearer {{gemini-api-key-1}}` | `gemini/gemini-2.0-flash` |
 
-> ⚠️ Bedrock 모델 ID·리전, Anthropic/Gemini 모델명은 각 콘솔에서 최신 값을 확인하세요.
-> Bedrock 은 2025년 도입된 **Bearer API key**(장기/단기)를 사용하며, OpenAI 호환 경로
-> `/openai/v1/chat/completions` 를 지원하므로 SigV4 서명이 필요 없습니다.
+> ⚠️ OpenAI·Anthropic·Gemini 모델명은 각 콘솔에서 최신 값을 확인하세요.
+> 세 프로바이더 모두 OpenAI 호환 `/openai/v1/chat/completions` 경로를 지원하므로
+> 별도 SDK·서명 로직 없이 동일 계약으로 통합됩니다.
 ```
 
 - [ ] **Step 5: 실습 단계 — Named Value 등록 (az CLI)**
@@ -317,10 +309,6 @@ set -a; source .env; set +a
 az apim nv create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
   --named-value-id openai-api-key --display-name "OpenAI-API-Key" \
   --value "$OPENAI_API_KEY" --secret true
-
-az apim nv create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
-  --named-value-id aws-bedrock-api-key --display-name "AWS-Bedrock-API-Key" \
-  --value "$AWS_BEDROCK_API_KEY" --secret true
 
 az apim nv create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
   --named-value-id anthropic-api-key --display-name "Anthropic-API-Key" \
@@ -340,11 +328,6 @@ az apim nv create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
 az apim backend create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
   --backend-id openai-direct-backend --protocol http \
   --url "https://api.openai.com/v1"
-
-# AWS Bedrock (리전 확인 후 URL 수정)
-az apim backend create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
-  --backend-id bedrock-backend --protocol http \
-  --url "https://bedrock-runtime.$AWS_BEDROCK_REGION.amazonaws.com/openai/v1"
 
 # Anthropic
 az apim backend create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
@@ -404,7 +387,6 @@ client = OpenAI(base_url="https://<apim>.azure-api.net/openai/v1",
                 api_key="<APIM_SUBSCRIPTION_KEY>")  # Ocp-Apim-Subscription-Key 로 전달되도록 설정
 
 for model in ["gpt-4.1-nano", "openai/gpt-4o",
-              "bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
               "anthropic/claude-3-5-sonnet-20241022", "gemini/gemini-2.0-flash"]:
     r = client.chat.completions.create(model=model,
         messages=[{"role": "user", "content": "안녕하세요"}])
@@ -732,7 +714,6 @@ customMetrics
 | extend subscriptionId = tostring(customDimensions["Subscription ID"])
 | summarize tokens = sum(value) by provider, subscriptionId
 | extend estCostUsd = case(
-    provider == "bedrock", tokens * 0.000003,
     provider == "anthropic", tokens * 0.000003,
     provider == "gemini", tokens * 0.0000005,
     provider == "openai", tokens * 0.000005,
@@ -958,7 +939,7 @@ grep -n 'Lab 8\|lab08' labs/lab11-cleanup/README.md
 
 `README.md`의 Lab 진행 상태 표(라인 7–16 부근)에서 Lab 8 행을 교체하고 신규 행 추가:
 ```markdown
-| Lab 8 | 멀티 클라우드 통합 게이트웨이 (Bedrock, Anthropic, OpenAI, Gemini) | 🚧 드래프트 |
+| Lab 8 | 멀티 클라우드 통합 게이트웨이 (OpenAI, Anthropic, Gemini) | 🚧 드래프트 |
 | Lab 9 | Products & 개발자 포털 (구독 격리) | 🚧 드래프트 |
 | Lab 10 | 구독별 거버넌스 & Azure Monitor 대시보드 | 🚧 드래프트 |
 | Lab 11 | 리소스 정리 | ✅ 완료 |
@@ -988,7 +969,7 @@ grep -n 'lab08-cleanup\|Lab 8: 리소스\|lab08-cleanup/                  # Lab 
 
 | # | 비즈니스 요구사항 |
 |---|-----------------|
-| 1 | Azure뿐 아니라 **AWS Bedrock·Anthropic·OpenAI·Gemini**를 하나의 엔드포인트로 호출하고 싶다 |
+| 1 | Azure뿐 아니라 **OpenAI·Anthropic·Google Gemini**를 하나의 엔드포인트로 호출하고 싶다 |
 | 2 | 클라이언트 코드는 그대로 두고 `model` 값만 바꿔 **프로바이더를 전환**하고 싶다 |
 | 3 | 프로바이더가 달라도 **토큰 제어·메트릭을 동일한 정책**으로 적용하고 싶다 |
 
@@ -1020,9 +1001,6 @@ Lab 5 Gemini 블록 뒤(파일 끝 부근)에 삽입:
 # OpenAI 직접 — https://platform.openai.com/api-keys
 OPENAI_API_KEY="<your-openai-api-key>"
 
-# AWS Bedrock — 2025 Bearer API key (콘솔 → Bedrock → API keys)
-AWS_BEDROCK_API_KEY="<your-bedrock-api-key>"
-AWS_BEDROCK_REGION="us-east-1"
 
 # Anthropic 직접 — https://console.anthropic.com/settings/keys
 ANTHROPIC_API_KEY="<your-anthropic-api-key>"
@@ -1070,4 +1048,4 @@ Copilot-Session: 7e69b8e0-415b-4e97-b588-95639731f063"
 
 **Placeholder scan:** 모든 코드/스니펫 단계에 실제 XML/CLI/Bicep/KQL/Python 포함. "🚧 드래프트" 배지는 산출물의 명시적 상태 표기이며 플랜의 미완성 표시가 아님.
 
-**Type consistency:** `provider`/`modelName` 변수는 T1 model-routing 에서 정의되고 T1 emit-metrics·T4 event-hub 에서 동일 이름으로 소비. backend-id(`openai-direct-backend`/`bedrock-backend`/`anthropic-backend`/`openai-backend-pool`/`gemini-backend-pool`)는 T1 정의 ↔ T2 백엔드 등록 일치. Named Value 키(`openai-api-key`/`aws-bedrock-api-key`/`anthropic-api-key`)는 T1 정책 ↔ T2 등록 ↔ T6 .env 일치.
+**Type consistency:** `provider`/`modelName` 변수는 T1 model-routing 에서 정의되고 T1 emit-metrics·T4 event-hub 에서 동일 이름으로 소비. backend-id(`openai-direct-backend`/`anthropic-backend`/`openai-backend-pool`/`gemini-backend-pool`)는 T1 정의 ↔ T2 백엔드 등록 일치. Named Value 키(`openai-api-key`/`anthropic-api-key`)는 T1 정책 ↔ T2 등록 ↔ T6 .env 일치.

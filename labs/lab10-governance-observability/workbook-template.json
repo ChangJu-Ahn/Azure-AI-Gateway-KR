@@ -4,9 +4,9 @@
     {
       "type": 1,
       "content": {
-        "json": "## 🔭 AI Gateway — 멀티클라우드 구독별 거버넌스 & 관측 리포팅\n\n하나의 게이트웨이가 **여러 구독(테넌트)** × **멀티클라우드 프로바이더**(Azure OpenAI · OpenAI · AWS Bedrock · Anthropic · Gemini)의\n토큰·쿼터·요청률·비용·차단·프롬프트를 단일 평면에서 리포팅합니다.\n상단 **시간 범위 / 토큰 쿼터 기준 / 구독** 필터로 대시보드 전체가 연동됩니다.\n\n> 데이터 소스: `customMetrics`(토큰/쿼터/비용 — `llm-emit-token-metric`) + `requests`(요청률/지연/차단/프롬프트).\n> 구독 식별자는 토큰 지표=`Subscription ID`, 요청 지표=`Subscription Name` 을 사용합니다(랩에선 두 값이 동일).\n---"
+        "json": "## 🔭 AI Gateway — 멀티클라우드 구독별 거버넌스 & 관측 리포팅\n\n하나의 게이트웨이가 **여러 구독(테넌트)** × **멀티클라우드 프로바이더**(Azure OpenAI · OpenAI · Anthropic · Gemini)의\n토큰·쿼터·요청률·비용·차단·프롬프트를 단일 평면에서 리포팅합니다.\n상단 **시간 범위 / 토큰 쿼터 기준 / 구독** 필터로 대시보드 전체가 연동됩니다.\n\n> 데이터 소스: `customMetrics`(토큰/쿼터/비용 — `llm-emit-token-metric`) + `requests`(요청률/지연/차단/프롬프트).\n> 구독 식별자는 토큰 지표=`Subscription ID`, 요청 지표=`Subscription Name` 을 사용합니다(랩에선 두 값이 동일).\n---"
       },
-      "name": "text-9be22790"
+      "name": "text-8f34c5ee"
     },
     {
       "type": 9,
@@ -14,7 +14,7 @@
         "version": "KqlParameterItem/1.0",
         "parameters": [
           {
-            "id": "c36cd0a0-6773-4ae4-9596-9eb4d5dd869c",
+            "id": "8070dd52-668e-4fd2-8f65-4164bed0a740",
             "version": "KqlParameterItem/1.0",
             "name": "TimeRange",
             "label": "시간 범위",
@@ -50,7 +50,7 @@
             }
           },
           {
-            "id": "3b14d7d8-8c20-43bc-a5cc-21f41c7b7a1c",
+            "id": "715f581a-111e-446a-883f-e84ab018cd2a",
             "version": "KqlParameterItem/1.0",
             "name": "QuotaTokens",
             "label": "토큰 쿼터 기준(구독당)",
@@ -59,7 +59,7 @@
             "value": "2000000"
           },
           {
-            "id": "443a481e-01cd-4aa7-87da-acb8962895b4",
+            "id": "7d3c4d34-1dac-4bc9-9984-6f11aa8623a1",
             "version": "KqlParameterItem/1.0",
             "name": "Subscription",
             "label": "구독",
@@ -163,7 +163,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customMetrics\n| where name == 'Total Tokens'\n| extend sub = tostring(customDimensions['Subscription ID']), prov = tostring(customDimensions['Provider'])\n| where sub in ({Subscription})\n| summarize ['토큰'] = sum(value) by ['구독'] = sub, ['프로바이더'] = prov\n| extend ['추정 비용(USD)'] = round(case(\n    ['프로바이더'] == 'bedrock',   ['토큰'] * 0.000003,\n    ['프로바이더'] == 'anthropic', ['토큰'] * 0.000003,\n    ['프로바이더'] == 'gemini',    ['토큰'] * 0.0000005,\n    ['프로바이더'] == 'openai',    ['토큰'] * 0.000005,\n    ['토큰'] * 0.000002), 6)\n| order by ['추정 비용(USD)'] desc",
+        "query": "customMetrics\n| where name == 'Total Tokens'\n| extend sub = tostring(customDimensions['Subscription ID']), prov = tostring(customDimensions['Provider'])\n| where sub in ({Subscription})\n| summarize ['토큰'] = sum(value) by ['구독'] = sub, ['프로바이더'] = prov\n| extend ['추정 비용(USD)'] = round(case(\n    ['프로바이더'] == 'anthropic', ['토큰'] * 0.000003,\n    ['프로바이더'] == 'gemini',    ['토큰'] * 0.0000005,\n    ['프로바이더'] == 'openai',    ['토큰'] * 0.000005,\n    ['토큰'] * 0.000002), 6)\n| order by ['추정 비용(USD)'] desc",
         "size": 0,
         "title": "⑤ 구독 × 프로바이더 비용 추정",
         "timeContextFromParameter": "TimeRange",
@@ -232,7 +232,7 @@
       "content": {
         "json": "---\n### 💡 사용/운영 팁\n- **쿼터 사용률(①)** 이 80%↑ 구독은 상향 또는 알림 대상 → Lab 10 6단계 `metrics alert` 로 자동화.\n- **비용(⑤)** 단가는 예시값 — 각 프로바이더 콘솔 요율로 교체하세요.\n- **프롬프트 감사(⑧)** 는 `requests` 의 `Request-Body`/`Response-Body`(≤8KB) 기반. 8KB 초과·스트리밍은 Event Hub 로 보완(Lab 10).\n- 이 Workbook 은 `deploy-workbook.sh` 로 배포되며, `Microsoft.Insights/workbooks` 리소스입니다.\n"
       },
-      "name": "text-9f39240d"
+      "name": "text-bfeb7a2b"
     }
   ],
   "fallbackResourceIds": [

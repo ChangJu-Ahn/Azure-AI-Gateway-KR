@@ -3,7 +3,7 @@
 # deploy-workbook.sh
 #   workbook-template.json → Azure Monitor Workbook(Microsoft.Insights/workbooks) 배포
 #
-#   하나의 게이트웨이가 여러 구독 × 멀티클라우드(Azure OpenAI · OpenAI · Bedrock ·
+#   하나의 게이트웨이가 여러 구독 × 멀티클라우드(Azure OpenAI · OpenAI ·
 #   Anthropic · Gemini)의 토큰·쿼터·요청률·비용·차단·프롬프트를 리포팅하는
 #   공유 Workbook 을 App Insights 에 배포합니다. 같은 이름으로 재배포 시 덮어씁니다(멱등).
 #

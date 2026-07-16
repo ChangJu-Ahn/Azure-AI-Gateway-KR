@@ -12,12 +12,12 @@
 
 최종 메시지는 하나다:
 
-> **하나의 AI Gateway로 Azure뿐 아니라 AWS Bedrock · Anthropic · OpenAI · Gemini 등 모든 프론티어 모델을,
+> **하나의 AI Gateway로 Azure뿐 아니라 OpenAI · Anthropic · Google Gemini 등 Azure 외부의 프론티어 모델까지,
 > 구독(subscriber)별로 격리하여 제어(control)하고 관측(observability)한다.**
 
 이를 위해 세 축을 세운다.
 
-1. **멀티 클라우드 통합** — 단일 OpenAI 호환 계약으로 5개 프로바이더를 통합 (Lab 8)
+1. **멀티 클라우드 통합** — 단일 OpenAI 호환 계약으로 4개 프로바이더(Azure 네이티브 + 외부 3사)를 통합 (Lab 8)
 2. **구독 격리** — Products + Developer Portal 로 API/토큰을 subscriber별 격리 (Lab 9)
 3. **통합 관측·거버넌스** — 모든 프로바이더 × 모든 구독의 토큰/프롬프트/비용을 Azure Monitor로 관측 (Lab 10 + Lab 6 패치)
 
@@ -27,7 +27,7 @@
 
 | 영역 | 현재 상태 | 신규 랩에 대한 시사점 |
 |------|----------|----------------------|
-| 멀티 모델 | Lab 5에서 **Gemini** 로드밸런싱만 구현 (검증 완료). Claude/Bedrock은 README 언급뿐 | Lab 8은 Lab 5의 로드밸런싱 개념을 재사용해 나머지 프로바이더로 확장 |
+| 멀티 모델 | Lab 5에서 **Gemini** 로드밸런싱만 구현 (검증 완료). OpenAI·Claude(Anthropic)는 README 언급뿐 | Lab 8은 Lab 5의 로드밸런싱 개념을 재사용해 나머지 프로바이더로 확장 |
 | 토큰 제어 | `azure-openai-token-limit` (counter-key = Subscription.Id) | **Azure OpenAI 전용**. 멀티 클라우드는 `llm-token-limit`(프로바이더 무관)로 전환 필요 |
 | 토큰 메트릭 | `azure-openai-emit-token-metric` (Subscription/Model/Backend 차원) | 동일 이유로 `llm-emit-token-metric`로 전환 + `Provider` 차원 추가 |
 | 프롬프트/응답 로깅 | Lab 6에서 APIM Diagnostics body 로깅 (`bytes: 4096`) | **8KB 하드 한계 + 스트리밍 미포착** → Lab 6 패치 + Lab 10 심화 |
@@ -41,14 +41,14 @@
 ## 3. 목표 / 비목표 (Goals / Non-Goals)
 
 ### 목표
-- 단일 OpenAI 호환 엔드포인트로 5개 프로바이더 호출 (client는 `model`만 변경)
+- 단일 OpenAI 호환 엔드포인트로 4개 프로바이더 호출 (client는 `model`만 변경)
 - 프로바이더 무관 `llm-*` 정책으로 토큰 제어·메트릭·시맨틱 캐시를 **동일하게** 적용
 - Products + Developer Portal 기반 **셀프서비스 구독**과 API/토큰 격리
 - Provider × Model × Subscription × Product 차원의 통합 관측 + Azure Monitor 대시보드
 - 스트리밍 포함 프롬프트/응답의 풀 피델리티 로깅 경로 제시
 
 ### 비목표 (YAGNI)
-- AWS SigV4 서명 정책 구현 (❌) — Bedrock **Bearer API key(2025)** 로 우회
+- 프로바이더 네이티브 SDK·서명 프로토콜 구현 (❌) — 외부 3사 모두 OpenAI 호환 REST 를 제공하므로 단일 계약으로 우회
 - 실제 과금 시스템 구축 — 비용은 **추정(KQL 단가 매핑)** 수준까지만
 - 신규 인프라 자동 배포 완성 — 본 작업은 **초안 README + 실제 스니펫**까지 (E2E 배포 검증은 후속)
 - Lab 6의 대규모 재작성 — **소규모 정직한 패치**만
@@ -74,7 +74,7 @@
 
 ## 5. 크로스커팅 테마: `azure-openai-*` → `llm-*` 제어·관측 평면
 
-모든 신규 랩을 관통하는 기술 축. 5개 프로바이더는 모두 **OpenAI 호환 `usage` 필드**를 반환하므로, 프로바이더 무관 `llm-*` 정책이 동일하게 동작한다.
+모든 신규 랩을 관통하는 기술 축. 4개 프로바이더는 모두 **OpenAI 호환 `usage` 필드**를 반환하므로, 프로바이더 무관 `llm-*` 정책이 동일하게 동작한다.
 
 | 기존 (AOAI 전용) | 신규 (프로바이더 무관) | 역할 |
 |---|---|---|
@@ -92,7 +92,6 @@ graph LR
         P4["llm-content-safety"]
     end
     OBS --> AOAI[Azure OpenAI]
-    OBS --> BR[AWS Bedrock]
     OBS --> ANT[Anthropic]
     OBS --> GEM[Gemini]
     OBS --> OAI[OpenAI]
@@ -105,7 +104,7 @@ graph LR
 ## 6. Lab 8 — 멀티 클라우드 통합 게이트웨이
 
 ### 6.1 목표
-단일 OpenAI 호환 엔드포인트가 5개 프로바이더를 프론트. 클라이언트는 `model`만 변경. 프로바이더별 백엔드 풀(로드밸런싱, Lab 3/5 재사용)과 크로스클라우드 Fallback.
+단일 OpenAI 호환 엔드포인트가 4개 프로바이더(Azure 네이티브 + 외부 3사)를 프론트. 클라이언트는 `model`만 변경. 프로바이더별 백엔드 풀(로드밸런싱, Lab 3/5 재사용)과 크로스클라우드 Fallback.
 
 ### 6.2 프로바이더 통합 표
 
@@ -113,11 +112,10 @@ graph LR
 |---|---|---|---|
 | Azure OpenAI | 기존 (Lab 2/3 백엔드 풀) | Managed Identity | OpenAI 네이티브 |
 | OpenAI 직접 | `api.openai.com/v1` | Bearer key | OpenAI 네이티브 |
-| AWS Bedrock | `bedrock-runtime.{region}.amazonaws.com/openai/v1` | **Bearer API key (2025 신규)** | OpenAI 호환 |
-| Anthropic 직접 | `api.anthropic.com/v1` | Bearer / `x-api-key` | OpenAI 호환 엔드포인트 |
+| Anthropic 직접 | `api.anthropic.com/v1` | `Authorization: Bearer` (Named Value) | OpenAI 호환 엔드포인트 |
 | Google Gemini | 기존 (Lab 5) + `.../v1beta/openai` | API key | OpenAI 호환 |
 
-> **핵심 설계 결정 (Approach A — 통합 OpenAI 계약):** SigV4 미사용. Bedrock의 2025년 Bearer API key + OpenAI 호환 엔드포인트 덕분에 Bedrock도 다른 OpenAI 백엔드와 동일하게 취급.
+> **핵심 설계 결정 (Approach A — 통합 OpenAI 계약):** 외부 3사(OpenAI·Anthropic·Gemini)가 모두 OpenAI 호환 `/chat/completions` 엔드포인트를 제공하므로, Azure OpenAI 백엔드와 **동일한 계약**으로 취급한다. 프로바이더 전용 SDK·서명 로직이 필요 없다.
 
 ### 6.3 라우팅
 - 클라이언트는 항상 `POST {gateway}/openai/v1/chat/completions` 로 OpenAI 포맷 전송
@@ -125,18 +123,18 @@ graph LR
 - 프로바이더별 인증 주입: Azure=Managed Identity, 그 외=Named Value의 Bearer/키 헤더
 
 ### 6.4 실습 단계 (초안)
-1. 사전 준비 — OpenAI/Bedrock/Anthropic 키를 `.env` → APIM Named Value(secret)
+1. 사전 준비 — OpenAI/Anthropic 키를 `.env` → APIM Named Value(secret) (Gemini 키는 Lab 5에서 등록됨)
 2. 백엔드 등록 — 프로바이더별 backend + credential (다중 키/리전은 풀 구성 → 로드밸런싱)
 3. 통합 API 등록 — OpenAI 호환 표면 1개
 4. `model` 기반 라우팅 정책 (`choose` → `set-backend-service` + 인증 주입)
 5. **`llm-*` 정책 적용** — `llm-token-limit`(구독별), `llm-emit-token-metric`(+`Provider` 차원)
 6. 크로스클라우드 Fallback — `retry` + circuit-breaker(기존 fragment 재사용)
-7. 테스트 노트북 — 동일 OpenAI SDK로 `model`만 바꿔 5개 프로바이더 호출 + 토큰 메트릭 확인
+7. 테스트 노트북 — 동일 OpenAI SDK로 `model`만 바꿔 4개 프로바이더 호출 + 토큰 메트릭 확인
 
 ### 6.5 재사용 / 신규 자산
 - 재사용: `retry-with-fallback.xml`, `circuit-breaker.xml`, 백엔드 풀 개념(Lab 3/5)
 - 신규: `policies/fragments/llm-token-limit.xml`, `llm-emit-token-metrics.xml`, `model-routing.xml`
-- 신규(초안): `infra/modules/*-backend.bicep` 스니펫 (bedrock/anthropic/openai) — 문서 내 스니펫 형태
+- 신규(초안): `infra/modules/*-backend.bicep` 스니펫 (openai/anthropic) — 문서 내 스니펫 형태
 
 ---
 
@@ -223,9 +221,6 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
 ```bash
 # OpenAI 직접
 OPENAI_API_KEY="sk-..."
-# AWS Bedrock (2025 Bearer API key)
-AWS_BEDROCK_API_KEY="..."
-AWS_BEDROCK_REGION="us-east-1"
 # Anthropic 직접
 ANTHROPIC_API_KEY="sk-ant-..."
 # (기존) GEMINI_API_KEY_1..3, Azure OpenAI 등
@@ -239,12 +234,10 @@ ANTHROPIC_API_KEY="sk-ant-..."
 
 | 위험 | 완화 |
 |------|------|
-| Bedrock SigV4 복잡성 | 2025 Bearer API key + OpenAI 호환 엔드포인트로 우회 (검증됨) |
 | 프로바이더별 응답 스키마 차이 | 모두 OpenAI 호환 표면 사용, 차이는 최소 변환 정책으로 흡수 |
 | 스트리밍 관측 공백 | `include_usage` + Event Hub 로깅 (Lab 10) |
 | 프롬프트 로깅의 PII/비용 | 레닥션·샘플링·보존 가이드, 필요한 라우트에만 활성화 |
 | 신규 프로바이더 키 미보유 시 미검증 | 초안은 정확한 스니펫까지, E2E 검증은 후속 태스크로 명시 |
-| Bedrock OpenAI 호환 엔드포인트/모델명 지역 편차 | 리전·모델 ARN 확인 단계를 실습에 포함 |
 
 ---
 
@@ -272,5 +265,5 @@ ANTHROPIC_API_KEY="sk-ant-..."
 
 - **랩 번호 체계 (확정됨):** 신규 랩 **8/9/10**, cleanup **8→11**. 연속(gap 없음) + cleanup 마지막. 루트 README 진행 표와 “다음 단계” 링크를 함께 갱신.
 - Product 설계를 **티어형 vs 팀형** 중 무엇을 기본 예시로 할지 (Lab 9에서 택1 후 다른 방식 노트로)
-- `model` 라우팅 키 규칙 (`bedrock/claude-3-5-sonnet` 같은 prefix 규칙 확정)
+- `model` 라우팅 키 규칙 (`anthropic/claude-3-5-sonnet` 같은 prefix 규칙 확정)
 - Workbook을 JSON 템플릿으로 제공할지, Portal 수동 구성 가이드로 제공할지 (초안은 후자 + JSON 스니펫 병행)

@@ -61,7 +61,6 @@ customMetrics
 | extend subscriptionId = tostring(customDimensions["Subscription ID"])
 | summarize tokens = sum(value) by provider, subscriptionId
 | extend estCostUsd = case(
-    provider == "bedrock", tokens * 0.000003,
     provider == "anthropic", tokens * 0.000003,
     provider == "gemini", tokens * 0.0000005,
     provider == "openai", tokens * 0.000005,
@@ -151,7 +150,7 @@ RESOURCE_GROUP=<APIM 이 있는 RG> ./deploy-workbook.sh
 | ① | 구독별 토큰 쿼터 사용 현황 | table | 구독별 사용 토큰·쿼터·**사용률 %** |
 | ② | 구독별 **TPM** | timechart | 분당 토큰 |
 | ③ | 구독별 **요청률(RPS)** | timechart | 분당 요청수(=/60 → RPS) |
-| ④ | **프로바이더별** 토큰 분해 | piechart | Azure/OpenAI/Bedrock/Anthropic/Gemini 비중 |
+| ④ | **프로바이더별** 토큰 분해 | piechart | Azure/OpenAI/Anthropic/Gemini 비중 |
 | ⑤ | 구독 × 프로바이더 **비용 추정** | table | 프로바이더 단가 × 토큰 |
 | ⑥ | **거버넌스 차단 추이** | barchart | 429(TPM) · 403(quota) · 401(무인증) |
 | ⑦ | 구독별 **SLO** | table | 성공률 · P50/P95 지연 |
