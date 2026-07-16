@@ -13,14 +13,15 @@ if [ -f ".env" ]; then
     set -a; source .env 2>/dev/null; set +a
 fi
 
-# suffix 결정
-PARAMS_FILE="infra/parameters/dev.bicepparam"
+# suffix 결정: 인자 > .env의 RESOURCE_GROUP에서 추출
+# (이 스크립트는 기존 배포 위에서 동작하므로 실제 배포된 suffix를 사용해야 합니다)
 if [ -n "${1:-}" ]; then
     SUFFIX="$1"
-elif [ -f "$PARAMS_FILE" ]; then
-    SUFFIX=$(grep "param suffix" "$PARAMS_FILE" | sed "s/.*= '//;s/'.*//")
+elif [ -n "${RESOURCE_GROUP:-}" ]; then
+    SUFFIX="${RESOURCE_GROUP#rg-ai-gw-}"
 else
     echo "❌ suffix를 결정할 수 없습니다."
+    echo "   먼저 ./scripts/deploy.sh를 실행하거나 suffix를 인자로 전달하세요:"
     echo "   사용법: ./scripts/deploy-semantic-caching.sh <suffix>"
     exit 1
 fi

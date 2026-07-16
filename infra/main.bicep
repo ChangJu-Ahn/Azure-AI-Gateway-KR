@@ -3,8 +3,8 @@ targetScope = 'resourceGroup'
 @description('리소스 배포 위치')
 param location string = resourceGroup().location
 
-@description('리소스 이름 접미사 (예: 0316a). deploy.sh가 자동 생성합니다.')
-param suffix string
+@description('리소스 이름 접미사. deploy.sh 사용 시 오늘 날짜로 자동 생성됩니다(aigateway-YYYYMMDD). 직접 배포하며 값을 지정하지 않으면 배포 시점 UTC 날짜로 기본 생성됩니다.')
+param suffix string = 'aigateway-${utcNow('yyyyMMdd')}'
 
 @description('APIM SKU (Developer, StandardV2, Consumption)')
 param apimSku string = 'Developer'
