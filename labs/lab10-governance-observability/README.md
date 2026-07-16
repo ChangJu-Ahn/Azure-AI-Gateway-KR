@@ -132,10 +132,13 @@ Portal → Azure Monitor → **Workbooks** → **+ New** → 아래 쿼리들을
 ### 6단계: 구독별 Alert
 
 ```bash
+# "Total Tokens" 는 App Insights 커스텀 메트릭이므로, 알림 스코프는 App Insights 리소스여야 합니다.
+AI_RESOURCE_ID=$(az monitor app-insights component show \
+  -g $RESOURCE_GROUP -a $APP_INSIGHTS_NAME --query id -o tsv)
 az monitor metrics alert create --name alert-sub-token-spike \
   --resource-group $RESOURCE_GROUP \
-  --scopes $(az apim show -g $RESOURCE_GROUP -n $APIM_NAME --query id -o tsv) \
-  --condition "total 'Total Tokens' > 500000" \
+  --scopes $AI_RESOURCE_ID \
+  --condition "total 'customMetrics/Total Tokens' > 500000" \
   --window-size 15m --evaluation-frequency 5m \
   --description "구독 토큰 급증 감지"
 ```
