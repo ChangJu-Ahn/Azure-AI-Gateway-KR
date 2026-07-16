@@ -148,13 +148,13 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
 ### 7.2 핵심 개념
 - **Product** = API 묶음 + 정책 + 구독 필요(subscriptionRequired)
 - Product 설계 예: 티어형(`free`/`standard`) 또는 팀형(`team-a`/`team-b`)
-- Product별 정책: `llm-token-limit`(counter-key = Subscription.Id) + `quota-by-key`(월 상한)
+- Product별 정책: `llm-token-limit`(구독별 TPM + `token-quota` 월 토큰 총량) + `quota-by-key`(월 호출 수 상한)
 - Developer Portal: 게시(publish), 회원가입/구독 활성화, 개발자 셀프 구독 → 키 발급
 
 ### 7.3 실습 단계 (초안)
 1. Product 개념 & 티어 설계
 2. Product 생성 & Lab 8 통합 API 연결 (`az apim product ...`)
-3. Product-level 정책: 구독별 TPM + 월 quota
+3. Product-level 정책: 구독별 TPM + 월 토큰 quota(token-quota) + 월 호출 수 quota(quota-by-key)
 4. 구독 생성 & 키 발급 (팀별)
 5. Developer Portal 활성화·브랜딩·게시
 6. 셀프서비스 시나리오: 개발자 가입 → 구독 → 자기 키로 호출
@@ -162,8 +162,8 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
 
 ### 7.4 재사용 / 신규 자산
 - 재사용: Lab 8 통합 API, `llm-token-limit`
-- 신규: `policies/fragments/quota-by-key.xml`, Product 별 policy 스니펫
-- 신규 문서: `docs/developer-portal-guide.md` (포털 게시/브랜딩 초안)
+- 신규: `policies/fragments/quota-by-key.xml` (요청(호출) 예산 조각), Product 별 policy 스니펫
+- 신규 문서: `docs/developer-portal-guide.md` (포털 게시/브랜딩 초안); `llm-token-limit.xml` 은 `token-quota`/`token-quota-period` 추가로 확장됨
 
 ---
 

@@ -66,7 +66,7 @@
   - `llm-token-limit`: 속성 `counter-key`, `tokens-per-minute`, `estimate-prompt-tokens`, `remaining-tokens-header-name`
   - `llm-emit-token-metric`: `namespace="ai-gateway-metrics"`, 차원 `Subscription ID / Provider / Model / API ID / Client IP`
   - `model-routing`: 변수 `provider`(문자열), 변수 `modelName`(prefix 제거 결과)
-  - `quota-by-key`: `counter-key="@(context.Subscription.Id)"`, `renewal-period`, `calls`/토큰 기반
+  - `quota-by-key`: `counter-key="@(context.Subscription.Id)"`, `renewal-period`, `calls`/`bandwidth` 기반 (호출/대역폭); 월 누적 토큰 총량은 `llm-token-limit`의 `token-quota`/`token-quota-period` 사용
 
 - [ ] **Step 1: `llm-token-limit.xml` 작성**
 
@@ -465,7 +465,7 @@ APIM Products · Subscriptions · Developer Portal 로 각 팀이 **격리된 �
 
 ## 목표
 - Product 로 API + 정책 + 구독요건을 묶기
-- Product 별 `llm-token-limit`(구독별 TPM) + `quota-by-key`(월 총량) 적용
+- Product 별 **토큰 예산**(`llm-token-limit`: 분당 TPM + 월 토큰 quota) + **요청 예산**(`quota-by-key`: 월 호출 수) 적용
 - Developer Portal 게시 & 셀프서비스 구독
 - 2개 구독으로 격리(키/TPM/메트릭 분리) 검증
 
@@ -545,10 +545,15 @@ Portal → APIM → Products → team-a → Policies (또는 `az apim product` R
 <policies>
     <inbound>
         <base />
+        <!-- 토큰 기반 제어: 분당 TPM(429) + 월 토큰 총량(403) -->
         <llm-token-limit counter-key="@(context.Subscription.Id)"
-            tokens-per-minute="10000" estimate-prompt-tokens="true"
-            remaining-tokens-header-name="x-ratelimit-remaining-tokens" />
-        <quota-by-key calls="10000000" renewal-period="2592000"
+            tokens-per-minute="10000"
+            token-quota="10000000" token-quota-period="Monthly"
+            estimate-prompt-tokens="true"
+            remaining-tokens-header-name="x-ratelimit-remaining-tokens"
+            remaining-quota-tokens-header-name="x-quota-remaining-tokens" />
+        <!-- 요청 기반 제어: 월 호출 수 상한 -->
+        <quota-by-key calls="100000" renewal-period="2592000"
             counter-key="@(context.Subscription.Id)" />
     </inbound>
     <backend><base /></backend>

@@ -51,10 +51,10 @@ Azure Portal → API Management → **Developer portal** → **Developer portal 
 
 ### 4-3. 즉시 발급 vs. 승인 대기
 
-- **team-a** (자동 승인 · TPM 10,000 · 월 10,000,000): Subscribe 후 즉시 Subscription Key 발급
+- **team-a** (자동 승인 · TPM 10,000 · 월 토큰 10,000,000 · 월 호출 100,000): Subscribe 후 즉시 Subscription Key 발급
   - **Profile** 페이지에서 **Primary Key** · **Secondary Key** 확인 가능
   
-- **team-b** (관리자 승인 · TPM 2,000 · 월 2,000,000): Subscribe 후 "대기 중" 상태
+- **team-b** (관리자 승인 · TPM 2,000 · 월 토큰 2,000,000 · 월 호출 20,000): Subscribe 후 "대기 중" 상태
   - 관리자 승인 후 Key 발급
   - 포털 Profile 페이지에 Key 표시
 

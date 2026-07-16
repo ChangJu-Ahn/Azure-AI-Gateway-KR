@@ -1,9 +1,11 @@
-<!-- 구독별 월 quota 정책 조각 -->
-<!-- llm-token-limit(분당 TPM)과 조합: 단기 스파이크는 TPM, 장기 총량은 quota 로 제어 -->
+<!-- 구독별 '요청(호출) 수' 기반 기간 quota 정책 조각 -->
+<!-- 주의: quota-by-key 는 토큰이 아니라 호출 수(calls) 또는 대역폭(bandwidth)을 집계합니다. -->
+<!--       월 누적 '토큰' 총량 제어는 llm-token-limit 의 token-quota / token-quota-period 를 사용하세요. -->
+<!-- 조합 권장: 토큰 예산 = llm-token-limit(token-quota), 요청 예산 = quota-by-key(calls) -->
 <!-- 적용 위치: Inbound (Product 정책에 배치 권장) -->
 <fragment>
     <quota-by-key
-        calls="10000"
+        calls="100000"
         renewal-period="2592000"
         counter-key="@(context.Subscription.Id)" />
 </fragment>

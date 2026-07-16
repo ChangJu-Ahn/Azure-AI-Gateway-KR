@@ -1,11 +1,18 @@
-<!-- 프로바이더 무관 토큰 기반 Rate Limiting 정책 조각 -->
+<!-- 프로바이더 무관 토큰 기반 제어 정책 조각 -->
 <!-- azure-openai-token-limit 과 달리 OpenAI 호환 usage 를 반환하는 모든 백엔드에 적용 가능 -->
+<!-- 두 가지 토큰 제어를 동시 지원: -->
+<!--   tokens-per-minute = 분당 토큰 레이트(초과 시 429) -->
+<!--   token-quota + token-quota-period = 기간 누적 토큰 총량(예: 월, 초과 시 403) -->
 <!-- 적용 위치: Inbound -->
 <fragment>
     <llm-token-limit
         counter-key="@(context.Subscription.Id)"
         tokens-per-minute="10000"
+        token-quota="10000000"
+        token-quota-period="Monthly"
         estimate-prompt-tokens="true"
+        remaining-quota-tokens-variable-name="remainingQuotaTokens"
+        remaining-quota-tokens-header-name="x-quota-remaining-tokens"
         remaining-tokens-variable-name="remainingTokens"
         remaining-tokens-header-name="x-ratelimit-remaining-tokens"
         tokens-consumed-variable-name="tokensConsumed"
