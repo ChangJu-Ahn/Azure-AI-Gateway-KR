@@ -1,6 +1,8 @@
 # Lab 10: 구독별 거버넌스 & Azure Monitor 대시보드
 
-> 🚧 **드래프트** — 스니펫은 정확하나, 실제 배포 후 E2E 검증 예정입니다.
+> ✅ **App Insights KQL 관측 경로 라이브 검증됨** — [`test-governance-observability.ipynb`](./test-governance-observability.ipynb)
+> 로 실제 배포에서 **구독별 토큰(customMetrics)·비용 추정·429/403 거버넌스 추이(requests)** 를 E2E 확인했습니다.
+> Event Hub 무손실 로깅·Workbook/Alert 스니펫은 배포용 참조입니다.
 
 모든 **프로바이더 × 구독**에 걸친 토큰·비용·프롬프트를 하나의 관측 평면에서 통제합니다. Lab 6의 App Insights 관측을 멀티 클라우드·멀티 구독으로 확장하고, 스트리밍/대용량 프롬프트까지 풀 피델리티로 캡처합니다.
 
