@@ -2,7 +2,7 @@
 
 > ✅ **App Insights KQL 관측 경로 라이브 검증됨** — [`test-governance-observability.ipynb`](./test-governance-observability.ipynb)
 > 로 실제 배포에서 **구독별 토큰(customMetrics)·비용 추정·429/403 거버넌스 추이(requests)** 를 E2E 확인했습니다.
-> Event Hub 무손실 로깅·Workbook/Alert 스니펫은 배포용 참조입니다.
+> Event Hub 무손실 로깅·Alert 스니펫은 배포용 참조이며, **Azure Monitor Workbook 은 배포 가능한 템플릿+스크립트로 라이브 배포까지 검증**했습니다.
 
 모든 **프로바이더 × 구독**에 걸친 토큰·비용·프롬프트를 하나의 관측 평면에서 통제합니다. Lab 6의 App Insights 관측을 멀티 클라우드·멀티 구독으로 확장하고, 스트리밍/대용량 프롬프트까지 풀 피델리티로 캡처합니다.
 
@@ -121,15 +121,84 @@ APIM Event Hub logger 등록 후, 정책에 추가:
 > 마스킹하고, Log Analytics 보존 기간과 접근 권한(RBAC)을 정책으로 통제하세요.
 > 민감 라우트에만 body 로깅을 활성화하는 것을 권장합니다.
 
-### 5단계: Azure Monitor Workbook
+### 5단계: Azure Monitor Workbook (구독별 · 멀티클라우드 리포팅) — ✅ 배포 검증됨
 
-Portal → Azure Monitor → **Workbooks** → **+ New** → 아래 쿼리들을 타일로 추가:
-- 프로바이더별 TPM (timechart)
-- 구독별 토큰 Top 10 (barchart)
-- 구독별 429율 (timechart)
-- 크로스클라우드 비용 추정 (table)
+> ✅ 이 Workbook 은 실제 App Insights 에 배포·조회까지 라이브 검증했습니다.
+> 타일을 손으로 만들 필요 없이 **배포 가능한 템플릿 + 원커맨드 스크립트**를 제공합니다.
 
-> Workbook 은 JSON 으로 export/공유 가능합니다. (Advanced Editor → Gallery Template)
+**구성물**
+- [`workbook-template.json`](./workbook-template.json) — 상단 **필터(시간범위 · 토큰 쿼터 기준 · 구독 멀티선택)** + **8개 리포팅 타일**. App Insights 리소스 ID 는 `__APP_INSIGHTS_ID__` 플레이스홀더로 이식성 확보.
+- [`deploy-workbook.sh`](./deploy-workbook.sh) — RG 내 App Insights 를 자동 탐색해 플레이스홀더를 치환하고 `Microsoft.Insights/workbooks` 리소스로 배포(멱등). 실행:
+
+```bash
+cd labs/lab10-governance-observability
+RESOURCE_GROUP=<APIM 이 있는 RG> ./deploy-workbook.sh
+# 출력된 포털 딥링크로 바로 열기 → Monitor → Workbooks 에서도 확인 가능
+# 삭제: az rest --method DELETE --url "<출력된 workbook resource id>?api-version=2023-06-01"
+```
+
+**상단 파라미터** (전 타일 연동)
+| 파라미터 | 타입 | 기본값 | 용도 |
+|---|---|---|---|
+| `TimeRange` | 시간범위 | 1일 | 대시보드 전체 시간창 |
+| `QuotaTokens` | 텍스트 | `2000000` | 구독당 토큰 쿼터 기준(① 사용률 계산) |
+| `Subscription` | 멀티선택 | 전체 | 구독(테넌트)별 필터 · `requests` 에서 목록 자동 조회 |
+
+**8개 타일** (`customMetrics`=토큰/쿼터/비용 · `requests`=요청률/지연/차단/프롬프트)
+
+| # | 타일 | 시각화 | 무엇을 보나 |
+|---|---|---|---|
+| ① | 구독별 토큰 쿼터 사용 현황 | table | 구독별 사용 토큰·쿼터·**사용률 %** |
+| ② | 구독별 **TPM** | timechart | 분당 토큰 |
+| ③ | 구독별 **요청률(RPS)** | timechart | 분당 요청수(=/60 → RPS) |
+| ④ | **프로바이더별** 토큰 분해 | piechart | Azure/OpenAI/Bedrock/Anthropic/Gemini 비중 |
+| ⑤ | 구독 × 프로바이더 **비용 추정** | table | 프로바이더 단가 × 토큰 |
+| ⑥ | **거버넌스 차단 추이** | barchart | 429(TPM) · 403(quota) · 401(무인증) |
+| ⑦ | 구독별 **SLO** | table | 성공률 · P50/P95 지연 |
+| ⑧ | **프롬프트/응답 감사** | table | 최근 요청·응답 본문(≤300자) |
+
+핵심 타일 KQL (전체는 템플릿 참조):
+
+```kusto
+// ① 구독별 토큰 쿼터 사용 현황 (사용률 %)
+customMetrics
+| where name == 'Total Tokens'
+| extend sub = tostring(customDimensions['Subscription ID'])
+| where isnotempty(sub) and sub in ({Subscription})
+| summarize ['사용 토큰'] = sum(value) by ['구독'] = sub
+| extend ['쿼터'] = toreal({QuotaTokens}), ['사용률 %'] = round(100.0 * ['사용 토큰'] / {QuotaTokens}, 1)
+| order by ['사용 토큰'] desc
+```
+
+```kusto
+// ③ 구독별 요청률 (건/분 · RPS = 값/60)
+requests
+| extend sub = tostring(customDimensions['Subscription Name'])
+| where isnotempty(sub) and sub in ({Subscription})
+| summarize ['요청/분'] = count() by sub, bin(timestamp, 1m)
+```
+
+```kusto
+// ④ 프로바이더별 토큰 분해 (멀티클라우드)
+customMetrics
+| where name == 'Total Tokens'
+| extend prov = tostring(customDimensions['Provider']), sub = tostring(customDimensions['Subscription ID'])
+| where sub in ({Subscription})
+| summarize ['토큰'] = sum(value) by ['프로바이더'] = prov
+| order by ['토큰'] desc
+```
+
+```kusto
+// ⑥ 거버넌스 차단 추이 (429/403/401)
+requests
+| extend sub = tostring(customDimensions['Subscription Name'])
+| where sub in ({Subscription})
+| where resultCode in ('429', '403', '401')
+| summarize ['건수'] = count() by resultCode, bin(timestamp, 5m)
+```
+
+> 💡 `customMetrics` 는 `Subscription ID`, `requests` 는 `Subscription Name` 을 사용합니다.
+> 랩에서는 두 값을 동일하게 설정(구독 displayName=id)하므로 필터가 교차 적용됩니다.
 
 ### 6단계: 구독별 Alert
 
