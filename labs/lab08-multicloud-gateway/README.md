@@ -1,6 +1,8 @@
 # Lab 8: 멀티 클라우드 통합 게이트웨이
 
-> 🚧 **드래프트** — 스니펫은 정확하나, 실제 프로바이더 키 확보 후 E2E 검증 예정입니다.
+> ✅ **통합 라우팅 라이브 검증됨** — [`test-multicloud-gateway.ipynb`](./test-multicloud-gateway.ipynb)
+> 로 실제 배포에서 **하나의 통합 엔드포인트 → `model` prefix 만으로 Azure OpenAI(배포경로)·Google Gemini(OpenAI 호환)** 이중 클라우드 라우팅을 200 으로 E2E 확인했습니다.
+> 미구성 프로바이더(OpenAI·Bedrock·Anthropic)는 게이트웨이가 백엔드 도달 전 400 으로 차단하며, `.env` 키만 추가하면 동일 패턴으로 활성화됩니다.
 
 하나의 OpenAI 호환 엔드포인트로 Azure OpenAI · OpenAI · AWS Bedrock · Anthropic · Google Gemini를 통합 관리합니다. 클라이언트는 `model` 필드만 바꾸면 프로바이더가 전환되고, 게이트웨이가 토큰 제어·메트릭·Fallback을 동일하게 적용합니다.
 
@@ -67,6 +69,12 @@ ANTHROPIC_API_KEY=<Anthropic API 키>
 > `/openai/v1/chat/completions` 를 지원하므로 SigV4 서명이 필요 없습니다.
 
 ## 실습 단계
+
+> 🔬 **핸즈온 노트북** — [`test-multicloud-gateway.ipynb`](./test-multicloud-gateway.ipynb) 가 아래 1~4단계를
+> 자동화합니다. `.env` 에 설정된 프로바이더 키를 감지해 **구성된 프로바이더만** 통합 `<choose>` 라우팅
+> 정책에 포함하고, 통합 API를 배포한 뒤 `model` prefix 라우팅을 실제 호출로 검증하고, 마지막에
+> 노트북이 만든 리소스를 정리합니다(Lab 5의 `gemini-api-key-*` 는 보존). Azure OpenAI 는 키 없이
+> Managed Identity 로 동작하므로 별도 설정 없이 바로 라우팅됩니다.
 
 ### 1단계: 프로바이더 키를 Named Value(secret)로 등록
 
