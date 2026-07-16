@@ -1,0 +1,56 @@
+<!-- model prefix 기반 백엔드 라우팅 + 프로바이더별 인증 주입 -->
+<!-- 클라이언트는 OpenAI 포맷으로 model 필드에 "provider/model" 을 전송 -->
+<!--   예: "openai/gpt-4o", "bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0", -->
+<!--       "anthropic/claude-3-5-sonnet-20241022", "gemini/gemini-2.0-flash" -->
+<!--   prefix 없으면 Azure OpenAI(기본)로 라우팅 -->
+<!-- 적용 위치: Inbound -->
+<fragment>
+    <set-variable name="rawModel" value="@{
+        var body = context.Request.Body?.As&lt;JObject&gt;(preserveContent: true);
+        return body != null &amp;&amp; body[&quot;model&quot;] != null ? body[&quot;model&quot;].ToString() : &quot;&quot;;
+    }" />
+    <set-variable name="provider" value="@{
+        var m = (string)context.Variables[&quot;rawModel&quot;];
+        return m.Contains(&quot;/&quot;) ? m.Split('/')[0] : &quot;azure&quot;;
+    }" />
+    <set-variable name="modelName" value="@{
+        var m = (string)context.Variables[&quot;rawModel&quot;];
+        return m.Contains(&quot;/&quot;) ? m.Substring(m.IndexOf('/') + 1) : m;
+    }" />
+    <choose>
+        <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;openai&quot;)">
+            <set-backend-service backend-id="openai-direct-backend" />
+            <set-header name="Authorization" exists-action="override">
+                <value>@("Bearer " + "{{openai-api-key}}")</value>
+            </set-header>
+        </when>
+        <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;bedrock&quot;)">
+            <set-backend-service backend-id="bedrock-backend" />
+            <set-header name="Authorization" exists-action="override">
+                <value>@("Bearer " + "{{aws-bedrock-api-key}}")</value>
+            </set-header>
+        </when>
+        <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;anthropic&quot;)">
+            <set-backend-service backend-id="anthropic-backend" />
+            <set-header name="Authorization" exists-action="override">
+                <value>@("Bearer " + "{{anthropic-api-key}}")</value>
+            </set-header>
+        </when>
+        <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;gemini&quot;)">
+            <set-backend-service backend-id="gemini-backend-pool" />
+            <set-header name="Authorization" exists-action="override">
+                <value>@("Bearer " + "{{gemini-api-key-1}}")</value>
+            </set-header>
+        </when>
+        <otherwise>
+            <set-backend-service backend-id="openai-backend-pool" />
+            <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+        </otherwise>
+    </choose>
+    <!-- 백엔드가 기대하는 실제 model 값으로 재작성 (provider/ prefix 제거) -->
+    <set-body>@{
+        var body = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
+        body[&quot;model&quot;] = (string)context.Variables[&quot;modelName&quot;];
+        return body.ToString();
+    }</set-body>
+</fragment>

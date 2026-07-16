@@ -1,0 +1,9 @@
+<!-- 구독별 월 quota 정책 조각 -->
+<!-- llm-token-limit(분당 TPM)과 조합: 단기 스파이크는 TPM, 장기 총량은 quota 로 제어 -->
+<!-- 적용 위치: Inbound (Product 정책에 배치 권장) -->
+<fragment>
+    <quota-by-key
+        calls="10000"
+        renewal-period="2592000"
+        counter-key="@(context.Subscription.Id)" />
+</fragment>

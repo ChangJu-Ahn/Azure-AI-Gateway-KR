@@ -1,0 +1,12 @@
+<!-- 프로바이더 무관 토큰 메트릭 수집 정책 조각 -->
+<!-- Provider 차원을 추가해 멀티 클라우드에서 프로바이더별 토큰을 구분 -->
+<!-- 적용 위치: Inbound (공식 문서 기준). 커스텀 dimension 은 정책당 최대 5개 -->
+<fragment>
+    <llm-emit-token-metric namespace="ai-gateway-metrics">
+        <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
+        <dimension name="Provider" value="@((string)context.Variables.GetValueOrDefault(&quot;provider&quot;, &quot;unknown&quot;))" />
+        <dimension name="Model" value="@((string)context.Variables.GetValueOrDefault(&quot;modelName&quot;, &quot;unknown&quot;))" />
+        <dimension name="API ID" value="@(context.Api.Id)" />
+        <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+    </llm-emit-token-metric>
+</fragment>
