@@ -187,4 +187,4 @@ resource paygoPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview'
 
 `scripts/test-endpoints.http`의 `Lab 7` 섹션 참조
 
-→ [Lab 8: 리소스 정리](../lab08-cleanup/README.md) | [메인 README로 돌아가기](../../README.md)
+→ [Lab 8: 멀티 클라우드 통합 게이트웨이](../lab08-multicloud-gateway/README.md) | [메인 README로 돌아가기](../../README.md)

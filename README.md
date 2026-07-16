@@ -13,7 +13,10 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 5 | 멀티 모델 Gateway (Gemini, Claude 등) | ✅ 완료 |
 | Lab 6 | 모니터링 & 로깅 | ✅ 완료 |
 | Lab 7 | 고급 패턴 (A/B 테스트, Content Safety 등) | 🔄 확인중 |
-| Lab 8 | 리소스 정리 | ✅ 완료 |
+| Lab 8 | 멀티 클라우드 통합 게이트웨이 (Bedrock, Anthropic, OpenAI, Gemini) | 🚧 드래프트 |
+| Lab 9 | Products & 개발자 포털 (구독 격리) | 🚧 드래프트 |
+| Lab 10 | 구독별 거버넌스 & Azure Monitor 대시보드 | 🚧 드래프트 |
+| Lab 11 | 리소스 정리 | ✅ 완료 |
 
 ## 이런 요구사항이 있다면, 이 실습으로 해결하세요
 
@@ -77,6 +80,31 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 2 | 사용자 입력에 욕설/유해 콘텐츠가 포함되면 **AI 모델 호출 전에 차단**하고 싶다 |
 | 3 | ChatGPT처럼 **실시간 스트리밍 응답**(SSE)을 게이트웨이를 거쳐 제공하고 싶다 |
 | 4 | PTU 리전에서 429가 발생하면 **자동으로 PayGo 리전으로 Spillover**하고 싶다 |
+
+---
+
+### Lab 8: 멀티 클라우드 통합 게이트웨이
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | Azure뿐 아니라 **AWS Bedrock·Anthropic·OpenAI·Gemini**를 하나의 엔드포인트로 호출하고 싶다 |
+| 2 | 클라이언트 코드는 그대로 두고 `model` 값만 바꿔 **프로바이더를 전환**하고 싶다 |
+| 3 | 프로바이더가 달라도 **토큰 제어·메트릭을 동일한 정책**으로 적용하고 싶다 |
+
+### Lab 9: Products & 개발자 포털
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | 팀마다 **격리된 구독 키**를 발급해 API 접근과 토큰 예산을 분리하고 싶다 |
+| 2 | 개발자가 **셀프서비스로 구독**을 신청·발급받게 하고 싶다 |
+
+### Lab 10: 구독별 거버넌스 & 관측
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | **프로바이더별·구독별** 토큰/비용을 한 대시보드에서 보고 싶다 |
+| 2 | 8KB를 넘는 긴 프롬프트나 **스트리밍 응답까지 무손실로 로깅**하고 싶다 |
+| 3 | 구독이 토큰을 급증시키면 **구독 단위로 알림**을 받고 싶다 |
 
 ---
 
@@ -169,7 +197,7 @@ flowchart TD
 > | ⑧ 멀티 모델 | [Lab 5](labs/lab05-multi-model-gateway/README.md) | Gemini 등 다양한 모델 통합 |
 > | ⑩ Outbound/모니터링 | [Lab 6](labs/lab06-monitoring/README.md) | 토큰 메트릭, App Insights 대시보드 |
 > | 전체 | [Lab 7](labs/lab07-advanced-patterns/README.md) | IP 필터, Content Safety, 스트리밍 |
-> | 정리 | [Lab 8](labs/lab08-cleanup/README.md) | 리소스 삭제, soft delete purge |
+> | 정리 | [Lab 11](labs/lab11-cleanup/README.md) | 리소스 삭제, soft delete purge |
 >
 > 정책이 어느 섹션(inbound/backend/outbound)에 들어가는지 상세 설명은 [📖 정책 레퍼런스](docs/policy-reference.md)를 참고하세요.
 
@@ -228,7 +256,10 @@ AI Gateway/
 │   ├── lab07-advanced-patterns/        # Lab 7: 고급 패턴
 │   │   ├── README.md
 │   │   └── test-advanced.ipynb         # 테스트: A/B 라우팅 & SSE 스트리밍
-│   └── lab08-cleanup/                  # Lab 8: 리소스 정리
+│   ├── lab08-multicloud-gateway/       # Lab 8: 멀티 클라우드 통합 게이트웨이
+│   ├── lab09-products-portal/          # Lab 9: Products & 개발자 포털
+│   ├── lab10-governance-observability/ # Lab 10: 거버넌스 & 관측
+│   └── lab11-cleanup/                  # Lab 11: 리소스 정리
 │       └── README.md
 │
 ├── .env.sample                         # 환경 변수 템플릿 (.env용)
@@ -490,9 +521,9 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 
 ---
 
-### Lab 8: 리소스 정리 (Clean Up)
+### Lab 11: 리소스 정리 (Clean Up)
 
-> 📁 `labs/lab08-cleanup/`
+> 📁 `labs/lab11-cleanup/`
 
 모든 실습이 끝난 후 Azure 리소스를 정리하여 불필요한 과금을 방지합니다.
 
@@ -558,7 +589,7 @@ pip install -r requirements.txt
 
 ### 4단계: 정리 (Clean Up)
 
-> 📁 상세 가이드: [Lab 8: 리소스 정리](labs/lab08-cleanup/README.md)
+> 📁 상세 가이드: [Lab 11: 리소스 정리](labs/lab11-cleanup/README.md)
 
 ```bash
 # 모든 Azure 리소스 삭제 (리소스 그룹 전체 삭제)
