@@ -1,4 +1,4 @@
-# 설계 문서: 멀티 클라우드 AI Gateway & 통합 관측 랩 (Lab 9–11 + Lab 6 패치)
+# 설계 문서: 멀티 클라우드 AI Gateway & 통합 관측 랩 (Lab 8–10 + Lab 6 패치)
 
 - **작성일:** 2026-07-16
 - **대상 레포:** ChangJu-Ahn/Azure-AI-Gateway-KR
@@ -17,9 +17,9 @@
 
 이를 위해 세 축을 세운다.
 
-1. **멀티 클라우드 통합** — 단일 OpenAI 호환 계약으로 5개 프로바이더를 통합 (Lab 9)
-2. **구독 격리** — Products + Developer Portal 로 API/토큰을 subscriber별 격리 (Lab 10)
-3. **통합 관측·거버넌스** — 모든 프로바이더 × 모든 구독의 토큰/프롬프트/비용을 Azure Monitor로 관측 (Lab 11 + Lab 6 패치)
+1. **멀티 클라우드 통합** — 단일 OpenAI 호환 계약으로 5개 프로바이더를 통합 (Lab 8)
+2. **구독 격리** — Products + Developer Portal 로 API/토큰을 subscriber별 격리 (Lab 9)
+3. **통합 관측·거버넌스** — 모든 프로바이더 × 모든 구독의 토큰/프롬프트/비용을 Azure Monitor로 관측 (Lab 10 + Lab 6 패치)
 
 ---
 
@@ -27,12 +27,12 @@
 
 | 영역 | 현재 상태 | 신규 랩에 대한 시사점 |
 |------|----------|----------------------|
-| 멀티 모델 | Lab 5에서 **Gemini** 로드밸런싱만 구현 (검증 완료). Claude/Bedrock은 README 언급뿐 | Lab 9는 Lab 5의 로드밸런싱 개념을 재사용해 나머지 프로바이더로 확장 |
+| 멀티 모델 | Lab 5에서 **Gemini** 로드밸런싱만 구현 (검증 완료). Claude/Bedrock은 README 언급뿐 | Lab 8은 Lab 5의 로드밸런싱 개념을 재사용해 나머지 프로바이더로 확장 |
 | 토큰 제어 | `azure-openai-token-limit` (counter-key = Subscription.Id) | **Azure OpenAI 전용**. 멀티 클라우드는 `llm-token-limit`(프로바이더 무관)로 전환 필요 |
 | 토큰 메트릭 | `azure-openai-emit-token-metric` (Subscription/Model/Backend 차원) | 동일 이유로 `llm-emit-token-metric`로 전환 + `Provider` 차원 추가 |
-| 프롬프트/응답 로깅 | Lab 6에서 APIM Diagnostics body 로깅 (`bytes: 4096`) | **8KB 하드 한계 + 스트리밍 미포착** → Lab 6 패치 + Lab 11 심화 |
-| 구독/Product | `context.Subscription.Id`는 정책에 쓰이나 Product/Developer Portal 랩은 없음 | Lab 10 신규 |
-| 대시보드 | Lab 6에서 App Insights KQL + metric alert | Lab 11에서 Provider × Subscription 차원의 Azure Monitor Workbook으로 확장 |
+| 프롬프트/응답 로깅 | Lab 6에서 APIM Diagnostics body 로깅 (`bytes: 4096`) | **8KB 하드 한계 + 스트리밍 미포착** → Lab 6 패치 + Lab 10 심화 |
+| 구독/Product | `context.Subscription.Id`는 정책에 쓰이나 Product/Developer Portal 랩은 없음 | Lab 9 신규 |
+| 대시보드 | Lab 6에서 App Insights KQL + metric alert | Lab 10에서 Provider × Subscription 차원의 Azure Monitor Workbook으로 확장 |
 
 **결론:** 관측/제어의 “깊이”는 이미 훌륭하나 **범위가 Azure OpenAI에 한정**되어 있다. 신규 랩의 핵심은 이 깊이를 **모든 프로토콜/프로바이더/구독으로 확장**하는 것이다.
 
@@ -62,12 +62,12 @@
 | Lab 1–5 | (기존, 검증 완료) | 변경 없음 |
 | Lab 6 | 모니터링 & 로깅 | 🔧 소규모 패치 (§9) |
 | Lab 7 | 고급 패턴 | 변경 없음 |
-| **Lab 9** | 멀티 클라우드 통합 게이트웨이 | 🆕 신규 |
-| **Lab 10** | Products & 개발자 포털 (구독 격리) | 🆕 신규 |
-| **Lab 11** | 구독별 거버넌스 & Azure Monitor 대시보드 | 🆕 신규 |
-| Lab 8 → **Lab 12** | 리소스 정리 | 🔁 번호 변경(마지막 유지) |
+| **Lab 8** | 멀티 클라우드 통합 게이트웨이 | 🆕 신규 |
+| **Lab 9** | Products & 개발자 포털 (구독 격리) | 🆕 신규 |
+| **Lab 10** | 구독별 거버넌스 & Azure Monitor 대시보드 | 🆕 신규 |
+| Lab 8 → **Lab 11** | 리소스 정리 | 🔁 번호 변경(마지막 유지) |
 
-> 폴더 규칙: `labs/lab09-multicloud-gateway/`, `labs/lab10-products-portal/`, `labs/lab11-governance-observability/`, `labs/lab08-cleanup/ → labs/lab12-cleanup/`.
+> 폴더 규칙: `labs/lab08-multicloud-gateway/`, `labs/lab09-products-portal/`, `labs/lab10-governance-observability/`, `labs/lab08-cleanup/ → labs/lab11-cleanup/`.
 > README 상단 표(진행 상태)와 각 랩의 “다음 단계” 링크를 함께 갱신한다.
 
 ---
@@ -98,11 +98,11 @@ graph LR
     OBS --> OAI[OpenAI]
 ```
 
-신규 랩은 `policies/fragments/`에 `llm-*` 버전 조각을 **추가**하고(기존 AOAI 조각은 하위 랩 호환을 위해 보존), Lab 9부터 이를 사용한다.
+신규 랩은 `policies/fragments/`에 `llm-*` 버전 조각을 **추가**하고(기존 AOAI 조각은 하위 랩 호환을 위해 보존), Lab 8부터 이를 사용한다.
 
 ---
 
-## 6. Lab 9 — 멀티 클라우드 통합 게이트웨이
+## 6. Lab 8 — 멀티 클라우드 통합 게이트웨이
 
 ### 6.1 목표
 단일 OpenAI 호환 엔드포인트가 5개 프로바이더를 프론트. 클라이언트는 `model`만 변경. 프로바이더별 백엔드 풀(로드밸런싱, Lab 3/5 재사용)과 크로스클라우드 Fallback.
@@ -140,7 +140,7 @@ graph LR
 
 ---
 
-## 7. Lab 10 — Products & 개발자 포털 (구독 격리)
+## 7. Lab 9 — Products & 개발자 포털 (구독 격리)
 
 ### 7.1 목표
 APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **격리된 구독 키**를 셀프서비스 발급. API와 토큰 예산을 subscriber별 격리.
@@ -153,7 +153,7 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
 
 ### 7.3 실습 단계 (초안)
 1. Product 개념 & 티어 설계
-2. Product 생성 & Lab 9 통합 API 연결 (`az apim product ...`)
+2. Product 생성 & Lab 8 통합 API 연결 (`az apim product ...`)
 3. Product-level 정책: 구독별 TPM + 월 quota
 4. 구독 생성 & 키 발급 (팀별)
 5. Developer Portal 활성화·브랜딩·게시
@@ -161,13 +161,13 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
 7. 테스트: 2개 구독으로 격리 검증 (키/TPM/메트릭 분리)
 
 ### 7.4 재사용 / 신규 자산
-- 재사용: Lab 9 통합 API, `llm-token-limit`
+- 재사용: Lab 8 통합 API, `llm-token-limit`
 - 신규: `policies/fragments/quota-by-key.xml`, Product 별 policy 스니펫
 - 신규 문서: `docs/developer-portal-guide.md` (포털 게시/브랜딩 초안)
 
 ---
 
-## 8. Lab 11 — 구독별 거버넌스 & Azure Monitor 대시보드 (관측 캡스톤)
+## 8. Lab 10 — 구독별 거버넌스 & Azure Monitor 대시보드 (관측 캡스톤)
 
 ### 8.1 목표
 모든 **프로바이더 × 구독**에 걸친 거버넌스 + 관측 통합. 스트리밍 포함 풀 피델리티 로깅.
@@ -197,7 +197,7 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
 7. 검증 노트북
 
 ### 8.6 재사용 / 신규 자산
-- 재사용: Lab 6 App Insights/KQL 기반, Lab 4 토큰 정책, Lab 10 Product/구독
+- 재사용: Lab 6 App Insights/KQL 기반, Lab 4 토큰 정책, Lab 9 Product/구독
 - 신규: `infra/modules/eventhub-logging.bicep`(초안), Workbook JSON(초안), KQL 세트
 
 ---
@@ -211,7 +211,7 @@ APIM **Products + Subscriptions + Developer Portal**로 각 팀/소비자가 **�
   - **스트리밍(SSE) 미포착** — `stream:true` 응답 body 및 종료 usage 누락
   - **PII/보존** 주의
 - 설정 수정: Diagnostics `body.bytes: 4096 → 8192` (한계까지 최대화)
-- 전방 참조: 풀 피델리티 캡처는 **Lab 11**로 링크
+- 전방 참조: 풀 피델리티 캡처는 **Lab 10**으로 링크
 - 검증 항목: KQL의 `customDimensions["Request-Body"]` 실제 속성명/테이블을 구현 시 재확인
 
 ---
@@ -241,7 +241,7 @@ ANTHROPIC_API_KEY="sk-ant-..."
 |------|------|
 | Bedrock SigV4 복잡성 | 2025 Bearer API key + OpenAI 호환 엔드포인트로 우회 (검증됨) |
 | 프로바이더별 응답 스키마 차이 | 모두 OpenAI 호환 표면 사용, 차이는 최소 변환 정책으로 흡수 |
-| 스트리밍 관측 공백 | `include_usage` + Event Hub 로깅 (Lab 11) |
+| 스트리밍 관측 공백 | `include_usage` + Event Hub 로깅 (Lab 10) |
 | 프롬프트 로깅의 PII/비용 | 레닥션·샘플링·보존 가이드, 필요한 라우트에만 활성화 |
 | 신규 프로바이더 키 미보유 시 미검증 | 초안은 정확한 스니펫까지, E2E 검증은 후속 태스크로 명시 |
 | Bedrock OpenAI 호환 엔드포인트/모델명 지역 편차 | 리전·모델 ARN 확인 단계를 실습에 포함 |
@@ -260,19 +260,17 @@ ANTHROPIC_API_KEY="sk-ant-..."
 ## 13. 구현 순서
 
 1. `llm-*` 정책 조각 신규 추가 (`policies/fragments/`)
-2. Lab 9 README 초안
-3. Lab 10 README 초안 + `docs/developer-portal-guide.md`
-4. Lab 11 README 초안 + Workbook/KQL/Event Hub 스니펫
+2. Lab 8 README 초안
+3. Lab 9 README 초안 + `docs/developer-portal-guide.md`
+4. Lab 10 README 초안 + Workbook/KQL/Event Hub 스니펫
 5. Lab 6 패치
-6. 폴더 번호 조정(cleanup → lab12) + 루트 README 진행 표/링크 갱신
+6. 폴더 번호 조정(cleanup lab08 → lab11) + 루트 README 진행 표/링크 갱신
 
 ---
 
 ## 14. 미해결 질문 (사용자 확인 / 구현 중 확정)
 
-- **랩 번호 체계 (사용자 확인 필요):** 본 문서는 신규 랩을 **9/10/11**, cleanup을 **8→12**로 둔다. 이 경우 **Lab 8 번호가 빈다(gap)**.
-  - 대안: 신규 랩을 **8/9/10**, cleanup을 **8→11**로 두면 **연속(gap 없음) + cleanup 마지막** 유지. (권장 대안)
-  - 어느 쪽이든 루트 README 진행 표와 “다음 단계” 링크를 함께 갱신.
-- Product 설계를 **티어형 vs 팀형** 중 무엇을 기본 예시로 할지 (Lab 10에서 택1 후 다른 방식 노트로)
+- **랩 번호 체계 (확정됨):** 신규 랩 **8/9/10**, cleanup **8→11**. 연속(gap 없음) + cleanup 마지막. 루트 README 진행 표와 “다음 단계” 링크를 함께 갱신.
+- Product 설계를 **티어형 vs 팀형** 중 무엇을 기본 예시로 할지 (Lab 9에서 택1 후 다른 방식 노트로)
 - `model` 라우팅 키 규칙 (`bedrock/claude-3-5-sonnet` 같은 prefix 규칙 확정)
 - Workbook을 JSON 템플릿으로 제공할지, Portal 수동 구성 가이드로 제공할지 (초안은 후자 + JSON 스니펫 병행)
