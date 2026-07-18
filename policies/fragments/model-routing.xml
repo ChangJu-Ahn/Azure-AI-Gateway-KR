@@ -25,10 +25,9 @@
             </set-header>
         </when>
         <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;anthropic&quot;)">
-            <set-backend-service backend-id="anthropic-backend" />
-            <set-header name="Authorization" exists-action="override">
-                <value>@("Bearer " + "{{anthropic-api-key}}")</value>
-            </set-header>
+            <!-- 키 3개 백엔드 풀(anthropic-backend-1..3) 라운드로빈 로드밸런싱 -->
+            <!-- 인증(Authorization: Bearer)은 각 백엔드의 credentials 에서 주입되므로 여기서 설정하지 않음 -->
+            <set-backend-service backend-id="anthropic-backend-pool" />
         </when>
         <when condition="@((string)context.Variables[&quot;provider&quot;] == &quot;gemini&quot;)">
             <set-backend-service backend-id="gemini-backend-pool" />

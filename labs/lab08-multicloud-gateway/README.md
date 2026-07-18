@@ -34,7 +34,7 @@ graph TD
     GW -->|model prefix 라우팅| R{provider}
     R -->|azure / (기본)| AOAI["Azure OpenAI 풀<br/>Lab3 재사용 · Managed Identity"]
     R -->|openai/*| OAI["OpenAI 직접"]
-    R -->|anthropic/*| ANT["Anthropic"]
+    R -->|anthropic/*| ANT["Anthropic 풀<br/>키 3개 로드밸런싱"]
     R -->|gemini/*| GEM["Gemini 풀<br/>Lab5 재사용"]
     AOAI & OAI & ANT & GEM -.->|429/5xx 시 retry| FB["Fallback"]
 ```
@@ -47,7 +47,9 @@ graph TD
 RESOURCE_GROUP=<리소스 그룹>
 APIM_NAME=<APIM 서비스명>
 OPENAI_API_KEY=<OpenAI API 키>
-ANTHROPIC_API_KEY=<Anthropic API 키>
+ANTHROPIC_API_KEY_1=<Anthropic API 키 1>
+ANTHROPIC_API_KEY_2=<Anthropic API 키 2>
+ANTHROPIC_API_KEY_3=<Anthropic API 키 3>
 # Gemini 키(gemini-api-key-1..3)는 Lab 5에서 이미 등록됨
 ```
 
@@ -57,7 +59,7 @@ ANTHROPIC_API_KEY=<Anthropic API 키>
 |---|---|---|---|
 | Azure OpenAI | 기존 풀 (Lab 2/3) | `Managed Identity` | `gpt-4.1-nano` (prefix 없음) |
 | OpenAI 직접 | `https://api.openai.com/v1` | `Authorization: Bearer {{openai-api-key}}` | `openai/gpt-4o` |
-| Anthropic | `https://api.anthropic.com/v1` | `Authorization: Bearer {{anthropic-api-key}}` | `anthropic/claude-3-5-sonnet-20241022` |
+| Anthropic | `https://api.anthropic.com/v1` (키 3개 풀) | 백엔드 credential (raw 키, `ANTHROPIC_API_KEY_1..3`) | `anthropic/claude-3-5-sonnet-20241022` |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `Authorization: Bearer {{gemini-api-key-1}}` | `gemini/gemini-2.0-flash` |
 
 > ⚠️ OpenAI·Anthropic·Gemini 모델명은 각 콘솔에서 최신 값을 확인하세요. 세 프로바이더 모두 OpenAI 호환 `/chat/completions` 경로를 지원합니다.
@@ -78,30 +80,79 @@ set -a; source .env; set +a
 az apim nv create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
   --named-value-id openai-api-key --display-name "OpenAI-API-Key" \
   --value "$OPENAI_API_KEY" --secret true
-
-az apim nv create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
-  --named-value-id anthropic-api-key --display-name "Anthropic-API-Key" \
-  --value "$ANTHROPIC_API_KEY" --secret true
 ```
 
 > Gemini 키(`gemini-api-key-1..3`)는 Lab 5에서 이미 등록되어 있습니다.
+> Anthropic 키는 **Named Value 로 등록하지 않습니다** — APIM 은 백엔드 credential 안의 `{{named-value}}` 를
+> 해석하지 않기 때문에(리터럴 전송 → 401), 2단계에서 **raw 키를 백엔드 credential 에 직접** 주입합니다.
 
 ### 2단계: 프로바이더별 백엔드 등록
 
 ```bash
-# OpenAI 직접
+# OpenAI 직접 (단일 백엔드)
 az apim backend create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
   --backend-id openai-direct-backend --protocol http \
   --url "https://api.openai.com/v1"
-
-# Anthropic
-az apim backend create --resource-group $RESOURCE_GROUP --service-name $APIM_NAME \
-  --backend-id anthropic-backend --protocol http \
-  --url "https://api.anthropic.com/v1"
 ```
 
-> `openai-backend-pool`(Azure OpenAI)·`gemini-backend-pool`(Gemini)은 Lab 3/5에서 구성됨.
-> 각 프로바이더에 여러 키/리전을 두려면 Lab 3 방식으로 backend pool 을 구성해 로드밸런싱합니다.
+**Anthropic — 키 3개 백엔드 풀 (Lab 5 Gemini 와 동일 패턴)**
+
+`az apim backend create`는 Circuit Breaker·credential을 지원하지 않으므로 REST API로 등록합니다. 각 백엔드는 동일 URL을 가리키지만 서로 다른 키를 사용합니다. ⚠️ APIM 은 백엔드 credential 안의 `{{named-value}}` 를 해석하지 않으므로(리터럴 전송 → 401), **`.env` 의 raw 키**를 credential 의 `Authorization: Bearer` 에 직접 넣습니다.
+
+```bash
+set -a; source .env; set +a
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+APIM_RID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.ApiManagement/service/${APIM_NAME}"
+
+# 백엔드 3개 (각각 다른 raw 키 + Circuit Breaker)
+for i in 1 2 3; do
+  key_var="ANTHROPIC_API_KEY_${i}"
+  az rest --method PUT \
+    --url "https://management.azure.com${APIM_RID}/backends/anthropic-backend-${i}?api-version=2024-06-01-preview" \
+    --body "{
+      \"properties\": {
+        \"url\": \"https://api.anthropic.com/v1\",
+        \"protocol\": \"http\",
+        \"description\": \"Anthropic Backend ${i}\",
+        \"credentials\": {
+          \"header\": { \"Authorization\": [\"Bearer ${!key_var}\"] }
+        },
+        \"circuitBreaker\": {
+          \"rules\": [{
+            \"failureCondition\": {
+              \"count\": 3,
+              \"errorReasons\": [\"Server errors\"],
+              \"interval\": \"PT10S\",
+              \"statusCodeRanges\": [{\"min\":429,\"max\":429},{\"min\":500,\"max\":503}]
+            },
+            \"name\": \"anthropicCircuitBreaker\",
+            \"tripDuration\": \"PT30S\",
+            \"acceptRetryAfter\": false
+          }]
+        }
+      }
+    }"
+done
+
+# 3개 백엔드를 하나의 풀로 밀어 Round Robin 로드밸런싱
+az rest --method PUT \
+  --url "https://management.azure.com${APIM_RID}/backends/anthropic-backend-pool?api-version=2024-06-01-preview" \
+  --body '{
+    "properties": {
+      "type": "Pool",
+      "pool": {
+        "services": [
+          { "id": "/backends/anthropic-backend-1", "priority": 1, "weight": 1 },
+          { "id": "/backends/anthropic-backend-2", "priority": 1, "weight": 1 },
+          { "id": "/backends/anthropic-backend-3", "priority": 1, "weight": 1 }
+        ]
+      }
+    }
+  }'
+```
+
+> `openai-backend-pool`(Azure OpenAI)·`gemini-backend-pool`(Gemini)·`anthropic-backend-pool`(Anthropic)은 각각 풀로 로드밸런싱됩니다.
+> OpenAI 직접은 단일 백엔드이며, 여러 키/리전을 두려면 동일하게 Lab 3/5 방식으로 풀을 구성합니다.
 
 ### 3단계: 통합 API 등록 & 정책 적용
 
