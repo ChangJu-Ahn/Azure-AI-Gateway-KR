@@ -275,6 +275,7 @@ AI Gateway/
 └── docs/                               # 추가 문서
     ├── architecture.md                 # 아키텍처 상세 설명
     ├── policy-reference.md             # APIM 정책 레퍼런스 (섹션별 설명 + 예시)
+    ├── logging-and-observability.md    # 로깅 리소스 차이 (Azure Monitor vs App Insights vs APIM)
     └── portal-deployment-guide.md      # Azure Portal 수동 배포 가이드
 ```
 
@@ -495,6 +496,10 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 - `emit-metric` / `azure-openai-emit-token-metric` 활용
 - KQL(Kusto Query Language)로 로그 분석
 - 비즈니스 목적(차지백, 알림, 품질 분석)에 맞는 모니터링 선택
+
+> 📖 Azure Monitor · Application Insights · APIM(Analytics/Metrics)의 역할 차이와
+> "어떤 로그가 필요할 때 어떤 리소스를 써야 하는지"는
+> [📖 로깅 & 관측 리소스 가이드](docs/logging-and-observability.md)를 참고하세요.
 
 ---
 
