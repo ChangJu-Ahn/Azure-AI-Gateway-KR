@@ -8,6 +8,10 @@ APIM에 Azure OpenAI 서비스를 백엔드로 연결하고 첫 번째 AI 호출
 - APIM에 Azure OpenAI API 등록 (Portal)
 - Managed Identity 기반 인증 확인
 - 첫 번째 AI 호출 테스트
+- 응답 구조 및 응답 헤더(리전, rate limit) 검증
+- 인증 에러 시나리오(잘못된 키, 없는 모델) 확인
+- 다양한 요청 파라미터(temperature, max_tokens 등) 동작 확인
+- 연속 호출 안정성 및 지연 시간 측정
 
 ## 사전 확인
 
@@ -250,6 +254,19 @@ APIM API에 Managed Identity 인증 정책을 추가합니다.
 `test-backend.ipynb` 노트북을 열고 셀을 순서대로 실행하세요.
 
 > 💡 노트북 실행 전 `.env`에 `APIM_SUBSCRIPTION_KEY`가 입력되어 있어야 합니다. (Lab 1 3단계 참고)
+
+#### 노트북 테스트 항목
+
+`test-backend.ipynb`는 6개의 테스트로 APIM → Azure OpenAI 연결을 검증합니다:
+
+| # | 테스트 | 검증 내용 |
+|---|--------|-----------|
+| 1 | 기본 Chat Completion 호출 | APIM 경유 요청이 HTTP 200 + 정상 응답을 반환하는지, 지연 시간(ms) 측정 |
+| 2 | 응답 구조 검증 | `id`, `model`, `choices`, `usage`(prompt/completion/total tokens), `finish_reason` 등 필수 필드 존재 확인 |
+| 3 | 응답 헤더 확인 | `x-ms-region`, `x-ratelimit-remaining-tokens`, `x-ratelimit-remaining-requests`, `x-backend-url`, `apim-request-id` 등 APIM·rate limit 헤더 확인 |
+| 4 | 인증 에러 시나리오 | 4-1 잘못된 Subscription Key → 401, 4-2 키 없이 호출 → 401, 4-3 존재하지 않는 배포 이름 → 404 |
+| 5 | 다양한 요청 파라미터 | `temperature=0`(결정적), `temperature=1.0`(창의적), `max_tokens=5`(짧은 응답), system+user 메시지 조합 동작 확인 |
+| 6 | 연속 호출 안정성 | 5회 연속 호출 후 성공률과 평균·최소·최대 지연 시간 통계 확인 |
 
 ## 핵심 개념
 

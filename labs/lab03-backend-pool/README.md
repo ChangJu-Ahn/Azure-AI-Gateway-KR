@@ -272,10 +272,24 @@ Circuit Breaker가 동작하면 다음 priority 그룹으로 자동 전환됩니
 
 **노트북 테스트:**
 
-- 라운드로빈 분산 확인: `labs/lab03-backend-pool/test-roundrobin.ipynb`
+- 로드밸런싱 3종(Round Robin / Weighted / Priority) 확인: `labs/lab03-backend-pool/test-roundrobin.ipynb`
 - 장애 우회/복구 확인: `labs/lab03-backend-pool/test-failover.ipynb`
 
 환경 변수를 먼저 설정한 뒤 각 노트북 셀을 순서대로 실행하세요.
+
+> 💡 **`test-roundrobin.ipynb` 동작 상세**
+>
+> 이 노트북은 4단계에서 설명한 **3가지 로드밸런싱 전략을 모두** 테스트합니다.
+>
+> - **Round Robin (기본):** APIM을 통해 **12회** 연속 호출하며 응답 헤더의 `x-backend-url`로 실제 라우팅된 백엔드를 집계합니다.
+>   - 각 호출에는 **`x-client-request-id`** 헤더(`rr-{i}-{timestamp}` 형식)를 붙여 요청을 개별 추적할 수 있게 합니다.
+>   - 12회 응답 전체(상태 코드 + 헤더 + 바디)를 **`test-roundrobin-log.json`** 파일로 저장하여 사후 분석에 활용합니다.
+>   - 성공률·백엔드 분포·균등 분산 여부를 판정합니다.
+> - **테스트 B — Weighted (5:3:2):** `az rest`(subprocess)로 `openai-backend-pool`의 `services`를 `aoai-eastus:5 / aoai-swedencentral:3 / aoai-westus:2`(모두 priority 1)로 재구성한 뒤, **24회** 호출하여 분포가 **약 5:3:2**에 근접하는지 검증합니다.
+> - **테스트 C — Priority (1→2→3):** 백엔드를 `aoai-eastus:1 / aoai-swedencentral:2 / aoai-westus:3`(weight 모두 1)로 재구성한 뒤, **10회** 호출하여 정상 상태에서 **priority-1 백엔드 1개만** 사용되는지(단일 백엔드 라우팅) 검증합니다.
+> - **♻️ 복구 셀 (필수):** 테스트 B·C는 풀 설정을 변경하므로, 마지막 셀을 실행해 3개 백엔드를 모두 **priority=1, weight=1(Round Robin)** 로 되돌립니다. 이후 실습(`test-failover.ipynb` 등)을 위해 **반드시 실행**하세요.
+>
+> 백엔드 풀 재구성은 `test-failover.ipynb`의 Phase 5와 동일하게 `az rest --method GET/PUT .../backends/openai-backend-pool?api-version=2023-09-01-preview` 방식을 사용합니다.
 
 **기대 결과:**
 | 백엔드 | 요청수 | 비율 |
@@ -291,6 +305,20 @@ Circuit Breaker가 동작하면 다음 priority 그룹으로 자동 전환됩니
 1. East US 엔드포인트에 과도한 요청을 보내 429 에러를 유발
 2. Circuit Breaker가 동작하여 Sweden Central/West US로 자동 Failover 확인
 3. Trip Duration(30초) 후 East US가 다시 풀에 포함되는지 확인
+
+> 💡 **`test-failover.ipynb` Phase별 동작 상세**
+>
+> `test-failover.ipynb`는 위 시나리오를 아래 Phase로 자동화합니다.
+>
+> - **Phase 1 (정상 상태):** 9회 호출하여 3개 백엔드가 모두 사용되는지 확인합니다.
+> - **Phase 2 (특정 리전 직접 과부하):** APIM을 거치지 않고, `az account get-access-token --resource https://cognitiveservices.azure.com`으로 발급한 **Bearer Token**을 사용해 Phase 1에서 관찰된 **한 리전에만 직접 대량 호출**(`max_tokens=4000`)을 보냅니다. 429가 2회 발생하면 해당 리전의 **TPM이 소진**된 것으로 보고, 나머지 2개 리전은 정상 상태로 유지합니다.
+> - **Phase 3 (Failover):** APIM 백엔드 풀로 호출하여, 과부하된 리전이 429를 반환 → Circuit Breaker 발동 → **나머지 2개 리전으로만** 라우팅되는지 확인합니다.
+> - **Phase 4 (자동 복귀):** `tripDuration`(30초) 대기 후 장애 리전이 풀에 다시 포함되는지 확인합니다.
+> - **Phase 5 (모델 삭제 시나리오):** 실제로 모델을 삭제하여 404 상황을 재현합니다.
+>   - **Phase 5-1:** `az cognitiveservices account deployment delete`로 특정 리전의 모델을 삭제합니다. 기본 Circuit Breaker는 **404를 감지하지 못하므로**, `az rest --method GET/PUT .../backends/{name}?api-version=2023-09-01-preview`로 3개 백엔드 모두의 `statusCodeRanges`에 **404를 동적으로 추가**합니다.
+>   - **삭제 전파 대기:** `GlobalStandard` SKU는 글로벌 풀이라 삭제 전파에 지연이 있어, Bearer Token으로 직접 호출하며 404가 확인될 때까지 **최대 60초** 대기합니다.
+>   - **Phase 5-2:** APIM 호출 시 모델이 삭제된 리전이 자동 제외되고 나머지 리전으로 정상 서비스되는지 확인합니다.
+>   - **Phase 5-3:** `az cognitiveservices account deployment create`로 모델을 **재배포**한 뒤 30초 대기하여 3개 리전이 모두 복구되는지 확인합니다.
 
 ## 핵심 개념
 

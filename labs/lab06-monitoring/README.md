@@ -509,6 +509,57 @@ resource tokenAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 - **test-performance.ipynb** — 동시 부하 및 성능 측정
 - **test-monitoring.ipynb** — 토큰/TPM 모니터링 + 프론트엔드/백엔드 로그 확인 종합 테스트
 
+### test-performance.ipynb — 동시 부하 & 성능 측정
+
+| Phase | 내용 |
+|-------|------|
+| Phase 1 | 순차 호출 20회 → 응답 시간 통계(min/max/평균/P50/P90/P99) + 히스토그램 |
+| Phase 1 | 백엔드별(East US, Sweden Central, West US) 응답 시간 분포 비교 (min/max/median) 시각화 |
+| Phase 2 | `ThreadPoolExecutor`로 동시 요청 부하 테스트 (3 동시 요청 × 5 라운드) → 동시성 안정성/지연 증가 확인 |
+| Phase 3 | Azure Portal에서 성능 데이터 확인 (스크린샷 가이드) |
+
+**성능 기준선** — 노트북이 P50/P90/P99를 아래 임계값으로 판정합니다:
+
+| 지표 | 양호 | 허용 | 개선 필요 |
+|---|---|---|---|
+| P50 | < 1,000ms | < 2,000ms | > 2,000ms |
+| P90 | < 2,000ms | < 3,000ms | > 3,000ms |
+| P99 | < 3,000ms | < 5,000ms | > 5,000ms |
+
+### test-monitoring.ipynb — 토큰/TPM 모니터링 종합
+
+| Phase | 내용 |
+|-------|------|
+| Phase 1 | 테스트 트래픽 15회 생성 → 백엔드별·모델별 토큰 **로컬 집계** |
+| Phase 2 | App Insights `customMetrics`를 KQL로 조회 → **로컬 집계값과 대조 검증** |
+| Phase 3 | 프론트엔드(`requests`)/백엔드(`dependencies`) 요청·응답 로그 확인 |
+| Phase 3.5 | Gemini 토큰 모니터링 (응답 body에서 직접 수집) |
+| Phase 4 | Azure Portal에서 직접 확인 (스크린샷 가이드) |
+| 검증 A | **Custom Metrics 활성화 확인** — APIM Diagnostics `metrics: true` 여부 조회 (읽기 전용, 2단계 검증) |
+| 검증 B | **Alert Rule 존재 확인** — 리소스 그룹의 metric alert 규칙 나열 및 `alert-high-token-usage` 확인 (읽기 전용, 5단계 검증) |
+
+> 💡 **검증 A/B는 읽기 전용입니다.** GET/list만 수행하며 Azure 리소스를 생성·삭제하지 않습니다.
+> 검증 A는 2단계(Custom metrics + `metrics: true`)가, 검증 B는 5단계(알림 규칙)가 실제로 구성되었는지 확인합니다.
+
+> 💡 **로컬 집계 vs App Insights 검증 워크플로우:** Phase 1에서 클라이언트가 응답 `usage`로 집계한 토큰 수와,
+> Phase 2에서 KQL로 조회한 `customMetrics` 값이 **동일하게 기록되었는지** 대조합니다.
+> 정책(`emit-token-metric`)이 올바르게 동작하는지 검증하는 방법입니다.
+
+#### Gemini 토큰 모니터링 (Phase 3.5)
+
+Gemini API는 `azure-openai-emit-token-metric` 정책을 **지원하지 않으므로**, App Insights `customMetrics`에
+토큰이 기록되지 않습니다. 대신 **응답 body의 `usageMetadata`를 클라이언트에서 직접 파싱**해야 합니다.
+
+| 항목 | Azure OpenAI | Gemini |
+|---|---|---|
+| 토큰 정보 위치 | `customMetrics` (정책) | 응답 body `usageMetadata` |
+| 수집 방식 | App Insights 자동 | 클라이언트에서 파싱 |
+| Thinking 토큰 | 해당 없음 | `thoughtsTokenCount` |
+
+- `usageMetadata`에서 `promptTokenCount`, `candidatesTokenCount`, `thoughtsTokenCount`, `totalTokenCount`를 읽습니다.
+- **Total = Prompt + Completion + Thinking** — Gemini는 추론(thinking) 토큰이 별도 항목으로 집계됩니다.
+- Lab 5에서 Gemini 백엔드 풀을 구성한 경우에만 실행하며, 건너뛴 경우 이 Phase는 스킵합니다.
+
 ## 다음 단계
 
 → [Lab 7: 고급 패턴](../lab07-advanced-patterns/README.md)

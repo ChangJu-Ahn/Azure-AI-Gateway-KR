@@ -449,6 +449,39 @@ az apim backend create \
 > APIM 레벨에서 Content Safety를 적용하면 **모든 백엔드 모델에 동일한 안전 기준**을 강제할 수 있습니다.
 > 각 모델 프로바이더의 안전 필터에 의존하지 않아도 됩니다.
 
+## 참고: Gemini 직접 호출 (APIM 우회)
+
+노트북 마지막 셀에서는 비교를 위해 **APIM 없이 Google Gemini API를 직접** 호출합니다.
+엔드포인트를 `generativelanguage.googleapis.com/v1beta`로 바꾸고, 인증 헤더를
+`x-goog-api-key`에 원본 Gemini API Key를 그대로 넣습니다.
+
+```python
+GEMINI_DIRECT_URL = (
+    "https://generativelanguage.googleapis.com/v1beta"
+    "/models/gemini-2.5-flash-lite:generateContent"
+)
+requests.post(
+    GEMINI_DIRECT_URL,
+    headers={
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY,   # .env의 원본 키로 직접 인증
+    },
+    json={...},
+)
+```
+
+| 구분 | APIM 경유 (본 Lab) | 직접 호출 |
+|---|---|---|
+| 엔드포인트 | `{APIM_URL}/gemini/...` | `generativelanguage.googleapis.com` |
+| 인증 | `Ocp-Apim-Subscription-Key` | `x-goog-api-key` (Gemini API Key) |
+| 로드밸런싱 | ✅ Key 3개 풀 | ❌ 단일 Key |
+| Rate Limit | 45 RPM (3배) | 15 RPM (Key 1개) |
+| 관측성/정책 | ✅ APIM 정책 적용 | ❌ 없음 |
+
+> ⚠️ 직접 호출은 API Key가 **클라이언트에 노출**되고 로드밸런싱·정책·모니터링 이점이 사라집니다.
+> 프로덕션에서는 **APIM 경유**를 권장합니다 (3-Key 풀로 Rate Limit 3배, 로드밸런싱, 정책, 모니터링).
+> 직접 호출은 **로컬 디버깅/비교 목적**으로만 사용하세요.
+
 ## 다음 단계
 
 → [Lab 6: 모니터링 & 로깅](../lab06-monitoring/README.md)

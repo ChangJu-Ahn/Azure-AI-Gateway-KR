@@ -8,15 +8,24 @@ set -euo pipefail
 # 사전 조건: deploy.sh로 기본 인프라가 배포되어 있어야 합니다.
 # ═══════════════════════════════════════════════════════════════
 
+# 배포는 15~20분 걸립니다. 실행 도중 이 파일을 편집하면 bash가 파일을
+# 오프셋 기준으로 다시 읽어 구문 오류가 발생할 수 있습니다. 아래 { } 그룹으로
+# 전체를 감싸면 bash가 실행 전에 닫는 '}'까지 한 번에 읽어들이므로,
+# 실행 중 파일이 바뀌어도 안전합니다.
+{
+
 # .env에서 환경 변수 로드
 if [ -f ".env" ]; then
     set -a; source .env 2>/dev/null; set +a
 fi
 
-# suffix 결정
+# suffix 결정: 인자 > .env(실제 배포 반영) > bicepparam
+# .env의 RESOURCE_GROUP은 deploy.sh가 실제 배포 직후 기록하므로 가장 신뢰할 수 있습니다.
 PARAMS_FILE="infra/parameters/dev.bicepparam"
 if [ -n "${1:-}" ]; then
     SUFFIX="$1"
+elif [ -n "${RESOURCE_GROUP:-}" ] && [[ "${RESOURCE_GROUP}" == rg-ai-gw-* ]]; then
+    SUFFIX="${RESOURCE_GROUP#rg-ai-gw-}"
 elif [ -f "$PARAMS_FILE" ]; then
     SUFFIX=$(grep "param suffix" "$PARAMS_FILE" | sed "s/.*= '//;s/'.*//")
 else
@@ -25,7 +34,17 @@ else
     exit 1
 fi
 
-RESOURCE_GROUP="rg-ai-gw-${SUFFIX}"
+# placeholder(<suffix> 등) 방어
+if [ -z "$SUFFIX" ] || [[ "$SUFFIX" == *"<"* ]] || [[ "$SUFFIX" == *">"* ]]; then
+    echo "❌ suffix가 유효하지 않습니다: '${SUFFIX}'"
+    echo "   ./scripts/deploy-semantic-caching.sh <suffix> 형태로 실제 값을 전달하세요."
+    exit 1
+fi
+
+# RESOURCE_GROUP: .env 값이 유효하면 그대로 사용(실제 배포와 일치), 아니면 suffix로 구성
+if [ -z "${RESOURCE_GROUP:-}" ] || [[ "${RESOURCE_GROUP}" != rg-ai-gw-* ]]; then
+    RESOURCE_GROUP="rg-ai-gw-${SUFFIX}"
+fi
 
 # 리소스 그룹 존재 여부 확인
 if ! az group show --name "$RESOURCE_GROUP" &>/dev/null; then
@@ -76,6 +95,10 @@ echo ""
 echo "  임베딩 엔드포인트: ${EMBEDDING_ENDPOINT}"
 echo "  Redis Host:        ${REDIS_HOST}"
 echo ""
-echo "📋 APIM 정책에 시맨틱 캐싱이 자동 적용됩니다:"
+echo "📋 다음 단계: APIM 정책에 시맨틱 캐싱을 수동으로 추가하세요 (자동 적용 아님)"
 echo "   Inbound:  azure-openai-semantic-cache-lookup (score-threshold=0.8)"
 echo "   Outbound: azure-openai-semantic-cache-store (duration=3600)"
+echo "   → Lab 4 README 3단계 참고, 이후 labs/lab04-policies/test-semantic-cache.ipynb로 검증"
+
+exit 0
+}

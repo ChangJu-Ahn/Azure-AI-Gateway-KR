@@ -384,11 +384,14 @@ Subscription Key 대신 **Azure AD 토큰(JWT)**으로 인증합니다. 앱 등�
 | `azure-openai-emit-token-metric` | outbound | 토큰 메트릭 수집 |
 | `azure-openai-semantic-cache-lookup` | inbound | 시맨틱 캐시 조회 (별도 배포) |
 | `azure-openai-semantic-cache-store` | outbound | 시맨틱 캐시 저장 (별도 배포) |
+| `llm-token-limit` | inbound | 토큰 기반 Rate Limiting (멀티 벤더 범용) |
 
 ### 일반 APIM 정책 목록
 
 | 정책 | 영역 | 용도 |
 |------|------|------|
+| `rate-limit` | inbound | 요청 수 기반 Rate Limiting (분당 N회) |
+| `rate-limit-by-key` | inbound | 키/헤더 등 커스텀 기준별 요청 수 제한 |
 | `ip-filter` | inbound | IP 화이트/블랙리스트 |
 | `cors` | inbound | 웹 프론트엔드 CORS 허용 |
 | `validate-jwt` | inbound | Azure AD / OAuth 토큰 검증 |
@@ -403,6 +406,59 @@ Subscription Key 대신 **Azure AD 토큰(JWT)**으로 인증합니다. 앱 등�
 | `cache-lookup` | `azure-openai-semantic-cache-lookup` | 정확한 매칭 vs 유사도 매칭 |
 | `emit-metric` | `azure-openai-emit-token-metric` | 일반 메트릭 vs 토큰 메트릭 |
 
+### APIM Product / Subscription (토큰 실습 사전 설정)
+
+토큰 제한 실습(실습 A·B)은 **Product 단위**로 정책을 적용하므로 Product와 Subscription이 먼저 필요합니다.
+`test-token-limit.ipynb`가 Azure REST API(`az rest`)로 아래를 **자동 생성**합니다.
+
+| 개념 | 역할 | 비유 |
+|---|---|---|
+| **API** | 개별 서비스 (OpenAI, Gemini 등) | 개별 통신 서비스 |
+| **Product** | API를 묶은 패키지 + 정책 | 요금제 (기본/프리미엄) |
+| **Subscription** | 팀/앱이 Product에 가입 | 요금제 계약 |
+| **Subscription Key** | 가입 후 발급되는 인증 키 | 유심 카드 |
+
+노트북이 생성하는 Product는 다음 2개이며, 각각 Azure OpenAI API를 링크한 뒤 Subscription/Key를 발급합니다:
+
+| Product | 적용 정책 | 용도 |
+|---|---|---|
+| **Request Limited** | `rate-limit` (5회/분) | 요청 수 기반 제한 실습 |
+| **Token Limited** | `azure-openai-token-limit` (2,000 TPM) | 토큰 기반 제한 실습 |
+
+> 발급된 키는 `.env`의 `APIM_KEY_REQUEST_LIMITED` / `APIM_KEY_TOKEN_LIMITED`에 저장해 사용합니다.
+
+### 조건부 정책 (`<choose>` + `rate-limit-by-key`)
+
+실습 C는 Product 없이 **API 레벨에 직접** `<choose>` 조건 분기를 적용해,
+`x-client-id` 헤더 값에 따라 티어별로 **다른 요청 수 제한**을 겁니다.
+
+| `x-client-id` | 분기 | 제한 (`rate-limit-by-key`) |
+|---|---|---|
+| `premium` | `<when>` | 100회/분 |
+| `standard` | `<when>` | 5회/분 |
+| 기타/미지정 | `<otherwise>` | 2회/분 |
+
+> Product를 나누지 않고 **헤더 하나로** 티어별 차등 제한을 구현할 수 있습니다.
+> 같은 Subscription Key로 호출하되 `x-client-id`만 바꿔가며 검증합니다.
+
+### `llm-token-limit` — 멀티 벤더 범용 토큰 제한
+
+실습 D는 실습 C의 `<choose>` 분기와 `llm-token-limit`을 결합해 티어별 **TPM(분당 토큰)**을 차등 적용합니다.
+
+| `x-client-id` | 분기 | 제한 (`llm-token-limit`) |
+|---|---|---|
+| `premium` | `<when>` | 10,000 TPM |
+| `standard` | `<when>` | 2,000 TPM |
+| 기타/미지정 | `<otherwise>` | 500 TPM |
+
+| | `azure-openai-token-limit` | `llm-token-limit` |
+|---|---|---|
+| **대상** | Azure OpenAI 전용 | 모든 LLM (Gemini, Claude 등 포함) |
+| **동작** | TPM 제한, 잔여/소비 토큰 헤더 반환 | 동일 |
+| **권장** | Azure OpenAI 단독 게이트웨이 | 멀티 벤더 AI Gateway |
+
+> 동작(TPM 제한, 헤더 반환)은 완전히 동일하며, 멀티 벤더 환경에서는 `llm-*` 정책군이 권장됩니다.
+
 ## 테스트 방법
 
 ### 노트북 테스트
@@ -414,17 +470,31 @@ Lab 4에는 정책 유형별로 별도 노트북이 준비되어 있습니다:
 | `test-token-limit.ipynb` | 토큰 Rate Limiting + 멀티 테넌트 할당량 | Product/Subscription 설정 (노트북 하단 가이드 참고) |
 | `test-ip-filter.ipynb` | IP 필터링 + 인증/접근 제어 | 없음 (자동 적용/복원) |
 | `test-cors-jwt.ipynb` | CORS Preflight + JWT 인증 | JWT: Azure AD 앱 등록 (선택, 없으면 스킵) |
+| `test-semantic-cache.ipynb` | 시맨틱 캐싱 (히트/미스, 유사도 매칭) | **선택** — 리소스 배포 + 정책 적용 필요 (아래 참고) |
+
+> 💡 **시맨틱 캐싱은 선택 실습입니다.**
+> 시맨틱 캐싱은 임베딩 모델 + Azure Redis Cache를 별도로 배포해야 동작하며, 기본 `deploy.sh`에는 포함되지 않습니다.
+> 아래 2단계를 완료한 뒤 `test-semantic-cache.ipynb`로 캐시 히트/미스를 직접 확인할 수 있습니다:
+>
+> 1. **리소스 배포**: `./scripts/deploy-semantic-caching.sh <suffix>` (임베딩 모델 + Redis + APIM 외부 캐시 연결)
+> 2. **정책 적용**: [3단계](#3단계-시맨틱-캐싱-별도-배포)의 `cache-lookup`(inbound)·`cache-store`(outbound) 정책을 APIM에 추가 (자동 적용 아님)
+>
+> 리소스를 배포하지 않은 기본 상태에서는 캐시가 동작하지 않아 모든 호출이 미스로 처리됩니다.
+> 캐싱을 실습하려면 먼저 `./scripts/deploy-semantic-caching.sh <suffix>`로 리소스를 배포한 뒤, 3단계 정책을 적용하고 동일 프롬프트를 반복 호출해 응답 지연이 줄어드는지 직접 확인하세요.
 
 #### test-token-limit.ipynb
 Product 기반 제한과 API 레벨 조건부 정책을 모두 실습합니다:
 
 **실습 A**: 요청 수 기반 제한 (`rate-limit`, Product 레벨, 5회/분)
 **실습 B**: 토큰 기반 제한 (`azure-openai-token-limit`, Product 레벨, 2,000 TPM)
-**실습 C**: 조건부 정책 (`<choose>` + `rate-limit-by-key`, API 레벨) — `x-client-id` 헤더로 tieer별 차등 제한
+**실습 C**: 조건부 정책 (`<choose>` + `rate-limit-by-key`, API 레벨) — `x-client-id` 헤더로 티어별 차등 제한
 **실습 D**: 조건부 LLM 토큰 제한 (`<choose>` + `llm-token-limit`, API 레벨) — 티어별 TPM 차등 적용
+**실습 E**: 호출 예산 제한 (`quota-by-key`, API 레벨, 3회/60초) — 예산 초과 시 **403**(429와 대비) 확인, 정책 저장·원복 포함
+**실습 F**: 토큰 메트릭 수집 검증 (`azure-openai-emit-token-metric`, API 레벨) — 로컬 `usage` 집계 후 App Insights `customMetrics` 조회 (best-effort, 2~5분 수집 지연)
 
 > ⚠️ 실습 A, B는 Product/Subscription을 먼저 설정해야 합니다 (노트북에서 자동 생성).
 > 실습 C, D는 기존 Built-in Subscription Key로 테스트합니다.
+> 실습 E, F는 **API 레벨** 정책을 변경하므로, 노트북 마지막의 **원복 셀을 반드시 실행**해야 합니다.
 
 #### test-ip-filter.ipynb
 IP 필터 정책을 자동으로 적용/복원하며 테스트합니다:
