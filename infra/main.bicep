@@ -15,11 +15,15 @@ param publisherEmail string
 @description('APIM 게시자 이름')
 param publisherName string = 'AI Gateway Lab'
 
+@description('Azure AI Content Safety 배포 리전. Content Safety 지원 리전을 사용하세요(koreacentral 미지원 가능).')
+param contentSafetyLocation string = 'eastus'
+
 // ─── 리소스 이름 (suffix 기반 자동 생성) ───
 var apimName = 'apim-ai-gw-${suffix}'
 var aoaiEastUsName = 'aoai-eus-${suffix}'
 var aoaiSwedenName = 'aoai-swe-${suffix}'
 var aoaiWestUsName = 'aoai-wus-${suffix}'
+var contentSafetyName = 'acs-${suffix}'
 
 // ─── Monitoring ───
 module monitoring 'modules/monitoring.bicep' = {
@@ -55,6 +59,15 @@ module openaiWestUs 'modules/openai.bicep' = {
   }
 }
 
+// ─── Azure AI Content Safety (커스텀 컨텐츠 필터링 + 한국형 PII 차단) ───
+module contentSafety 'modules/content-safety.bicep' = {
+  name: 'content-safety'
+  params: {
+    name: contentSafetyName
+    location: contentSafetyLocation
+  }
+}
+
 // ─── API Management ───
 module apim 'modules/apim.bicep' = {
   name: 'apim'
@@ -69,6 +82,7 @@ module apim 'modules/apim.bicep' = {
     openaiEastUsEndpoint: openaiEastUs.outputs.endpoint
     openaiSwedenEndpoint: openaiSweden.outputs.endpoint
     openaiWestUsEndpoint: openaiWestUs.outputs.endpoint
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
   }
 }
 
@@ -97,7 +111,19 @@ module roleWestUs 'modules/role-assignment.bicep' = {
   }
 }
 
+// ─── Role Assignment (APIM → Content Safety, Cognitive Services User) ───
+module roleContentSafety 'modules/content-safety-role.bicep' = {
+  name: 'role-content-safety'
+  params: {
+    contentSafetyName: contentSafety.outputs.name
+    principalId: apim.outputs.principalId
+  }
+}
+
 // ─── Outputs ───
 output apimGatewayUrl string = apim.outputs.gatewayUrl
 output apimName string = apim.outputs.name
 output appInsightsName string = monitoring.outputs.appInsightsName
+output contentSafetyName string = contentSafety.outputs.name
+output contentSafetyEndpoint string = contentSafety.outputs.endpoint
+output contentSafetyBlocklistName string = contentSafety.outputs.blocklistName
