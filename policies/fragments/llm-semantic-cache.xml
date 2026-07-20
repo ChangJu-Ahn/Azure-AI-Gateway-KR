@@ -1,0 +1,14 @@
+<!-- 프로바이더 무관 시맨틱 캐시 (참고용) -->
+<!-- 별도 배포 필요: 임베딩 모델 + Azure Redis (scripts/deploy-semantic-caching.sh) -->
+<!-- lookup 은 Inbound, store 는 Outbound 에 배치 -->
+<fragment>
+    <!-- Inbound 에 배치:
+    <llm-semantic-cache-lookup
+        score-threshold="0.8"
+        embeddings-backend-id="embedding-backend"
+        embeddings-backend-auth="system-assigned" />
+    -->
+    <!-- Outbound 에 배치:
+    <llm-semantic-cache-store duration="3600" />
+    -->
+</fragment>
