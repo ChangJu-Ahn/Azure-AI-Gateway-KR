@@ -14,13 +14,10 @@ set -euo pipefail
 SUFFIX="${1:-}"
 
 if [ -z "$SUFFIX" ]; then
-    # .env 또는 bicepparam에서 suffix 추출 시도
+    # .env의 RESOURCE_GROUP에서 suffix 추출 (deploy.sh가 기록한 실제 배포 값)
     if [ -f ".env" ]; then
         RG_FROM_ENV=$(grep "^RESOURCE_GROUP=" .env | sed 's/RESOURCE_GROUP=//' || true)
         SUFFIX=$(echo "$RG_FROM_ENV" | sed 's/rg-ai-gw-//')
-    fi
-    if [ -z "$SUFFIX" ]; then
-        SUFFIX=$(grep "param suffix" infra/parameters/dev.bicepparam 2>/dev/null | sed "s/.*= '//;s/'.*//")
     fi
 fi
 

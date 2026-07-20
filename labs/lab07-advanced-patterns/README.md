@@ -43,49 +43,58 @@
 </inbound>
 ```
 
-### 시나리오 2: Content Safety 연계
+### 시나리오 2: Content Safety 연계 + 한국형 PII 커스텀 필터링 ✅ 실행 가능
 
-Azure Content Safety를 활용하여 유해 콘텐츠를 필터링합니다.
+Azure AI Content Safety를 활용하여 **유해 콘텐츠 + 프롬프트 공격(jailbreak) + 대한민국 PII**(주민등록번호·휴대폰번호·주소)를 게이트웨이에서 차단합니다.
 
-> **적용 위치: Inbound processing** — 백엔드 호출 전에 Content Safety API로 입력을 검사합니다.
+> ℹ️ **이 시나리오는 최초 배포(`./scripts/deploy.sh`)에 포함되어 함께 배포됩니다.**
+> - Content Safety 리소스 `acs-<suffix>` ([infra/modules/content-safety.bicep](../../infra/modules/content-safety.bicep))
+> - 커스텀 컨텐츠 필터링용 **RAI 블록리스트 `korea-pii`** + 한국형 PII 정규식 항목
+> - APIM MI → `Cognitive Services User` 역할 ([infra/modules/content-safety-role.bicep](../../infra/modules/content-safety-role.bicep))
+> - `content-safety-backend`(Managed Identity 인증) 백엔드
+>
+> 정책 적용/검증은 **[test-content-safety-pii.ipynb](test-content-safety-pii.ipynb)** 노트북에서 수행합니다.
+
+> **적용 위치: Inbound processing** — 백엔드 LLM 호출 전에 Content Safety로 입력을 검사합니다.
 
 ```xml
-<!-- Inbound processing에 적용 -->
+<!-- Inbound processing에 적용 (fragment: policies/fragments/llm-content-safety.xml) -->
 <inbound>
     <base />
-    <!-- 1. Content Safety로 입력 검사 -->
-    <send-request mode="new" response-variable-name="safetyResponse" timeout="10">
-        <set-url>https://<content-safety>.cognitiveservices.azure.com/contentsafety/text:analyze?api-version=2024-09-01</set-url>
-        <set-method>POST</set-method>
-        <set-header name="Content-Type" exists-action="override">
-            <value>application/json</value>
-        </set-header>
-        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
-        <set-body>@{
-            var body = context.Request.Body.As<JObject>(preserveContent: true);
-            var lastMessage = ((JArray)body["messages"]).Last["content"].ToString();
-            return new JObject(
-                new JProperty("text", lastMessage),
-                new JProperty("categories", new JArray("Hate", "Violence", "SelfHarm", "Sexual"))
-            ).ToString();
-        }</set-body>
-    </send-request>
-
-    <!-- 2. 위험 콘텐츠 차단 -->
-    <choose>
-        <when condition="@{
-            var result = ((IResponse)context.Variables["safetyResponse"]).Body.As<JObject>();
-            var categories = result["categoriesAnalysis"] as JArray;
-            return categories.Any(c => (int)c["severity"] >= 4);
-        }">
-            <return-response>
-                <set-status code="400" reason="Content Safety Violation" />
-                <set-body>{"error": {"message": "입력 내용이 콘텐츠 안전 정책을 위반합니다.", "code": "content_filter"}}</set-body>
-            </return-response>
-        </when>
-    </choose>
+    <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+        <categories output-type="EightSeverityLevels">
+            <category name="Hate" threshold="4" />
+            <category name="Violence" threshold="4" />
+            <category name="SelfHarm" threshold="4" />
+            <category name="Sexual" threshold="4" />
+        </categories>
+        <!-- 커스텀 컨텐츠 필터링: 한국형 PII 정규식 블록리스트 -->
+        <blocklists>
+            <id>korea-pii</id>
+        </blocklists>
+    </llm-content-safety>
+    <!-- 이후 백엔드 풀 라우팅 -->
+    <set-backend-service backend-id="openai-backend-pool" />
 </inbound>
 ```
+
+#### 커스텀 blocklist는 어떻게 한국형 PII를 막나?
+
+`llm-content-safety`의 `<blocklists>`가 참조하는 것은 텍스트 모더레이션 blocklist가 아니라
+Content Safety의 **RAI 블록리스트(raiBlocklists)** 이며, **정규식(`isRegex`)을 지원**합니다.
+따라서 아래 항목을 Bicep으로 배포해 두면 프롬프트에 해당 패턴이 있을 때 **403**으로 차단됩니다.
+
+| 항목 | 정규식 | 예시 |
+|---|---|---|
+| 주민등록번호 | `\d{6}-[1-4]\d{6}` | `900101-1234567` |
+| 휴대폰번호 | `01[016-9][-\s]?\d{3,4}[-\s]?\d{4}` | `010-1234-5678` |
+| 주소(휴리스틱) | `[가-힣]{2,}(로\|길)\s?\d{1,4}(번길\|번지\|호)?` | `테헤란로 152` |
+
+> ⚠️ **주소 차단은 본질적으로 오탐/미탐이 큽니다.** 데모용 휴리스틱이며, 운영에서는 Azure AI Language의
+> PII 개체 인식으로 보완하거나 `address` 항목을 제거하세요 (patterns은 [content-safety.bicep](../../infra/modules/content-safety.bicep)에서 조정).
+
+> 💡 **디폴트에 없는 이유**: Content Safety 기본 카테고리는 Hate/Violence/SelfHarm/Sexual 4종뿐이라
+> 주민등록번호 같은 **한국 특화 PII는 기본 제공되지 않습니다.** 그래서 커스텀 blocklist로 직접 정의합니다.
 
 ### 시나리오 3: SSE 스트리밍 지원
 
@@ -183,8 +192,13 @@ resource paygoPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview'
 
 ## 테스트 방법
 
+### Jupyter 노트북 (실행 가능)
+
+- **[test-content-safety-pii.ipynb](test-content-safety-pii.ipynb)** — Content Safety + 한국형 PII 커스텀 필터링을 실제 배포/검증
+  (정상 프롬프트 통과 vs 주민번호/휴대폰/주소 포함 프롬프트 403 차단)
+
 ### VS Code REST Client
 
 `scripts/test-endpoints.http`의 `Lab 7` 섹션 참조
 
-→ [Lab 8: 리소스 정리](../lab08-cleanup/README.md) | [메인 README로 돌아가기](../../README.md)
+→ [Lab 8: 멀티 클라우드 통합 게이트웨이](../lab08-multicloud-gateway/README.md) | [메인 README로 돌아가기](../../README.md)

@@ -12,8 +12,11 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 4 | AI 전용 정책 (Rate Limit, Caching, Retry) | ✅ 완료 |
 | Lab 5 | 멀티 모델 Gateway (Gemini, Claude 등) | ✅ 완료 |
 | Lab 6 | 모니터링 & 로깅 | ✅ 완료 |
-| Lab 7 | 고급 패턴 (A/B 테스트, Content Safety 등) | 🔄 확인중 |
-| Lab 8 | 리소스 정리 | ✅ 완료 |
+| Lab 7 | 고급 패턴 (A/B 테스트, Content Safety + 한국형 PII 필터링 등) | 🔄 확인중 |
+| Lab 8 | 멀티 클라우드 통합 게이트웨이 (OpenAI · Anthropic · Google Gemini) | 🚧 드래프트 |
+| Lab 9 | Products & 개발자 포털 (구독 격리) | 🚧 드래프트 |
+| Lab 10 | 구독별 거버넌스 & Azure Monitor 대시보드 | 🚧 드래프트 |
+| Lab 11 | 리소스 정리 | ✅ 완료 |
 
 ## 이런 요구사항이 있다면, 이 실습으로 해결하세요
 
@@ -77,6 +80,31 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 2 | 사용자 입력에 욕설/유해 콘텐츠가 포함되면 **AI 모델 호출 전에 차단**하고 싶다 |
 | 3 | ChatGPT처럼 **실시간 스트리밍 응답**(SSE)을 게이트웨이를 거쳐 제공하고 싶다 |
 | 4 | PTU 리전에서 429가 발생하면 **자동으로 PayGo 리전으로 Spillover**하고 싶다 |
+
+---
+
+### Lab 8: 멀티 클라우드 통합 게이트웨이
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | Azure뿐 아니라 **Azure 외부의 OpenAI·Anthropic·Google Gemini**를 하나의 엔드포인트로 호출하고 싶다 |
+| 2 | 클라이언트 코드는 그대로 두고 `model` 값만 바꿔 **프로바이더를 전환**하고 싶다 |
+| 3 | 프로바이더가 달라도 **토큰 제어·메트릭을 동일한 정책**으로 적용하고 싶다 |
+
+### Lab 9: Products & 개발자 포털
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | 팀마다 **격리된 구독 키**를 발급해 API 접근과 토큰 예산을 분리하고 싶다 |
+| 2 | 개발자가 **셀프서비스로 구독**을 신청·발급받게 하고 싶다 |
+
+### Lab 10: 구독별 거버넌스 & 관측
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | **프로바이더별·구독별** 토큰/비용을 한 대시보드에서 보고 싶다 |
+| 2 | 8KB를 넘는 긴 프롬프트나 **스트리밍 응답까지 무손실로 로깅**하고 싶다 |
+| 3 | 구독이 토큰을 급증시키면 **구독 단위로 알림**을 받고 싶다 |
 
 ---
 
@@ -169,7 +197,7 @@ flowchart TD
 > | ⑧ 멀티 모델 | [Lab 5](labs/lab05-multi-model-gateway/README.md) | Gemini 등 다양한 모델 통합 |
 > | ⑩ Outbound/모니터링 | [Lab 6](labs/lab06-monitoring/README.md) | 토큰 메트릭, App Insights 대시보드 |
 > | 전체 | [Lab 7](labs/lab07-advanced-patterns/README.md) | IP 필터, Content Safety, 스트리밍 |
-> | 정리 | [Lab 8](labs/lab08-cleanup/README.md) | 리소스 삭제, soft delete purge |
+> | 정리 | [Lab 11](labs/lab11-cleanup/README.md) | 리소스 삭제, soft delete purge |
 >
 > 정책이 어느 섹션(inbound/backend/outbound)에 들어가는지 상세 설명은 [📖 정책 레퍼런스](docs/policy-reference.md)를 참고하세요.
 
@@ -181,14 +209,16 @@ AI Gateway/
 ├── .gitignore
 │
 ├── infra/                              # 인프라(Bicep) 코드
-│   ├── main.bicep                      # 메인 배포 파일
+│   ├── main.bicep                      # 메인 배포 파일 (전체 스택: 모니터링+OpenAI+APIM+역할)
+│   ├── semantic-caching.bicep          # 시맨틱 캐싱 배포 파일 (Lab 4 선택 실습)
 │   ├── modules/
 │   │   ├── apim.bicep                  # API Management 리소스
 │   │   ├── openai.bicep                # Azure OpenAI 리소스
 │   │   ├── gemini-backend.bicep        # Gemini 백엔드 설정
-│   │   └── monitoring.bicep            # App Insights & Log Analytics
+│   │   ├── monitoring.bicep            # App Insights & Log Analytics
+│   │   └── role-assignment.bicep       # APIM → Azure OpenAI 역할 할당
 │   └── parameters/
-│       └── dev.bicepparam              # 개발 환경 파라미터
+│       └── dev.bicepparam              # 개발 환경 파라미터 (suffix 정의)
 │
 ├── policies/                           # APIM 정책 XML 파일
 │   ├── ai-gateway-policy.xml           # AI Gateway 메인 정책
@@ -205,7 +235,8 @@ AI Gateway/
 │   ├── lab01-setup-apim/               # Lab 1: APIM 기본 설정
 │   │   └── README.md
 │   ├── lab02-azure-openai-backend/     # Lab 2: Azure OpenAI 백엔드 연결
-│   │   └── README.md
+│   │   ├── README.md
+│   │   └── test-backend.ipynb          # 테스트: 기본 백엔드 호출 검증
 │   ├── lab03-backend-pool/             # Lab 3: 백엔드 풀 & 로드밸런싱
 │   │   ├── README.md
 │   │   ├── test-roundrobin.ipynb       # 테스트: 라운드로빈 분산 검증
@@ -217,25 +248,37 @@ AI Gateway/
 │   │   └── test-cors-jwt.ipynb         # 테스트: CORS & JWT 인증
 │   ├── lab05-multi-model-gateway/      # Lab 5: 멀티 모델 통합 (Gemini 등)
 │   │   ├── README.md
-│   │   └── test-gemini.ipynb            # 테스트: Gemini 라우팅 & 응답 정규화
+│   │   └── test-gemini.ipynb           # 테스트: Gemini 라우팅 & 응답 정규화
 │   ├── lab06-monitoring/               # Lab 6: 모니터링 & 로깅
 │   │   ├── README.md
+│   │   ├── test-monitoring.ipynb       # 테스트: 토큰 메트릭 & App Insights 검증
 │   │   └── test-performance.ipynb      # 테스트: 동시 부하 & 성능 측정
 │   ├── lab07-advanced-patterns/        # Lab 7: 고급 패턴
 │   │   ├── README.md
-│   │   └── test-advanced.ipynb          # 테스트: A/B 라우팅 & SSE 스트리밍
-│   └── lab08-cleanup/                  # Lab 8: 리소스 정리
+│   │   └── test-advanced.ipynb         # 테스트: A/B 라우팅 & SSE 스트리밍
+│   ├── lab08-multicloud-gateway/       # Lab 8: 멀티 클라우드 통합 게이트웨이
+│   ├── lab09-products-portal/          # Lab 9: Products & 개발자 포털
+│   ├── lab10-governance-observability/ # Lab 10: 거버넌스 & 관측
+│   └── lab11-cleanup/                  # Lab 11: 리소스 정리
 │       └── README.md
 │
 ├── .env.sample                         # 환경 변수 템플릿 (.env용)
+├── requirements.txt                    # Python 테스트 노트북 의존성
 │
 ├── scripts/                            # 배포 & 유틸리티
-│   ├── deploy.sh                       # Bicep 배포 스크립트 (.env 자동 생성)
-│   ├── cleanup.sh                      # 전체 리소스 정리 (az group delete)
+│   ├── deploy.sh                       # 전체 인프라 배포 (.env 자동 생성)
+│   ├── deploy-semantic-caching.sh      # 시맨틱 캐싱 배포
+│   ├── setup-monitoring.sh             # 모니터링(App Insights) 설정
+│   ├── cleanup.sh                      # 리소스 정리 + soft delete purge
 │   └── test-endpoints.http             # VS Code REST Client 간단 테스트
 │
 └── docs/                               # 추가 문서
-    ├── architecture.md                 # 아키텍처 상세 설명│   ├── policy-reference.md             # APIM 정책 레퍼런스 (섹션별 설명 + 예시)    └── portal-deployment-guide.md      # Azure Portal 수동 배포 가이드
+    ├── architecture.md                 # 아키텍처 상세 설명
+    ├── policy-reference.md             # APIM 정책 레퍼런스 (섹션별 설명 + 예시)
+    ├── logging-and-observability.md    # 로깅 리소스 차이 (Azure Monitor vs App Insights vs APIM)
+    ├── policy-scope-and-performance-guide.md  # 정책 스코프·counter-key 의사결정 트리 + 성능(실측)
+    ├── microsoft-teams-integration-scenarios.md  # Teams 연동(신청·승인·알림·관리) 시나리오 + 경쟁 포지셔닝
+    └── portal-deployment-guide.md      # Azure Portal 수동 배포 가이드
 ```
 
 ---
@@ -269,22 +312,29 @@ APIM 인스턴스를 생성하고 기본 구조를 이해합니다.
 
 **주요 작업:**
 
-1. **리소스 그룹 생성**
+1. **리소스 그룹 + 인프라 배포**
+
+   > ℹ️ `infra/main.bicep`은 APIM 하나만이 아니라 **모니터링(App Insights) + Azure OpenAI 3개 리전 + APIM + 역할 할당**을 한 번에 배포하는 전체 스택 템플릿입니다. Lab 2~6은 이렇게 배포된 리소스를 단계별로 구성·테스트합니다.
+
+   **권장 방식** — suffix·리소스 그룹 생성과 `.env` 생성까지 자동 처리:
    ```bash
-   az group create --name rg-ai-gw-{suffix} --location koreacentral
+   ./scripts/deploy.sh          # dev 환경 (Developer SKU)
    ```
 
-2. **APIM 인스턴스 배포** (Developer 티어 - AI 정책 전체 사용 가능)
+   **직접 CLI로 배포**하려면 (`suffix`는 `infra/parameters/dev.bicepparam`에 정의된 값 그대로 사용):
    ```bash
+   SUFFIX=aigateway-20260317    # dev.bicepparam의 param suffix 값과 동일해야 함
+   az group create --name "rg-ai-gw-${SUFFIX}" --location koreacentral
    az deployment group create \
-     --resource-group rg-ai-gw-{suffix} \
+     --resource-group "rg-ai-gw-${SUFFIX}" \
      --template-file infra/main.bicep \
-     --parameters infra/parameters/dev.bicepparam
+     --parameters infra/parameters/dev.bicepparam \
+     --name ai-gateway-deployment
    ```
    > ℹ️ Developer SKU는 배포에 30~45분 소요됩니다. Consumption보다 시간이 걸리지만,
    > `azure-openai-token-limit`, `rate-limit-by-key` 등 AI 전용 정책을 모두 사용할 수 있습니다.
 
-3. **포털 접속** 및 기본 API 구성 확인
+2. **포털 접속** 및 기본 API 구성 확인
 
 **학습 포인트:**
 - APIM SKU별 차이 (Developer vs Consumption vs Standard v2)
@@ -301,7 +351,7 @@ Azure OpenAI 서비스를 APIM의 백엔드로 연결합니다.
 
 **주요 작업:**
 
-1. **Azure OpenAI 리소스 생성** (3개 리전: East US, Sweden Central, West US)
+1. **Azure OpenAI 리소스 확인** (main.bicep이 이미 배포한 3개 리전: East US, Sweden Central, West US)
 2. **gpt-4.1-nano 모델 배포** (최저 비용/최고 속도 테스트용)
 3. **APIM에 Azure OpenAI API 등록**
    - OpenAPI 스펙 임포트 또는 수동 등록
@@ -449,6 +499,10 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 - KQL(Kusto Query Language)로 로그 분석
 - 비즈니스 목적(차지백, 알림, 품질 분석)에 맞는 모니터링 선택
 
+> 📖 Azure Monitor · Application Insights · APIM(Analytics/Metrics)의 역할 차이와
+> "어떤 로그가 필요할 때 어떤 리소스를 써야 하는지"는
+> [📖 로깅 & 관측 리소스 가이드](docs/logging-and-observability.md)를 참고하세요.
+
 ---
 
 ### Lab 7: 고급 패턴
@@ -474,9 +528,9 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 
 ---
 
-### Lab 8: 리소스 정리 (Clean Up)
+### Lab 11: 리소스 정리 (Clean Up)
 
-> 📁 `labs/lab08-cleanup/`
+> 📁 `labs/lab11-cleanup/`
 
 모든 실습이 끝난 후 Azure 리소스를 정리하여 불필요한 과금을 방지합니다.
 
@@ -494,8 +548,8 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 
 ```bash
 # 레포지토리 클론
-git clone https://github.com/<your-org>/ai-gateway.git
-cd ai-gateway
+git clone https://github.com/ChangJu-Ahn/Azure-AI-Gateway-KR.git
+cd Azure-AI-Gateway-KR
 
 # Azure 로그인
 az login
@@ -507,9 +561,6 @@ az login
 
 > 💡 **CLI 대신 Azure Portal로 배포하고 싶다면?**  
 > [Azure Portal 배포 가이드](docs/portal-deployment-guide.md)를 참고하세요. 동일한 리소스를 Portal UI에서 단계별로 생성하는 방법을 안내합니다.
-
-```bash
-```
 
 > 배포가 완료되면 Gateway URL이 출력되고, `.env`가 자동 생성됩니다.
 
@@ -545,7 +596,7 @@ pip install -r requirements.txt
 
 ### 4단계: 정리 (Clean Up)
 
-> 📁 상세 가이드: [Lab 8: 리소스 정리](labs/lab08-cleanup/README.md)
+> 📁 상세 가이드: [Lab 11: 리소스 정리](labs/lab11-cleanup/README.md)
 
 ```bash
 # 모든 Azure 리소스 삭제 (리소스 그룹 전체 삭제)

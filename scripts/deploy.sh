@@ -13,18 +13,18 @@ if [ ! -f "$PARAMS_FILE" ]; then
     exit 1
 fi
 
-# suffix 결정: 인자 > bicepparam 파일
+# suffix 결정: 인자로 전달하면 그 값을, 없으면 오늘 날짜로 자동 생성합니다.
+#   기본값: aigateway-YYYYMMDD (매 실행 시 오늘 날짜 기준 → 이름 충돌/소프트 삭제 회피)
+#   고정 suffix를 쓰려면: ./scripts/deploy.sh dev <suffix>
 if [ -n "${2:-}" ]; then
     SUFFIX="$2"
 else
-    SUFFIX=$(grep "param suffix" "$PARAMS_FILE" | sed "s/.*= '//;s/'.*//")
+    SUFFIX="aigateway-$(date +%Y%m%d)"
 fi
 
 if [ -z "$SUFFIX" ] || [[ "$SUFFIX" == *"<"* ]] || [[ "$SUFFIX" == *">"* ]]; then
-    echo "❌ suffix가 설정되지 않았습니다."
-    echo "   다음 중 하나를 수행하세요:"
-    echo "   1) infra/parameters/${ENVIRONMENT}.bicepparam의 suffix를 실제 값으로 변경"
-    echo "   2) 두 번째 인자로 suffix 전달: ./scripts/deploy.sh dev mysuffix"
+    echo "❌ suffix가 올바르지 않습니다: '${SUFFIX}'"
+    echo "   두 번째 인자로 유효한 suffix를 전달하세요: ./scripts/deploy.sh dev mysuffix"
     exit 1
 fi
 

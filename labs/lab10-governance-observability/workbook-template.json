@@ -1,0 +1,242 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## 🔭 AI Gateway — 멀티클라우드 구독별 거버넌스 & 관측 리포팅\n\n하나의 게이트웨이가 **여러 구독(테넌트)** × **멀티클라우드 프로바이더**(Azure OpenAI · OpenAI · Anthropic · Gemini)의\n토큰·쿼터·요청률·비용·차단·프롬프트를 단일 평면에서 리포팅합니다.\n상단 **시간 범위 / 토큰 쿼터 기준 / 구독** 필터로 대시보드 전체가 연동됩니다.\n\n> 데이터 소스: `customMetrics`(토큰/쿼터/비용 — `llm-emit-token-metric`) + `requests`(요청률/지연/차단/프롬프트).\n> 구독 식별자는 토큰 지표=`Subscription ID`, 요청 지표=`Subscription Name` 을 사용합니다(랩에선 두 값이 동일).\n---"
+      },
+      "name": "text-8f34c5ee"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "8070dd52-668e-4fd2-8f65-4164bed0a740",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "시간 범위",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 2592000000
+                }
+              ]
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "715f581a-111e-446a-883f-e84ab018cd2a",
+            "version": "KqlParameterItem/1.0",
+            "name": "QuotaTokens",
+            "label": "토큰 쿼터 기준(구독당)",
+            "type": 1,
+            "isRequired": true,
+            "value": "2000000"
+          },
+          {
+            "id": "7d3c4d34-1dac-4bc9-9984-6f11aa8623a1",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "label": "구독",
+            "type": 2,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "requests\n| extend s = tostring(customDimensions['Subscription Name'])\n| where isnotempty(s)\n| distinct s\n| order by s asc",
+            "crossComponentResources": [
+              "__APP_INSIGHTS_ID__"
+            ],
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "selectAllValue": "*"
+            },
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customMetrics\n| where name == 'Total Tokens'\n| extend sub = tostring(customDimensions['Subscription ID'])\n| where isnotempty(sub) and sub in ({Subscription})\n| summarize ['사용 토큰'] = sum(value) by ['구독'] = sub\n| extend ['쿼터'] = toreal({QuotaTokens}), ['사용률 %'] = round(100.0 * ['사용 토큰'] / {QuotaTokens}, 1)\n| order by ['사용 토큰'] desc",
+        "size": 0,
+        "title": "① 구독별 토큰 쿼터 사용 현황",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "table"
+      },
+      "name": "query-① 구독별 토큰 쿼터 "
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customMetrics\n| where name == 'Total Tokens'\n| extend sub = tostring(customDimensions['Subscription ID'])\n| where isnotempty(sub) and sub in ({Subscription})\n| summarize ['분당 토큰'] = sum(value) by sub, bin(timestamp, 1m)",
+        "size": 0,
+        "title": "② 구독별 TPM (분당 토큰)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "timechart"
+      },
+      "name": "query-② 구독별 TPM (분"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| extend sub = tostring(customDimensions['Subscription Name'])\n| where isnotempty(sub) and sub in ({Subscription})\n| summarize ['요청/분'] = count() by sub, bin(timestamp, 1m)",
+        "size": 0,
+        "title": "③ 구독별 요청률 (건/분 · RPS = 값/60)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "timechart"
+      },
+      "name": "query-③ 구독별 요청률 (건"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customMetrics\n| where name == 'Total Tokens'\n| extend prov = tostring(customDimensions['Provider']), sub = tostring(customDimensions['Subscription ID'])\n| where sub in ({Subscription})\n| summarize ['토큰'] = sum(value) by ['프로바이더'] = prov\n| order by ['토큰'] desc",
+        "size": 0,
+        "title": "④ 프로바이더별 토큰 분해 (멀티클라우드)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "piechart"
+      },
+      "name": "query-④ 프로바이더별 토큰 "
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customMetrics\n| where name == 'Total Tokens'\n| extend sub = tostring(customDimensions['Subscription ID']), prov = tostring(customDimensions['Provider'])\n| where sub in ({Subscription})\n| summarize ['토큰'] = sum(value) by ['구독'] = sub, ['프로바이더'] = prov\n| extend ['추정 비용(USD)'] = round(case(\n    ['프로바이더'] == 'anthropic', ['토큰'] * 0.000003,\n    ['프로바이더'] == 'gemini',    ['토큰'] * 0.0000005,\n    ['프로바이더'] == 'openai',    ['토큰'] * 0.000005,\n    ['토큰'] * 0.000002), 6)\n| order by ['추정 비용(USD)'] desc",
+        "size": 0,
+        "title": "⑤ 구독 × 프로바이더 비용 추정",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "table"
+      },
+      "name": "query-⑤ 구독 × 프로바이더"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| extend sub = tostring(customDimensions['Subscription Name'])\n| where sub in ({Subscription})\n| where resultCode in ('429', '403', '401')\n| summarize ['건수'] = count() by resultCode, bin(timestamp, 5m)",
+        "size": 0,
+        "title": "⑥ 거버넌스 차단 추이 (429 TPM · 403 quota · 401 무인증)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "barchart"
+      },
+      "name": "query-⑥ 거버넌스 차단 추이"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| extend sub = tostring(customDimensions['Subscription Name'])\n| where isnotempty(sub) and sub in ({Subscription})\n| summarize ['총요청'] = count(),\n            ['성공'] = countif(toint(resultCode) < 400),\n            ['P50 ms'] = round(percentile(duration, 50), 0),\n            ['P95 ms'] = round(percentile(duration, 95), 0) by ['구독'] = sub\n| extend ['성공률 %'] = round(100.0 * ['성공'] / ['총요청'], 1)\n| project ['구독'], ['총요청'], ['성공률 %'], ['P50 ms'], ['P95 ms']\n| order by ['총요청'] desc",
+        "size": 0,
+        "title": "⑦ 구독별 SLO (성공률 · P50/P95 지연)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "table"
+      },
+      "name": "query-⑦ 구독별 SLO (성"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| extend sub = tostring(customDimensions['Subscription Name']),\n         prompt = tostring(customDimensions['Request-Body']),\n         response = tostring(customDimensions['Response-Body'])\n| where sub in ({Subscription}) and isnotempty(prompt)\n| project timestamp, ['구독'] = sub, resultCode,\n          ['프롬프트'] = substring(prompt, 0, 300),\n          ['응답'] = substring(response, 0, 300)\n| order by timestamp desc\n| take 20",
+        "size": 0,
+        "title": "⑧ 프롬프트/응답 감사 (최근 20건)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_ID__"
+        ],
+        "visualization": "table"
+      },
+      "name": "query-⑧ 프롬프트/응답 감사"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n### 💡 사용/운영 팁\n- **쿼터 사용률(①)** 이 80%↑ 구독은 상향 또는 알림 대상 → Lab 10 6단계 `metrics alert` 로 자동화.\n- **비용(⑤)** 단가는 예시값 — 각 프로바이더 콘솔 요율로 교체하세요.\n- **프롬프트 감사(⑧)** 는 `requests` 의 `Request-Body`/`Response-Body`(≤8KB) 기반. 8KB 초과·스트리밍은 Event Hub 로 보완(Lab 10).\n- 이 Workbook 은 `deploy-workbook.sh` 로 배포되며, `Microsoft.Insights/workbooks` 리소스입니다.\n"
+      },
+      "name": "text-bfeb7a2b"
+    }
+  ],
+  "fallbackResourceIds": [
+    "__APP_INSIGHTS_ID__"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

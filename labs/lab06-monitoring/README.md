@@ -292,21 +292,21 @@ resource apimDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2023-09-01
     frontend: {
       request: {
         headers: [ 'Content-Type', 'Ocp-Apim-Subscription-Key', 'x-model-provider' ]
-        body: { bytes: 4096 }
+        body: { bytes: 8192 }
       }
       response: {
         headers: [ 'Content-Type', 'x-ratelimit-remaining-tokens' ]
-        body: { bytes: 4096 }
+        body: { bytes: 8192 }
       }
     }
     backend: {
       request: {
         headers: [ 'Content-Type', 'Authorization' ]
-        body: { bytes: 4096 }
+        body: { bytes: 8192 }
       }
       response: {
         headers: [ 'Content-Type', 'x-ms-region', 'x-ratelimit-remaining-tokens', 'x-ratelimit-remaining-requests' ]
-        body: { bytes: 4096 }
+        body: { bytes: 8192 }
       }
     }
   }
@@ -320,6 +320,20 @@ resource apimDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2023-09-01
 | `requests` | 프론트엔드 (클라이언트 → APIM) 요청/응답 + Body |
 | `dependencies` | 백엔드 (APIM → Azure OpenAI) 요청/응답 + Body |
 | `customMetrics` | 토큰 메트릭 (Model, Backend 차원 포함) |
+
+### 3-2단계: ⚠️ 프롬프트/응답 로깅의 한계와 보완
+
+APIM Diagnostics body 로깅은 AI 관측의 **시작점**이지만, 프로덕션 프롬프트/응답 관측에는 세 가지 한계가 있습니다.
+
+| 한계 | 내용 | 영향 |
+|---|---|---|
+| **8KB 하드 한계** | body 로깅은 최대 **8192바이트**까지만 저장(구성 불가). 위 설정도 8192가 상한 | 긴 시스템 프롬프트·RAG 컨텍스트·장문 응답이 **잘림** |
+| **스트리밍(SSE) 미포착** | `stream: true` 응답은 APIM 이 버퍼링하지 못해 body·종료 `usage`(토큰)가 **로깅되지 않음** | ChatGPT식 스트리밍(Lab 7) 관측 공백 |
+| **PII/보존** | 프롬프트/응답에 민감정보 포함 가능 | 마스킹·보존기간·접근통제 필요 |
+
+> 💡 위 3-1단계에서 `bytes` 를 상한인 **8192** 로 올렸지만, 8KB 초과분은 여전히 잘립니다.
+> **무손실 캡처(Event Hub) + 스트리밍 토큰(`include_usage`) + 레닥션**은
+> **[Lab 10: 구독별 거버넌스 & 관측](../lab10-governance-observability/README.md)** 에서 다룹니다.
 
 ### 4단계: KQL 로그 쿼리
 

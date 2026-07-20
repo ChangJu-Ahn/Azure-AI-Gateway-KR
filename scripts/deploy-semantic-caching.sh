@@ -30,6 +30,7 @@ elif [ -f "$PARAMS_FILE" ]; then
     SUFFIX=$(grep "param suffix" "$PARAMS_FILE" | sed "s/.*= '//;s/'.*//")
 else
     echo "❌ suffix를 결정할 수 없습니다."
+    echo "   먼저 ./scripts/deploy.sh를 실행하거나 suffix를 인자로 전달하세요:"
     echo "   사용법: ./scripts/deploy-semantic-caching.sh <suffix>"
     exit 1
 fi

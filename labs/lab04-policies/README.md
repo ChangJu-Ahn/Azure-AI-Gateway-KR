@@ -246,9 +246,11 @@ Subscription Key 대신 **Azure AD 토큰(JWT)**으로 인증합니다. 앱 등�
 > 2. 앱 역할(App Role) 정의 (예: `AI.User`, `AI.Admin`)
 > 3. API를 호출할 클라이언트 앱에 역할 부여
 
-### 8단계: quota-by-key (월별 토큰 예산)
+### 8단계: quota-by-key (월별 호출 예산)
 
 `azure-openai-token-limit`은 **분당** 제한이고, `quota-by-key`는 **일/월 총량** 제한입니다.
+
+> ℹ️ `quota-by-key`는 **호출 수/대역폭** 기준입니다. 월 누적 **토큰** 예산이 필요하면 `llm-token-limit`의 `token-quota`/`token-quota-period`를 사용하세요 (Lab 9 참고).
 
 > **적용 위치: Inbound processing** — 요청 시점에 남은 예산을 확인합니다.
 
