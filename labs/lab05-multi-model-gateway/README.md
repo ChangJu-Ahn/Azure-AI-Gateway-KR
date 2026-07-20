@@ -2,6 +2,21 @@
 
 Google Gemini API Key 3개를 APIM 백엔드 풀로 묶어 로드밸런싱합니다. Lab 3에서 Azure OpenAI 3개를 풀로 구성한 것과 동일한 패턴을 Gemini에 적용합니다.
 
+> 🧭 **Lab 5 vs Lab 8 — 헷갈리기 쉬우니 먼저 읽어주세요**
+>
+> 둘 다 "외부 프로바이더 + 키 풀"을 다뤄 비슷해 보이지만 **레이어가 다릅니다.**
+>
+> | | **Lab 5 (여기)** | **Lab 8** |
+> |---|---|---|
+> | 성격 | **원시 패턴(primitive)** | **조합 패턴(composition)** |
+> | 라우팅 축 | 같은 Gemini의 **키(key) 간** 분산 | **프로바이더(provider) 간** 분산 |
+> | 클라이언트 포맷 | **Gemini 네이티브** | **OpenAI 호환**(`model` prefix) |
+> | 정책 | `set-backend-service` 1줄 | `<choose>` 라우팅 + `llm-*` + fallback |
+>
+> **Lab 5는 단일 외부 프로바이더를 키 풀로 온보딩하는 재료**이고,
+> [**Lab 8**](../lab08-multicloud-gateway/README.md)은 이 재료를 여러 클라우드로 확장한 **통합 계약**입니다.
+> (Lab 8은 여기서 등록한 `gemini-api-key-*` Named Value를 그대로 재사용합니다.)
+
 ## 목표
 
 - Gemini API Key 3개를 APIM Named Value로 등록

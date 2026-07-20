@@ -28,6 +28,9 @@ param openaiSwedenEndpoint string
 @description('Azure OpenAI West US 엔드포인트')
 param openaiWestUsEndpoint string
 
+@description('Azure AI Content Safety 엔드포인트 (llm-content-safety 정책 백엔드용)')
+param contentSafetyEndpoint string
+
 // ─── APIM Service ───
 resource apimService 'Microsoft.ApiManagement/service@2023-09-01-preview' = {
   name: name
@@ -209,6 +212,25 @@ resource backendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-previe
           weight: 1
         }
       ]
+    }
+  }
+}
+
+// ─── Content Safety Backend (llm-content-safety 정책용) ───
+// MI 인증으로 Content Safety analyze API를 호출합니다. 백엔드 credential에
+// Managed Identity(resource=https://cognitiveservices.azure.com)를 설정해야 합니다.
+resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = {
+  parent: apimService
+  name: 'content-safety-backend'
+  properties: {
+    description: 'Azure AI Content Safety backend (Managed Identity)'
+    url: contentSafetyEndpoint
+    protocol: 'http'
+    credentials: {
+      #disable-next-line BCP037
+      managedIdentity: {
+        resource: 'https://cognitiveservices.azure.com'
+      }
     }
   }
 }

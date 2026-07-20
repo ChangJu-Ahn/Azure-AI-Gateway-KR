@@ -12,7 +12,7 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 4 | AI 전용 정책 (Rate Limit, Caching, Retry) | ✅ 완료 |
 | Lab 5 | 멀티 모델 Gateway (Gemini, Claude 등) | ✅ 완료 |
 | Lab 6 | 모니터링 & 로깅 | ✅ 완료 |
-| Lab 7 | 고급 패턴 (A/B 테스트, Content Safety 등) | 🔄 확인중 |
+| Lab 7 | 고급 패턴 (A/B 테스트, Content Safety + 한국형 PII 필터링 등) | 🔄 확인중 |
 | Lab 8 | 멀티 클라우드 통합 게이트웨이 (OpenAI · Anthropic · Google Gemini) | 🚧 드래프트 |
 | Lab 9 | Products & 개발자 포털 (구독 격리) | 🚧 드래프트 |
 | Lab 10 | 구독별 거버넌스 & Azure Monitor 대시보드 | 🚧 드래프트 |
@@ -276,6 +276,8 @@ AI Gateway/
     ├── architecture.md                 # 아키텍처 상세 설명
     ├── policy-reference.md             # APIM 정책 레퍼런스 (섹션별 설명 + 예시)
     ├── logging-and-observability.md    # 로깅 리소스 차이 (Azure Monitor vs App Insights vs APIM)
+    ├── policy-scope-and-performance-guide.md  # 정책 스코프·counter-key 의사결정 트리 + 성능(실측)
+    ├── microsoft-teams-integration-scenarios.md  # Teams 연동(신청·승인·알림·관리) 시나리오 + 경쟁 포지셔닝
     └── portal-deployment-guide.md      # Azure Portal 수동 배포 가이드
 ```
 

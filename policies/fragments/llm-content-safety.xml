@@ -1,0 +1,30 @@
+<!--
+    llm-content-safety 정책 조각 (커스텀 컨텐츠 필터링)
+
+    Azure AI Content Safety로 LLM 요청(프롬프트)을 검사하여 다음을 차단합니다:
+      ① 유해 카테고리 (Hate / Violence / SelfHarm / Sexual) — 심각도 임계값 기반
+      ② shield-prompt — 프롬프트 공격(jailbreak/간접 공격) 탐지
+      ③ 커스텀 blocklist(korea-pii) — 대한민국 PII 정규식(주민등록번호/휴대폰/주소)
+
+    적용 위치: <inbound> (백엔드 LLM 호출 전에 차단)
+    사전 준비(최초 배포 Bicep에 포함됨):
+      - content-safety-backend 백엔드 (Managed Identity 인증)
+      - APIM MI에 'Cognitive Services User' 역할
+      - RAI blocklist 'korea-pii' + 정규식 항목 (infra/modules/content-safety.bicep)
+
+    참고: 차단 시 APIM은 403을 반환합니다.
+-->
+<fragment>
+    <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+        <categories output-type="EightSeverityLevels">
+            <category name="Hate" threshold="4" />
+            <category name="Violence" threshold="4" />
+            <category name="SelfHarm" threshold="4" />
+            <category name="Sexual" threshold="4" />
+        </categories>
+        <!-- 커스텀 컨텐츠 필터링: 한국형 PII 정규식 블록리스트 -->
+        <blocklists>
+            <id>korea-pii</id>
+        </blocklists>
+    </llm-content-safety>
+</fragment>

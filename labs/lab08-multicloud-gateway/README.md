@@ -6,6 +6,19 @@
 
 하나의 OpenAI 호환 엔드포인트로 **Azure OpenAI(기본)** 와 **Azure 외부의 OpenAI · Anthropic · Google Gemini** 를 통합 관리합니다. 클라이언트는 `model` 필드만 바꾸면 프로바이더가 전환되고, 게이트웨이가 토큰 제어·메트릭·Fallback을 동일하게 적용합니다.
 
+> 🧭 **Lab 5와 뭐가 다른가요? (자주 겹쳐 보이는 부분)**
+>
+> [Lab 5](../lab05-multi-model-gateway/README.md)는 **단일 외부 프로바이더(Gemini)를 키 풀로 온보딩하는 원시 패턴**입니다.
+> Lab 8은 그걸 **여러 클라우드로 확장한 조합(통합 계약)** 이며, 라우팅 축이 다릅니다.
+>
+> | | Lab 5 | **Lab 8 (여기)** |
+> |---|---|---|
+> | 라우팅 축 | 같은 Gemini의 **키 간** 분산 | **프로바이더 간** 분산 |
+> | 클라이언트 포맷 | Gemini 네이티브 | **OpenAI 호환**(`model` prefix) |
+> | 정책 | `set-backend-service` 1줄 | `<choose>` 라우팅 + `llm-*` + fallback |
+>
+> 즉 겹치는 건 **"키풀·Named Value" 개념**이고, Lab 8은 Lab 5를 **재료로 재사용**합니다(아래 선행 조건 참고).
+
 ## 목표
 
 - Azure OpenAI(기본) + Azure 외부 3사(OpenAI·Anthropic·Google Gemini)를 단일 OpenAI 호환 API 로 통합 (Approach A: 통합 계약)
@@ -40,6 +53,10 @@ graph TD
 ```
 
 ## 사전 준비 (.env / Named Value)
+
+> ⚠️ **선행 조건: [Lab 5](../lab05-multi-model-gateway/README.md)를 먼저 완료하세요.**
+> Lab 8의 Gemini 라우팅은 Lab 5에서 등록한 `gemini-api-key-1..3` Named Value를 **그대로 재사용**합니다.
+> Lab 5를 건너뛰면 Gemini 경로가 인증 실패(401)합니다. (Azure OpenAI는 Managed Identity라 선행 조건 없음)
 
 아래 값을 `.env` 파일에 설정한 뒤 Named Value 등록 단계에서 사용합니다.
 
