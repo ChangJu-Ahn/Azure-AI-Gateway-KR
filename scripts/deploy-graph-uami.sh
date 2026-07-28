@@ -59,13 +59,14 @@ SP_CLIENT_ID=$(az identity show --name "$UAMI_SHAREPOINT" --resource-group "$RES
 SP_RES_ID=$(az identity show --name "$UAMI_SHAREPOINT" --resource-group "$RESOURCE_GROUP" --query id -o tsv)
 
 # 3. APIM에 UAMI attach
+# 주의: UserAssigned 타입 전환과 identity id 지정은 반드시 한 번의 PATCH로 함께 보내야 함
+# (타입만 먼저 바꾸면 MissingIdentityIds 오류 발생)
 echo "🔗 APIM에 UAMI 연결..."
-az apim update --name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" \
-    --set "identity.type=SystemAssigned,UserAssigned" \
-    --output none
-az resource update \
-    --ids "$(az apim show --name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" --query id -o tsv)" \
-    --set "identity.userAssignedIdentities.{\"${USERS_RES_ID}\":{},\"${MAIL_RES_ID}\":{},\"${SP_RES_ID}\":{}}" \
+APIM_ID=$(az apim show --name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" --query id -o tsv)
+az rest --method PATCH \
+    --url "${APIM_ID}?api-version=2022-08-01" \
+    --headers "Content-Type=application/json" \
+    --body "{\"identity\":{\"type\":\"SystemAssigned, UserAssigned\",\"userAssignedIdentities\":{\"${USERS_RES_ID}\":{},\"${MAIL_RES_ID}\":{},\"${SP_RES_ID}\":{}}}}" \
     --output none
 
 # 4. 각 UAMI에 단일 Graph 앱 역할 부여 (grant-graph-role.sh 재사용)
