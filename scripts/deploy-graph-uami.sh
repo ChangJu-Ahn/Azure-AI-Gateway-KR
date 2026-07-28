@@ -6,6 +6,7 @@ set -euo pipefail
 # 각 UAMI에 단일 Graph 앱 역할만 부여합니다.
 #   uami-graph-users-{suffix} → User.Read.All
 #   uami-graph-mail-{suffix}  → Mail.Read
+#   uami-graph-sharepoint-{suffix} → Sites.Read.All
 #
 # 사용법: ./scripts/deploy-graph-uami.sh [suffix]
 
@@ -31,6 +32,7 @@ LOCATION="koreacentral"
 
 UAMI_USERS="uami-graph-users-${SUFFIX}"
 UAMI_MAIL="uami-graph-mail-${SUFFIX}"
+UAMI_SHAREPOINT="uami-graph-sharepoint-${SUFFIX}"
 
 echo "=== Lab 11 Part 2: 권한별 UAMI 배포 ==="
 echo "리소스 그룹: ${RESOURCE_GROUP}"
@@ -42,6 +44,8 @@ echo "📦 UAMI 생성: ${UAMI_USERS}"
 az identity create --name "$UAMI_USERS" --resource-group "$RESOURCE_GROUP" --location "$LOCATION" --output none
 echo "📦 UAMI 생성: ${UAMI_MAIL}"
 az identity create --name "$UAMI_MAIL" --resource-group "$RESOURCE_GROUP" --location "$LOCATION" --output none
+echo "📦 UAMI 생성: ${UAMI_SHAREPOINT}"
+az identity create --name "$UAMI_SHAREPOINT" --resource-group "$RESOURCE_GROUP" --location "$LOCATION" --output none
 
 # 2. 식별자 조회
 USERS_PRINCIPAL_ID=$(az identity show --name "$UAMI_USERS" --resource-group "$RESOURCE_GROUP" --query principalId -o tsv)
@@ -50,6 +54,9 @@ USERS_RES_ID=$(az identity show --name "$UAMI_USERS" --resource-group "$RESOURCE
 MAIL_PRINCIPAL_ID=$(az identity show --name "$UAMI_MAIL" --resource-group "$RESOURCE_GROUP" --query principalId -o tsv)
 MAIL_CLIENT_ID=$(az identity show --name "$UAMI_MAIL" --resource-group "$RESOURCE_GROUP" --query clientId -o tsv)
 MAIL_RES_ID=$(az identity show --name "$UAMI_MAIL" --resource-group "$RESOURCE_GROUP" --query id -o tsv)
+SP_PRINCIPAL_ID=$(az identity show --name "$UAMI_SHAREPOINT" --resource-group "$RESOURCE_GROUP" --query principalId -o tsv)
+SP_CLIENT_ID=$(az identity show --name "$UAMI_SHAREPOINT" --resource-group "$RESOURCE_GROUP" --query clientId -o tsv)
+SP_RES_ID=$(az identity show --name "$UAMI_SHAREPOINT" --resource-group "$RESOURCE_GROUP" --query id -o tsv)
 
 # 3. APIM에 UAMI attach
 echo "🔗 APIM에 UAMI 연결..."
@@ -58,7 +65,7 @@ az apim update --name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" \
     --output none
 az resource update \
     --ids "$(az apim show --name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" --query id -o tsv)" \
-    --set "identity.userAssignedIdentities.{\"${USERS_RES_ID}\":{},\"${MAIL_RES_ID}\":{}}" \
+    --set "identity.userAssignedIdentities.{\"${USERS_RES_ID}\":{},\"${MAIL_RES_ID}\":{},\"${SP_RES_ID}\":{}}" \
     --output none
 
 # 4. 각 UAMI에 단일 Graph 앱 역할 부여 (grant-graph-role.sh 재사용)
@@ -66,6 +73,8 @@ echo "🔐 역할 부여: ${UAMI_USERS} → User.Read.All"
 "${SCRIPT_DIR}/grant-graph-role.sh" "$USERS_PRINCIPAL_ID" "User.Read.All"
 echo "🔐 역할 부여: ${UAMI_MAIL} → Mail.Read"
 "${SCRIPT_DIR}/grant-graph-role.sh" "$MAIL_PRINCIPAL_ID" "Mail.Read"
+echo "🔐 역할 부여: ${UAMI_SHAREPOINT} → Sites.Read.All"
+"${SCRIPT_DIR}/grant-graph-role.sh" "$SP_PRINCIPAL_ID" "Sites.Read.All"
 
 # 5. clientId를 APIM Named Value로 등록 (정책에서 참조)
 echo "📝 APIM Named Value 등록..."
@@ -79,10 +88,16 @@ az apim nv create --service-name "$APIM_NAME" --resource-group "$RESOURCE_GROUP"
     --value "$MAIL_CLIENT_ID" --output none 2>/dev/null || \
 az apim nv update --service-name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" \
     --named-value-id "uami-graph-mail-client-id" --value "$MAIL_CLIENT_ID" --output none
+az apim nv create --service-name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" \
+    --named-value-id "uami-graph-sharepoint-client-id" --display-name "uami-graph-sharepoint-client-id" \
+    --value "$SP_CLIENT_ID" --output none 2>/dev/null || \
+az apim nv update --service-name "$APIM_NAME" --resource-group "$RESOURCE_GROUP" \
+    --named-value-id "uami-graph-sharepoint-client-id" --value "$SP_CLIENT_ID" --output none
 
 echo ""
 echo "✅ 완료!"
-echo "   ${UAMI_USERS} clientId: ${USERS_CLIENT_ID}"
-echo "   ${UAMI_MAIL}  clientId: ${MAIL_CLIENT_ID}"
+echo "   ${UAMI_USERS}     clientId: ${USERS_CLIENT_ID}"
+echo "   ${UAMI_MAIL}      clientId: ${MAIL_CLIENT_ID}"
+echo "   ${UAMI_SHAREPOINT} clientId: ${SP_CLIENT_ID}"
 echo ""
 echo "다음: APIM Microsoft Graph API 정책을 Part 2 버전으로 교체하세요 (README 참고)."
