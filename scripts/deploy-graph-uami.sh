@@ -39,7 +39,7 @@ echo "리소스 그룹: ${RESOURCE_GROUP}"
 echo "APIM:        ${APIM_NAME}"
 echo ""
 
-# 1. UAMI 2개 생성 (이미 있으면 az가 기존 값을 반환 → 멱등)
+# 1. UAMI 3개 생성 (이미 있으면 az가 기존 값을 반환 → 멱등)
 echo "📦 UAMI 생성: ${UAMI_USERS}"
 az identity create --name "$UAMI_USERS" --resource-group "$RESOURCE_GROUP" --location "$LOCATION" --output none
 echo "📦 UAMI 생성: ${UAMI_MAIL}"
