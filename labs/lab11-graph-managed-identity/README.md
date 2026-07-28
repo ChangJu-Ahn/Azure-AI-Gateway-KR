@@ -9,7 +9,7 @@ Microsoft Graph 정보를 조회하도록 만듭니다. 나아가 **구독별 �
 - 클라이언트가 Graph 토큰을 직접 발급하지 않고 **APIM 구독 키만으로** Graph 조회
 - Managed Identity의 **앱 역할(App Role)** 부여 원리 이해 (`az rest`)
 - **옵션 A**: System MI 1개 + 정책 게이트로 구독별 Operation 차단(403)
-- **옵션 B**: 권한별 User-Assigned MI 2개로 진짜 격리 달성
+- **옵션 B**: 권한별 User-Assigned MI 3개(users/mail/sharepoint)로 진짜 격리 달성
 - 두 모델의 보안 강도 차이를 노트북으로 검증
 
 ## 사전 확인
@@ -65,22 +65,27 @@ Graph용 `Authorization: Bearer` 토큰은 **APIM의 MI가 내부에서 발급**
    - Display name: `Microsoft Graph`
    - Web service URL: `https://graph.microsoft.com/v1.0`
    - API URL suffix: `graph`
-3. Operation 3개 추가:
+3. Operation 추가:
    - `GET /users`
    - `GET /users/{user-id}`
    - `GET /users/{user-id}/messages`
+   - `GET /sites/*` (와일드카드 catch-all — SharePoint 경로가 다중 세그먼트라 단일 `{param}`으로 못 잡음)
 
-### 2단계: Product 2개 생성 & 구독 키 발급
+### 2단계: Product 3개 생성 & 구독 키 발급
 
 1. APIM → **Products** → **Add**
    - `graph-users` (Published, Requires subscription)
    - `graph-mail` (Published, Requires subscription)
+   - `graph-sharepoint` (Published, Requires subscription)
 2. 각 Product에 **Microsoft Graph API 추가**
 3. 각 Product의 **Subscriptions**에서 키 생성 → Primary key 복사
 4. `.env`에 입력:
    ```
    APIM_KEY_GRAPH_USERS="<graph-users 구독 키>"
    APIM_KEY_GRAPH_MAIL="<graph-mail 구독 키>"
+   APIM_KEY_GRAPH_SHAREPOINT="<graph-sharepoint 구독 키>"
+   SHAREPOINT_SITE_HOSTNAME="<tenant.sharepoint.com>"
+   SHAREPOINT_SITE_PATH="<site-name>"
    ```
 
 ### 3단계: System MI에 Graph 앱 역할 부여
@@ -91,6 +96,7 @@ PRINCIPAL_ID=$(az apim show --name $APIM_NAME --resource-group $RESOURCE_GROUP -
 
 ./scripts/grant-graph-role.sh "$PRINCIPAL_ID" User.Read.All
 ./scripts/grant-graph-role.sh "$PRINCIPAL_ID" Mail.Read
+./scripts/grant-graph-role.sh "$PRINCIPAL_ID" Sites.Read.All
 ```
 
 > ⏱️ 권한 전파에 수 분이 걸릴 수 있습니다.
@@ -169,6 +175,18 @@ Microsoft Entra ID → **Enterprise applications** → 필터 `Application type 
                     <set-body>이 구독(graph-mail)은 메일 조회만 허용됩니다.</set-body>
                 </return-response>
             </when>
+            <when condition="@(context.Product?.Name == &quot;graph-sharepoint&quot; &amp;&amp; !context.Operation.UrlTemplate.Contains(&quot;/sites&quot;))">
+                <return-response>
+                    <set-status code="403" reason="Forbidden" />
+                    <set-body>이 구독(graph-sharepoint)은 SharePoint 조회만 허용됩니다.</set-body>
+                </return-response>
+            </when>
+            <when condition="@(context.Product?.Name == &quot;graph-users&quot; &amp;&amp; context.Operation.UrlTemplate.Contains(&quot;/sites&quot;))">
+                <return-response>
+                    <set-status code="403" reason="Forbidden" />
+                    <set-body>이 구독(graph-users)은 SharePoint 조회 권한이 없습니다.</set-body>
+                </return-response>
+            </when>
         </choose>
         <!-- System MI로 Graph 토큰 발급 -->
         <authentication-managed-identity resource="https://graph.microsoft.com" />
@@ -188,7 +206,7 @@ Microsoft Entra ID → **Enterprise applications** → 필터 `Application type 
 
 ### 5단계: 노트북 테스트 (Part 1)
 
-`test-graph-mi.ipynb`의 셀 1~6을 실행합니다.
+`test-graph-mi.ipynb`의 셀 1~10을 실행합니다. (셀 7~10 = SharePoint 리스트/항목 조회 및 교차접근 차단)
 
 ---
 
@@ -201,8 +219,9 @@ set -a; source .env; set +a
 ./scripts/deploy-graph-uami.sh
 ```
 
-이 스크립트는 UAMI 2개 생성 → APIM 연결 → 각각 단일 역할 부여 →
-clientId를 APIM Named Value(`uami-graph-users-client-id`, `uami-graph-mail-client-id`)로 등록합니다.
+이 스크립트는 UAMI 3개 생성 → APIM 연결 → 각각 단일 역할 부여 →
+clientId를 APIM Named Value(`uami-graph-users-client-id`, `uami-graph-mail-client-id`,
+`uami-graph-sharepoint-client-id`)로 등록합니다.
 
 ### 2단계: 정책 교체 (client-id 라우팅)
 
@@ -213,6 +232,9 @@ clientId를 APIM Named Value(`uami-graph-users-client-id`, `uami-graph-mail-clie
         <choose>
             <when condition="@(context.Product?.Name == &quot;graph-mail&quot;)">
                 <authentication-managed-identity resource="https://graph.microsoft.com" client-id="{{uami-graph-mail-client-id}}" />
+            </when>
+            <when condition="@(context.Product?.Name == &quot;graph-sharepoint&quot;)">
+                <authentication-managed-identity resource="https://graph.microsoft.com" client-id="{{uami-graph-sharepoint-client-id}}" />
             </when>
             <otherwise>
                 <authentication-managed-identity resource="https://graph.microsoft.com" client-id="{{uami-graph-users-client-id}}" />
@@ -229,7 +251,7 @@ clientId를 APIM Named Value(`uami-graph-users-client-id`, `uami-graph-mail-clie
 
 ### 3단계: 노트북 테스트 (Part 2)
 
-`test-graph-mi.ipynb`의 셀 7을 실행하여, `graph-users` 키로 메일 접근 시
+`test-graph-mi.ipynb`의 셀 11을 실행하여, `graph-users` 키로 메일 접근 시
 Graph가 권한 부족으로 거부하는 것을 확인합니다.
 
 ---
@@ -244,7 +266,11 @@ Graph가 권한 부족으로 거부하는 것을 확인합니다.
 | 4 | graph-users → /users/{id}/messages | 403 (정책) |
 | 5 | graph-mail → /users/{id}/messages | 200 |
 | 6 | graph-mail → GET /users | 403 (정책) |
-| 7 | (Part 2) graph-users → 메일 재시도 | Graph 권한 거부 |
+| 7 | graph-sharepoint → 사이트 해석 | 200 (siteId 확보) |
+| 8 | graph-sharepoint → GET /sites/{id}/lists | 200 (리스트 표) |
+| 9 | graph-sharepoint → /lists/{id}/items | 200 (항목 표) |
+| 10 | graph-users → /sites 교차접근 | 403 (정책) |
+| 11 | (Part 2) graph-users → 메일 재시도 | Graph 권한 거부 |
 
 ## 핵심 개념
 
