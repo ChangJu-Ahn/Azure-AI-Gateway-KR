@@ -157,13 +157,13 @@ Microsoft Entra ID → **Enterprise applications** → 필터 `Application type 
         <base />
         <!-- 구독(Product)별 Operation 게이트 -->
         <choose>
-            <when condition="@(context.Product?.Name == "graph-users" && context.Operation.UrlTemplate.Contains("/messages"))">
+            <when condition="@(context.Product?.Name == &quot;graph-users&quot; &amp;&amp; context.Operation.UrlTemplate.Contains(&quot;/messages&quot;))">
                 <return-response>
                     <set-status code="403" reason="Forbidden" />
                     <set-body>이 구독(graph-users)은 사용자 조회만 허용됩니다.</set-body>
                 </return-response>
             </when>
-            <when condition="@(context.Product?.Name == "graph-mail" && !context.Operation.UrlTemplate.Contains("/messages"))">
+            <when condition="@(context.Product?.Name == &quot;graph-mail&quot; &amp;&amp; !context.Operation.UrlTemplate.Contains(&quot;/messages&quot;))">
                 <return-response>
                     <set-status code="403" reason="Forbidden" />
                     <set-body>이 구독(graph-mail)은 메일 조회만 허용됩니다.</set-body>
@@ -178,6 +178,13 @@ Microsoft Entra ID → **Enterprise applications** → 필터 `Application type 
     <on-error><base /></on-error>
 </policies>
 ```
+
+> ⚠️ **정책 표현식 안의 특수문자는 XML 엔티티로 이스케이프하세요.** `condition="..."`는 큰따옴표로
+> 감싸는 XML 속성이라, 그 안에서 문자열 큰따옴표는 `&quot;`, 논리 AND(`&&`)는 `&amp;&amp;`로 써야 합니다.
+> 그대로 `"graph-users"`나 `&&`를 쓰면 속성이 끊기거나 `&`가 엔티티로 오인되어
+> *"policy expressions may not have the correct parentheses or braces format"* 경고가 뜹니다.
+> Portal 편집기는 관대해 Save는 되지만, ARM/`az` 배포 시엔 깨지므로 이스케이프가 정석입니다.
+> (직접 타이핑하지 말고 위 블록을 그대로 복사하세요.)
 
 ### 5단계: 노트북 테스트 (Part 1)
 
@@ -204,7 +211,7 @@ clientId를 APIM Named Value(`uami-graph-users-client-id`, `uami-graph-mail-clie
     <inbound>
         <base />
         <choose>
-            <when condition="@(context.Product?.Name == "graph-mail")">
+            <when condition="@(context.Product?.Name == &quot;graph-mail&quot;)">
                 <authentication-managed-identity resource="https://graph.microsoft.com" client-id="{{uami-graph-mail-client-id}}" />
             </when>
             <otherwise>
