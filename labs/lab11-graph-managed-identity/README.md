@@ -99,15 +99,30 @@ PRINCIPAL_ID=$(az apim show --name $APIM_NAME --resource-group $RESOURCE_GROUP -
 
 **⚠️ APIM 리소스 블레이드에서는 Graph 권한이 안 보입니다.** APIM → Managed identities →
 `Azure role assignments` 버튼은 **Azure RBAC 역할**(Reader, Contributor 등)만 표시합니다.
-우리가 준 `User.Read.All` / `Mail.Read`는 **Microsoft Graph 앱 역할(디렉터리 권한)** 이라
-종류가 다르며, 이 화면에는 나타나지 않습니다.
+우리가 준 `User.Read.All` / `Mail.Read`는 **Microsoft Graph 앱 역할(API 권한)** 이라
+**종류가 다른 인가 체계**이며, 이 화면에는 나타나지 않습니다.
 
-| | Azure RBAC 역할 | Graph 앱 역할 (이 랩에서 부여) |
-|---|---|---|
-| 예시 | Reader, Contributor | User.Read.All, Mail.Read |
-| 범위 | 구독/리소스 | Entra 디렉터리(테넌트) |
-| APIM 블레이드의 `Azure role assignments` | ✅ 표시됨 | ❌ 안 나옴 |
-| 확인 위치 | 이 버튼 | 아래 방법 1/2 |
+> **"역할"이라는 단어만 같을 뿐, 서로 다른 평면입니다.** Azure에는 이름이 비슷해서 헷갈리는
+> 인가 체계가 3개 있습니다. 이 랩에서 부여한 건 **③ API 권한**이며, APIM 블레이드가 보여주는
+> **① Azure RBAC**과는 무관합니다.
+
+| 체계 | 무엇을 보호 | 예시 | 부여/저장 위치 | 강제(enforce) 주체 |
+|------|-------------|------|----------------|--------------------|
+| **① Azure RBAC** | Azure **리소스**(ARM: 구독/RG/VM/Storage) | Reader, Contributor, Storage Blob Data Reader | ARM `roleAssignments` (리소스 스코프) | ARM / 리소스 공급자 |
+| **② Entra 디렉터리 역할** | Entra **디렉터리 객체**(사용자/그룹/앱 관리) | Global Administrator, User Administrator | Entra 디렉터리 | Entra ID |
+| **③ API 권한(앱 역할)** ← 이 랩 | 특정 **API 호출**(Graph 등) | **User.Read.All, Mail.Read** | 대상 API SP의 `appRoleAssignments` | **그 API 자신** (토큰 `roles` 클레임 검사) |
+
+**무엇과 무엇을 비교해야 하나:**
+
+- **③의 진짜 짝은 "다른 API의 권한"입니다.** `User.Read.All`은 Graph 전용이 아니라 OAuth API 권한 모델의
+  한 사례일 뿐 — Key Vault·Storage·커스텀 API도 각자 앱 역할을 노출합니다. 즉 ③끼리 비교해야 맞습니다.
+- **①의 진짜 짝은 ②입니다.** 둘 다 "role 기반"이지만 하나는 *Azure 리소스*를, 하나는 *Entra 디렉터리*를
+  다스립니다. "role"이 겹치는 건 이 둘이지, ③이 아닙니다.
+
+> 한 줄 요약: **③(Graph 앱 역할) = "이 정체성이 어떤 API를 무슨 권한으로 호출하나"(OAuth 인가)**,
+> **①(Azure RBAC) = "이 정체성이 어떤 Azure 리소스를 다루나"(ARM 인가)**. APIM MI가 Graph를
+> 호출할 땐 ③만 필요하고 ①은 전혀 관여하지 않습니다. 그래서 확인도 APIM 블레이드가 아닌
+> Entra ID(아래 방법 1/2)에서 합니다.
 
 **방법 1 — CLI (가장 확실):** 부여된 Graph 앱 역할을 직접 조회합니다.
 
