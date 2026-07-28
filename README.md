@@ -111,8 +111,8 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 
 | # | 비즈니스 요구사항 |
 |---|-----------------|
-| 1 | 내부 서비스가 **Graph 토큰을 직접 발급하지 않고** 구독 키만으로 사용자/메일 정보를 조회하게 하고 싶다 |
-| 2 | 팀(구독)별로 **조회 가능한 Graph 리소스를 분리**하고 싶다 (예: A팀은 사용자, B팀은 메일) |
+| 1 | 내부 서비스가 **Graph 토큰을 직접 발급하지 않고** 구독 키만으로 사용자/메일/SharePoint 정보를 조회하게 하고 싶다 |
+| 2 | 팀(구독)별로 **조회 가능한 Graph 리소스를 분리**하고 싶다 (예: A팀은 사용자, B팀은 메일, C팀은 SharePoint) |
 | 3 | 정책 게이트를 넘어 **토큰 권한 자체로 격리**(최소 권한)하는 구조를 적용하고 싶다 |
 
 ---
@@ -547,14 +547,14 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 > 📁 `labs/lab11-graph-managed-identity/`
 
 APIM의 Managed Identity로 Graph 토큰 발급을 위임하여, 클라이언트가 구독 키만으로
-동일 테넌트의 Graph(사용자/메일)를 조회합니다. 구독별 차등 조회를 두 가지 격리
+동일 테넌트의 Graph(사용자/메일/SharePoint)를 조회합니다. 구독별 차등 조회를 두 가지 격리
 모델(정책 게이트 vs 권한별 UAMI)로 비교합니다.
 
 **주요 작업:**
 
-1. **Graph API 등록** — `https://graph.microsoft.com/v1.0` 백엔드 + Operation 3종
+1. **Graph API 등록** — `https://graph.microsoft.com/v1.0` 백엔드 + Operation 4종
 2. **옵션 A** — System MI + 정책 게이트로 구독별 Operation 차단(403)
-3. **옵션 B** — 권한별 UAMI 2개(`deploy-graph-uami.sh`)로 진짜 격리
+3. **옵션 B** — 권한별 UAMI 3개(`deploy-graph-uami.sh`)로 진짜 격리
 
 ---
 
