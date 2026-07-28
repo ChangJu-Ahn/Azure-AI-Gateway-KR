@@ -95,6 +95,45 @@ PRINCIPAL_ID=$(az apim show --name $APIM_NAME --resource-group $RESOURCE_GROUP -
 
 > ⏱️ 권한 전파에 수 분이 걸릴 수 있습니다.
 
+#### 부여 확인
+
+**⚠️ APIM 리소스 블레이드에서는 Graph 권한이 안 보입니다.** APIM → Managed identities →
+`Azure role assignments` 버튼은 **Azure RBAC 역할**(Reader, Contributor 등)만 표시합니다.
+우리가 준 `User.Read.All` / `Mail.Read`는 **Microsoft Graph 앱 역할(디렉터리 권한)** 이라
+종류가 다르며, 이 화면에는 나타나지 않습니다.
+
+| | Azure RBAC 역할 | Graph 앱 역할 (이 랩에서 부여) |
+|---|---|---|
+| 예시 | Reader, Contributor | User.Read.All, Mail.Read |
+| 범위 | 구독/리소스 | Entra 디렉터리(테넌트) |
+| APIM 블레이드의 `Azure role assignments` | ✅ 표시됨 | ❌ 안 나옴 |
+| 확인 위치 | 이 버튼 | 아래 방법 1/2 |
+
+**방법 1 — CLI (가장 확실):** 부여된 Graph 앱 역할을 직접 조회합니다.
+
+```bash
+az rest --method GET \
+  --url "https://graph.microsoft.com/v1.0/servicePrincipals/$PRINCIPAL_ID/appRoleAssignments" \
+  --query "value[].{resource:resourceDisplayName, roleId:appRoleId}" -o table
+```
+
+`resourceDisplayName`이 `Microsoft Graph`인 항목이 **2개**(User.Read.All, Mail.Read) 나오면
+부여 성공입니다. `roleId`(GUID)를 사람이 읽는 이름으로 매핑하려면:
+
+```bash
+az ad sp show --id "00000003-0000-0000-c000-000000000000" \
+  --query "appRoles[?value=='User.Read.All' || value=='Mail.Read'].{value:value, id:id}" -o table
+```
+
+**방법 2 — Portal (눈으로):** APIM 리소스가 아니라 **Entra ID** 쪽에서 확인합니다.
+
+Microsoft Entra ID → **Enterprise applications** → 필터 `Application type = Managed Identities`
+→ 목록에서 **APIM 이름 그대로**(예: `apim-ai-gw-{suffix}`) 클릭 → **Permissions** 탭
+→ `User.Read.All`, `Mail.Read`가 Application 권한으로 표시되면 성공.
+
+> APIM 블레이드의 `Object (principal) ID`와 위 `$PRINCIPAL_ID`, 그리고 Enterprise applications의
+> 해당 항목은 **모두 동일한 System MI**입니다. 같은 정체성을 화면만 달리 보는 것뿐입니다.
+
 ### 4단계: 정책 적용 (Microsoft Graph API → All operations → Inbound)
 
 ```xml
