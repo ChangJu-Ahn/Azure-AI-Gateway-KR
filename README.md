@@ -16,7 +16,8 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | Lab 8 | 멀티 클라우드 통합 게이트웨이 (OpenAI · Anthropic · Google Gemini) | 🚧 드래프트 |
 | Lab 9 | Products & 개발자 포털 (구독 격리) | 🚧 드래프트 |
 | Lab 10 | 구독별 거버넌스 & Azure Monitor 대시보드 | 🚧 드래프트 |
-| Lab 11 | 리소스 정리 | ✅ 완료 |
+| Lab 11 | APIM + Managed Identity로 Microsoft Graph 호출 (격리 심화) | ✅ 완료 |
+| Lab 12 | 리소스 정리 | ✅ 완료 |
 
 ## 이런 요구사항이 있다면, 이 실습으로 해결하세요
 
@@ -105,6 +106,14 @@ Azure API Management(APIM)을 활용하여 다양한 AI 모델(Azure OpenAI, Goo
 | 1 | **프로바이더별·구독별** 토큰/비용을 한 대시보드에서 보고 싶다 |
 | 2 | 8KB를 넘는 긴 프롬프트나 **스트리밍 응답까지 무손실로 로깅**하고 싶다 |
 | 3 | 구독이 토큰을 급증시키면 **구독 단위로 알림**을 받고 싶다 |
+
+### Lab 11: APIM + Managed Identity로 Microsoft Graph 호출
+
+| # | 비즈니스 요구사항 |
+|---|-----------------|
+| 1 | 내부 서비스가 **Graph 토큰을 직접 발급하지 않고** 구독 키만으로 사용자/메일 정보를 조회하게 하고 싶다 |
+| 2 | 팀(구독)별로 **조회 가능한 Graph 리소스를 분리**하고 싶다 (예: A팀은 사용자, B팀은 메일) |
+| 3 | 정책 게이트를 넘어 **토큰 권한 자체로 격리**(최소 권한)하는 구조를 적용하고 싶다 |
 
 ---
 
@@ -197,7 +206,7 @@ flowchart TD
 > | ⑧ 멀티 모델 | [Lab 5](labs/lab05-multi-model-gateway/README.md) | Gemini 등 다양한 모델 통합 |
 > | ⑩ Outbound/모니터링 | [Lab 6](labs/lab06-monitoring/README.md) | 토큰 메트릭, App Insights 대시보드 |
 > | 전체 | [Lab 7](labs/lab07-advanced-patterns/README.md) | IP 필터, Content Safety, 스트리밍 |
-> | 정리 | [Lab 11](labs/lab11-cleanup/README.md) | 리소스 삭제, soft delete purge |
+> | 정리 | [Lab 12](labs/lab12-cleanup/README.md) | 리소스 삭제, soft delete purge |
 >
 > 정책이 어느 섹션(inbound/backend/outbound)에 들어가는지 상세 설명은 [📖 정책 레퍼런스](docs/policy-reference.md)를 참고하세요.
 
@@ -259,7 +268,10 @@ AI Gateway/
 │   ├── lab08-multicloud-gateway/       # Lab 8: 멀티 클라우드 통합 게이트웨이
 │   ├── lab09-products-portal/          # Lab 9: Products & 개발자 포털
 │   ├── lab10-governance-observability/ # Lab 10: 거버넌스 & 관측
-│   └── lab11-cleanup/                  # Lab 11: 리소스 정리
+│   ├── lab11-graph-managed-identity/   # Lab 11: APIM + MI로 Graph 호출
+│   │   ├── README.md
+│   │   └── test-graph-mi.ipynb          # 테스트: 구독별 격리(정책 vs UAMI)
+│   └── lab12-cleanup/                   # Lab 12: 리소스 정리
 │       └── README.md
 │
 ├── .env.sample                         # 환경 변수 템플릿 (.env용)
@@ -269,6 +281,8 @@ AI Gateway/
 │   ├── deploy.sh                       # 전체 인프라 배포 (.env 자동 생성)
 │   ├── deploy-semantic-caching.sh      # 시맨틱 캐싱 배포
 │   ├── setup-monitoring.sh             # 모니터링(App Insights) 설정
+│   ├── grant-graph-role.sh             # Graph 앱 역할 부여 (Lab 11)
+│   ├── deploy-graph-uami.sh            # Part 2 권한별 UAMI 배포 (Lab 11)
 │   ├── cleanup.sh                      # 리소스 정리 + soft delete purge
 │   └── test-endpoints.http             # VS Code REST Client 간단 테스트
 │
@@ -528,9 +542,25 @@ AI Gateway의 성능과 사용량을 모니터링합니다. APIM 내장 Analytic
 
 ---
 
-### Lab 11: 리소스 정리 (Clean Up)
+### Lab 11: APIM + Managed Identity로 Microsoft Graph 호출
 
-> 📁 `labs/lab11-cleanup/`
+> 📁 `labs/lab11-graph-managed-identity/`
+
+APIM의 Managed Identity로 Graph 토큰 발급을 위임하여, 클라이언트가 구독 키만으로
+동일 테넌트의 Graph(사용자/메일)를 조회합니다. 구독별 차등 조회를 두 가지 격리
+모델(정책 게이트 vs 권한별 UAMI)로 비교합니다.
+
+**주요 작업:**
+
+1. **Graph API 등록** — `https://graph.microsoft.com/v1.0` 백엔드 + Operation 3종
+2. **옵션 A** — System MI + 정책 게이트로 구독별 Operation 차단(403)
+3. **옵션 B** — 권한별 UAMI 2개(`deploy-graph-uami.sh`)로 진짜 격리
+
+---
+
+### Lab 12: 리소스 정리 (Clean Up)
+
+> 📁 `labs/lab12-cleanup/`
 
 모든 실습이 끝난 후 Azure 리소스를 정리하여 불필요한 과금을 방지합니다.
 
@@ -596,7 +626,7 @@ pip install -r requirements.txt
 
 ### 4단계: 정리 (Clean Up)
 
-> 📁 상세 가이드: [Lab 11: 리소스 정리](labs/lab11-cleanup/README.md)
+> 📁 상세 가이드: [Lab 12: 리소스 정리](labs/lab12-cleanup/README.md)
 
 ```bash
 # 모든 Azure 리소스 삭제 (리소스 그룹 전체 삭제)
