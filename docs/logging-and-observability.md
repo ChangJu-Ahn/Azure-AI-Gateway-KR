@@ -218,4 +218,5 @@ graph TD
 ## 참고
 - 기능 비교·시나리오 상세: [Lab 6 — 모니터링 & 로깅](../labs/lab06-monitoring/README.md)
 - 구독별·멀티클라우드 관측 캡스톤: [Lab 10 — 거버넌스 & 관측](../labs/lab10-governance-observability/README.md)
+- **Graph 게이트웨이 감사 로깅(현재 vs 신규 정책)**: [graph-gateway-audit-logging.md](./graph-gateway-audit-logging.md)
 - Azure Monitor 가격: https://azure.microsoft.com/pricing/details/monitor/

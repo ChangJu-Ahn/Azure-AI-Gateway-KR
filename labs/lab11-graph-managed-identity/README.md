@@ -279,6 +279,21 @@ Graph가 권한 부족으로 거부하는 것을 확인합니다.
 - **최소 권한 원칙**: UAMI마다 필요한 앱 역할 하나만 부여합니다.
 - **보안 함의**: 옵션 A는 정책이 뚫리면 MI의 전체 권한이 노출될 수 있습니다.
 
+## 감사(audit) 로깅 — 누가·무엇을·어떻게 Graph를 호출했나
+
+이 랩을 **다양한 솔루션의 Graph 게이트웨이**로 쓰면서 **감사 수준 로깅**을 남기고 싶다면,
+현재 로깅으로 보이는 것과 정책으로 추가되는 것을 이전/이후로 비교한 리포트를 참고하세요:
+
+- 📄 [Graph 게이트웨이 감사 로깅 — 현재 vs 신규 정책](../../docs/graph-gateway-audit-logging.md)
+- 🧩 감사 강화 정책(AFTER): [`policies/graph-audit-policy.xml`](../../policies/graph-audit-policy.xml)
+- 🧪 **데모 노트북**: [`test-graph-audit-logging.ipynb`](./test-graph-audit-logging.ipynb) — 감사 로그를 **눈으로** 확인
+  - **Option A** (`trace` → App Insights): 즉시 실행, 추가 비용 0 — 누가·무엇을·어떻게·결과·차단사유를 필드로 조회
+  - **Option B** (`log-to-eventhub` → Event Hub → Capture → Blob): 전문(full body) 무손실 원장 (옵트인 프로비저닝 + 라이브 소비)
+  - Event Hub 입문·Blob 비교는 리포트 [§7 (Event Hub vs Blob)](../../docs/graph-gateway-audit-logging.md)
+
+> 요약: 현재 배선만으로도 **누가/무엇을/결과**는 상당 부분 남지만, **발급 정체성·차단 사유·본문 무손실·비밀 위생·불변 보존**의
+> 5개 공백은 Graph API 스코프 정책 1장으로 닫아 완전한 감사 원장을 만들 수 있습니다.
+
 ## 다음 단계
 
 → [Lab 12: 리소스 정리](../lab12-cleanup/README.md)
