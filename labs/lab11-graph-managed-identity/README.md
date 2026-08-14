@@ -69,6 +69,7 @@ Graph용 `Authorization: Bearer` 토큰은 **APIM의 MI가 내부에서 발급**
    - `GET /users`
    - `GET /users/{user-id}`
    - `GET /users/{user-id}/messages`
+   - `GET /users/{user-id}/messages/{message-id}/attachments` (첨부 읽기 — app-only `Mail.Read`로 `contentBytes`까지 반환)
    - `GET /sites/*` (와일드카드 catch-all — SharePoint 경로가 다중 세그먼트라 단일 `{param}`으로 못 잡음)
 
 ### 2단계: Product 3개 생성 & 구독 키 발급
@@ -300,6 +301,27 @@ Graph가 권한 부족으로 거부하는 것을 확인합니다.
 
 > 요약: 현재 배선만으로도 **누가/무엇을/결과**는 상당 부분 남지만, **발급 정체성·차단 사유·본문 무손실·비밀 위생·불변 보존**의
 > 5개 공백은 Graph API 스코프 정책 1장으로 닫아 완전한 감사 원장을 만들 수 있습니다.
+
+### 메일·첨부 접근 감사 — "어떤 앱이 · 누구의 메일/첨부를 읽었나" (라이브 검증됨)
+
+`log-to-eventhub` 정책은 **앱 전용(MI) 호출**을 다음 필드로 감사합니다. 실제 메일/첨부 읽기로 검증한 레코드:
+
+```json
+{ "product":"graph-mail",                          // 외부앱 채널(구독)
+  "identity":"system-assigned:<MI-appId>",          // 어떤 앱(MI appId)이  ← 셀 2가 이 배포의 appId 주입
+  "targetUser":"<user-object-id>",                  // 누구의 사서함을
+  "select":"subject,hasAttachments,from",           // 무엇을(요청 필드)
+  "path":"/users/{id}/messages/{id}/attachments",   // 어떻게(첨부 읽기)
+  "keyHint":"0e88****", "responseCode":200 }         // 어떤 키로, 결과
+```
+
+- **앱 전용 `Mail.Read` 하나로 메일 본문 + 첨부(`contentBytes`, 대용량 PDF 포함)를 직접 읽을 수 있습니다.** 별도 권한 불필요.
+- 이 패턴은 SharePoint(`/sites/*`)·유저 프로필에도 **동일하게 확장**됩니다.
+- ⚠️ **최소권한 필수**: 테넌트 전역 `Mail.Read`/`Sites.Read.All`은 *모든* 사서함/사이트를 여므로, **리소스 계층 스코핑**으로 좁히세요.
+  - SharePoint: `Sites.Read.All` → **`Sites.Selected`** + 사이트별 `POST /sites/{id}/permissions` grant
+  - 메일: 앱 권한 + **Application Access Policy**(허용 사서함 그룹 한정) 또는 **RBAC for Applications**
+- 🔎 **권위 있는 리소스 측 원장**: Microsoft Purview **통합 감사 로그**의 `MailItemsAccessed`(어떤 AppId가 어떤 사서함의 어떤 항목에 접근했나) / SharePoint `FileAccessed`. 게이트웨이 감사(실시간·커스텀)와 병행하면 방어심층.
+
 
 ### `test-graph-audit-logging.ipynb` 흐름 (셀별)
 
