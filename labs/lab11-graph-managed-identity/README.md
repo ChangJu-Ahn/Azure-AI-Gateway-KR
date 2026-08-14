@@ -256,7 +256,9 @@ Graph가 권한 부족으로 거부하는 것을 확인합니다.
 
 ---
 
-## 노트북 테스트 항목
+## 노트북 테스트 항목 (`test-graph-mi.ipynb`)
+
+아래는 [`test-graph-mi.ipynb`](./test-graph-mi.ipynb)의 셀별 시나리오입니다. (감사 로깅 노트북은 이어지는 별도 섹션 참고)
 
 | 셀 | 시나리오 | 기대 |
 |----|----------|------|
@@ -271,6 +273,11 @@ Graph가 권한 부족으로 거부하는 것을 확인합니다.
 | 9 | graph-sharepoint → /lists/{id}/items | 200 (항목 표) |
 | 10 | graph-users → /sites 교차접근 | 403 (정책) |
 | 11 | (Part 2) graph-users → 메일 재시도 | Graph 권한 거부 |
+| 12 | (Part 2) users/mail/sharepoint 정상 경로 | 3경로 모두 200 (차이 = 토큰 발급 주체) |
+| 13 | (Part 2) graph-users → 메일·사이트 교차 접근 | 401/403 또는 빈 결과 (토큰 권한 부재로 격리) |
+| 14 | (Part 2 증빙) 옵션 A vs B 차단 출처 비교 | Graph 표준 오류코드(ErrorAccessDenied 등); `/lists`는 403→200이나 데이터 미노출 |
+
+> 노트북은 마지막 마크다운 셀에서 **Part 1 vs Part 2 요약표**로 마무리합니다 (아래 '핵심 개념'과 동일 취지).
 
 ## 핵심 개념
 
@@ -293,6 +300,38 @@ Graph가 권한 부족으로 거부하는 것을 확인합니다.
 
 > 요약: 현재 배선만으로도 **누가/무엇을/결과**는 상당 부분 남지만, **발급 정체성·차단 사유·본문 무손실·비밀 위생·불변 보존**의
 > 5개 공백은 Graph API 스코프 정책 1장으로 닫아 완전한 감사 원장을 만들 수 있습니다.
+
+### `test-graph-audit-logging.ipynb` 흐름 (셀별)
+
+BEFORE(현재 로깅) → Option A(`trace`) → Option B(Event Hub) → 원복 순서로, 감사 로그가 **실제로 어떻게 남는지 눈으로** 확인합니다.
+
+| 셀 | 단계 | 하는 일 |
+|----|------|---------|
+| 1 | 환경/헬퍼 | `.env` 로드 + APIM·App Insights·Graph API ID **자동 탐색** |
+| 2 | 감사 정책 조각 정의 | inbound/outbound/on-error에 주입할 `trace`·`log-to-eventhub` 변수 세트 |
+| 4 | **BEFORE** | 정책 전 App Insights `requests` 조회 — `url`·`resultCode`는 보이나 "누가·어떤 사용자를"은 필드에 없음 |
+| 6 | Option A 적용 | 진단 `verbosity=information` 보장 + 원 정책 **백업** + `trace` 주입 + 전파 대기 |
+| 7 | Option A 트래픽 | 허용 / `$select`·`$filter` / 차단 요청을 섞어 발생 |
+| 8 | Option A 확인 | App Insights `traces`에서 감사 원장(누가·무엇·어떻게·결과) 조회 |
+| 9 | Option B 프로비저닝 | Event Hub + Send/Listen 규칙 + APIM 로거 (⚠️ **옵트인·비용**, 기본 `PROVISION_EVENTHUB=False`) |
+| 10 | Option B 정책+트래픽 | Option A + `log-to-eventhub` 적용 후 트래픽 |
+| 11 | Option B 확인 | `traces` 즉시 조회 + Event Hub **라이브 소비** |
+| 13 | 원복 | 감사 조각 제거 + 임시 진단 정리 → Lab 11 원래 정책으로 복원 |
+
+**핵심 정리 (노트북 마지막 셀)**
+
+| 경로 | 얻는 것 | 잃는 것 | 언제 |
+|------|---------|---------|------|
+| Option A (`trace` → App Insights) | 감사 메타데이터, 즉시·추가비용 0 | 전문✗ (수 KB 상한·샘플링) | 행위 감사(누가/무엇/어떻게/결과)로 충분할 때 |
+| Option B (`log-to-eventhub` → EH → Capture → Blob) | 전문·커스텀 필드·팬아웃·불변 아카이브 | EH(+Capture) 비용 | 무손실 원장·장기·접근 분리가 필요할 때 |
+
+> 두 경로 모두 **비동기 버퍼링**이라 요청 레이턴시와 무관합니다. Event Hub는 *레이턴시*가 아니라
+> **용량(크기 상한·샘플링 회피)·무손실·불변 아카이브** 때문에 씁니다.
+
+> ⚠️ **"traces 0건" 함정** — Option A가 정상 적용되고 트래픽도 200/403인데 `traces`가 0건이면,
+> ① App Insights 진단 `verbosity`가 기본값(=error)이라 `information` trace가 드롭되거나
+> ② 설정 전파(~2분) 전에 트래픽을 보낸 경우입니다. 셀 6이 이를 자동 처리하며, 실측 과정은
+> 노트북 끝의 **🧭 트러블슈팅 타임라인**에 시간순으로 정리돼 있습니다.
 
 ## 다음 단계
 
