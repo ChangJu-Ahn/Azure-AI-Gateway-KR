@@ -138,6 +138,24 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
 <text x="620" y="36" text-anchor="end" font-size="9" fill="var(--cp-danger)">100% 포화</text>
 </svg><div class="cap">그림 · 구성별 게이트웨이 CPU% (동일 부하 · 값이 낮을수록 로깅 비용 적음)</div></div>
 <div class="callout"><b>✅ 메커니즘 확인:</b> App Insights body 로깅(C2)이 동일 부하에서 게이트웨이 CPU를 C1보다 일관되게 더 쓴다(<b>+12.5%p</b>) — 문서가 말하는 성능 저하의 근본 원인. <b>⚠️ 단</b> CPU가 65~80%까지만 올라 <b>100% 포화 미도달</b>이라 throughput 붕괴는 미관측(부분 검증). C3(EH)는 73.5%로 C2보다 가볍고 EH 스로틀 0.</div>
+<h3 style="margin-top:26px">로그가 실제로 기록됐는지 검증 (soft-delete 워크스페이스 복구)</h3>
+<p>RG 삭제 후에도 Log Analytics는 <b>14일 soft-delete</b>로 남아, 0818e 워크스페이스를 복구해 각 구성이 <b>의도대로 기록했는지</b> 직접 확인했다.</p>
+<table>
+<thead><tr><th>구성</th><th>App Insights <span class="mono">Response-Body</span> 길이</th><th>요청 수</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td><span class="c1">C1 무로깅</span></td><td>App Insights에 없음</td><td>~908k</td><td>✅ GatewayLogs엔 있으나 App Insights엔 없음</td></tr>
+<tr><td><span class="c2">C2 AI 8KB</span></td><td><b>정확히 8192</b></td><td>~1,033k</td><td>✅ 8KB body 실제 기록</td></tr>
+<tr><td><span class="c3">C3 body=0+EH</span></td><td><b>0</b></td><td>~798k</td><td>✅ App Insights엔 0바이트(body는 EH로)</td></tr>
+</tbody></table>
+<div class="callout"><b>✅ 검증됨:</b> C2가 진짜 8KB body를 로깅 → <span class="mono">return-response</span> 캡처 리스크 <b>해소</b>, +12.5% CPU는 body 로깅에 정당하게 귀속. 정합성: C1+C2+C3=2,739k=GatewayLogs 총계, C2+C3=1,831k=AppRequests 총계. 단건 duration은 C2·C3 모두 ~0.35ms(비동기라 CPU로만 나타남).</div>
+
+<h3 style="margin-top:26px">⚠️ 실험의 한계 / 반증 포인트 (정직하게)</h3>
+<ol>
+<li><b>payload 8KB 고정 = C2·C3가 동일량을 로깅하는 유일한 지점.</b> App Insights는 8KB 상한, EH는 200KB까지인데 8KB에선 둘이 같은 양. EH를 쓰는 진짜 이유(8KB 초과 무손실)가 나타나는 <b>큰 body(64~200KB) 구간은 미측정</b> → "C3가 C2보다 가볍다"는 8KB에서만 성립하며 큰 body에선 <b>뒤집힐 수 있다.</b></li>
+<li><b>EH 수신 내용 직접 검증 못 함.</b> C3가 App Insights에 0바이트(=body를 EH로)와 EH 스로틀/드롭 0은 확인했으나, Event Hub를 소비해 8KB가 실제 담겼는지는 EH 삭제로 확인 불가(정황 증거만).</li>
+<li><b>CPU delta 원인 분리 미완.</b> +12.5%가 body 직렬화 때문인지 telemetry 방출 일반 때문인지 완전 분리 안 됨(C3=body0가 73.5%로 낮은 건 body 몫을 시사).</li>
+</ol>
+<div class="callout warn"><b>재도전 설계:</b> body 크기 스윕(8/64/200KB) + EH 소비로 수신 내용 검증 + body-only 격리(AI on, body 0 vs 8KB) 비교.</div>
 
 <h2>2 · 실험 설계 &amp; 가설</h2>
 <p>백엔드 지연을 원천 배제하기 위해 <span class="mono">return-response</span> mock(백엔드 없음)으로 크기 지정 응답을 생성하는 <span class="mono">bench</span> API를 대상으로, 3개 로깅 구성을 동일 조건에서 비교했다.</p>
