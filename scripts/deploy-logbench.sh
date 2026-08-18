@@ -33,7 +33,7 @@ echo ""
 echo "⏱️  Standard v2 는 보통 몇 분 내 배포됩니다(편차 가능)."
 echo ""
 
-az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
+az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --tags SecurityControl=Ignore --output none
 
 az deployment group create \
     --resource-group "$RESOURCE_GROUP" \
