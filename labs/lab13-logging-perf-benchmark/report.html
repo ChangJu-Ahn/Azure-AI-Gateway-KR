@@ -57,7 +57,7 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
 
 <div class="hero">
   <h1>Lab 13 — 로깅 성능 벤치마크</h1>
-  <div class="sub">APIM 게이트웨이에서 로깅 구성이 성능에 미치는 영향을 <b>가설 → 실측 → 검증</b>으로 정량 평가</div>
+  <div class="sub">APIM 게이트웨이에서 로깅 구성이 성능에 미치는 영향을 <b>가설 → 실측 → 재현성 검증</b>으로 정량 평가<br><b style="color:var(--cp-warning)">⚠️ 4개 배포 반복 검증 후 결론 수정됨</b> — 초기 “−26%”는 재현 실패(노이즈)로 판명.</div>
   <div class="badges">
     <span class="badge">측정일 <b>2026-08-18</b></span>
     <span class="badge">APIM <b>Standard v2</b> · 1 unit</span>
@@ -66,19 +66,37 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
     <span class="badge">상태 <b>측정 후 전체 삭제</b></span>
   </div>
   <div class="kpis">
-    <div class="kpi"><div class="v c1">626</div><div class="l">C1 무로깅 (RPS)</div></div>
-    <div class="kpi"><div class="v c2">462</div><div class="l">C2 App Insights 8KB (−26%)</div></div>
-    <div class="kpi"><div class="v c3">696</div><div class="l">C3 body=0 + Event Hub (≈C1)</div></div>
+    <div class="kpi"><div class="v c1">1402</div><div class="l">C1 무로깅 (RPS)</div></div>
+    <div class="kpi"><div class="v c2">1510</div><div class="l">C2 App Insights 8KB (108%)</div></div>
+    <div class="kpi"><div class="v c3">1424</div><div class="l">C3 body=0 + Event Hub (102%)</div></div>
   </div>
 </div>
 
 <h2>1 · 결론 (TL;DR)</h2>
 <div class="grid3">
-  <div class="card verdict"><span class="tag">가설 확인</span><h3>C2는 throughput를 깎는다</h3><p>App Insights body 로깅 → <b>throughput −26%</b>, 평균 응답 <b>+21%</b>.</p></div>
-  <div class="card verdict"><span class="tag">가설 확인</span><h3>C3는 페널티가 없다</h3><p>body를 Event Hub(비동기)로 빼면 <b>696 RPS ≈ C1</b>. 무손실 감사 + 성능 유지.</p></div>
-  <div class="card verdict"><span class="tag">가설 확인</span><h3>단건이 아닌 부하 현상</h3><p>단건 서버측 <span class="mono">TotalTime</span> <b>0~1ms</b> — 구성 간 구분 불가.</p></div>
+  <div class="card verdict warn"><span class="tag" style="color:var(--cp-warning)">미입증</span><h3>C2 성능 페널티 — 재현 실패</h3><p>1·2회차 −26%였으나 3회차 뒤집힘. 확정 실험(≥1400 RPS)에서 <b>차이 없음</b>(게이트웨이 미포화).</p></div>
+  <div class="card verdict"><span class="tag">확정</span><h3>Event Hub의 가치 = 감사 능력</h3><p>성능이 아니라 <b>무손실·200KB·샘플링 무관·불변 아카이브</b>. Lab 11이 EH를 쓰는 진짜 이유.</p></div>
+  <div class="card verdict"><span class="tag">확정</span><h3>단건 오버헤드는 sub-ms</h3><p>단건 서버측 <span class="mono">TotalTime</span> <b>0~1ms</b> — 로깅 비용은 단건 레이턴시가 아님(구성 간 구분 불가).</p></div>
 </div>
-<div class="callout"><b>한 줄 결론:</b> 무손실·대용량·샘플링 무관 감사가 필요하면 <b>App Insights body 로깅(C2) 대신 <span class="mono">log-to-eventhub</span>(C3)</b>가 옳다 — 감사 이점을 유지하면서 throughput 페널티가 없다.</div>
+<div class="callout"><b>한 줄 결론:</b> <b>성능</b>으로는 우리가 만든 부하(미포화)에서 C1/C2/C3가 구분되지 않았다(초기 −26%는 노이즈였음). <b>Event Hub를 쓰는 이유는 성능이 아니라 감사 완전성</b>(무손실·200KB·샘플링 무관·불변)이며, 이것이 이 랩과 Lab 11의 근거다.</div>
+<h2>재현성 검증 &amp; 확정 실험</h2>
+<p><b>동일 조건(50VU/8KB/90s) 신규 배포 3회 반복</b> — 단발 측정은 재현되지 않았다:</p>
+<table>
+<thead><tr><th>회차</th><th>C1 (1st)</th><th>C2 (2nd)</th><th>C3 (3rd)</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>1회차</td><td>626 (100%)</td><td class="c2">462 (74%)</td><td>696 (111%)</td><td>C2 하락</td></tr>
+<tr><td>2회차</td><td>682 (100%)</td><td class="c2">481 (71%)</td><td>661 (97%)</td><td>C2 하락(재현)</td></tr>
+<tr><td>3회차</td><td>479 (100%)</td><td class="c3">669 (140%)</td><td>523 (109%)</td><td><b>뒤집힘</b> — C1 콜드/이상치</td></tr>
+</tbody></table>
+<p><b>확정 실험</b> — 하나의 워밍업된 게이트웨이, 엔진 2×150 threads(≥1400 RPS), 각 구성 2회 균형순서 <span class="mono">C1 C2 C3 C3 C2 C1</span>:</p>
+<table>
+<thead><tr><th>구성</th><th>평균 RPS</th><th>2회 실측</th><th>평균 응답</th><th>vs C1</th></tr></thead>
+<tbody>
+<tr><td><span class="c1">C1 무로깅</span></td><td>1402</td><td>1458 / 1346</td><td>208ms</td><td>100%</td></tr>
+<tr><td><span class="c2">C2 AI 8KB</span></td><td>1510</td><td>1531 / 1488</td><td>207ms</td><td>108%</td></tr>
+<tr><td><span class="c3">C3 body=0+EH</span></td><td>1424</td><td>1456 / 1393</td><td>203ms</td><td>102%</td></tr>
+</tbody></table>
+<div class="callout warn"><b>왜 차이가 없나:</b> throughput가 <b>동시성(300 VU) ÷ 응답(~205ms) ≈ 1460</b> 으로 <b>클라이언트/네트워크에 제한</b>되어 게이트웨이 CPU가 <b>포화되지 않았다</b>. 문서의 “40~50%↓”는 CPU 포화가 전제이므로 우리 조건에선 판정 불가(없음을 증명한 게 아님).</div>
 
 <h2>2 · 실험 설계 &amp; 가설</h2>
 <p>백엔드 지연을 원천 배제하기 위해 <span class="mono">return-response</span> mock(백엔드 없음)으로 크기 지정 응답을 생성하는 <span class="mono">bench</span> API를 대상으로, 3개 로깅 구성을 동일 조건에서 비교했다.</p>
@@ -97,7 +115,8 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
 <li><b>중립 자(ruler)</b> — GatewayLogs 진단은 C1/C2/C3 전 구성 상시 ON이라 그 자체 오버헤드는 delta에서 상쇄.</li>
 </ul>
 
-<h2>4 · 2차 — 부하 실험 결과</h2>
+<h2>4 · 1회차 예비 부하 실험 (참고용)</h2>
+<div class="callout warn">⚠️ 아래 1회차 수치·차트는 <b>재현 실패로 노이즈로 판명</b>되었다(위 재현성 검증 참조). 방법론 기록으로만 남긴다.</div>
 <table>
 <thead><tr><th>구성</th><th>peak RPS</th><th>평균 응답(ms)</th><th>오류</th><th>총 요청</th><th>vs C1</th></tr></thead>
 <tbody>
