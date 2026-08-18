@@ -74,7 +74,7 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
 
 <h2>1 · 결론 (TL;DR)</h2>
 <div class="grid3">
-  <div class="card verdict warn"><span class="tag" style="color:var(--cp-warning)">미입증</span><h3>C2 성능 페널티 — 재현 실패</h3><p>1·2회차 −26%였으나 3회차 뒤집힘. 확정 실험(≥1400 RPS)에서 <b>차이 없음</b>(게이트웨이 미포화).</p></div>
+  <div class="card verdict"><span class="tag">메커니즘 확인</span><h3>로깅은 게이트웨이 CPU를 더 쓴다</h3><p>포화 실험(동시성 1000): C2 CPU <b>77.5% vs C1 65%</b> (+12.5%p, 2런 일관). 단 100% 포화 미도달로 throughput 붕괴는 미관측.</p></div>
   <div class="card verdict"><span class="tag">확정</span><h3>Event Hub의 가치 = 감사 능력</h3><p>성능이 아니라 <b>무손실·200KB·샘플링 무관·불변 아카이브</b>. Lab 11이 EH를 쓰는 진짜 이유.</p></div>
   <div class="card verdict"><span class="tag">확정</span><h3>단건 오버헤드는 sub-ms</h3><p>단건 서버측 <span class="mono">TotalTime</span> <b>0~1ms</b> — 로깅 비용은 단건 레이턴시가 아님(구성 간 구분 불가).</p></div>
 </div>
@@ -97,6 +97,47 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
 <tr><td><span class="c3">C3 body=0+EH</span></td><td>1424</td><td>1456 / 1393</td><td>203ms</td><td>102%</td></tr>
 </tbody></table>
 <div class="callout warn"><b>왜 차이가 없나:</b> throughput가 <b>동시성(300 VU) ÷ 응답(~205ms) ≈ 1460</b> 으로 <b>클라이언트/네트워크에 제한</b>되어 게이트웨이 CPU가 <b>포화되지 않았다</b>. 문서의 “40~50%↓”는 CPU 포화가 전제이므로 우리 조건에선 판정 불가(없음을 증명한 게 아님).</div>
+<h3 style="margin-top:26px">성능 포화 실험 (엔진 4×250 → 동시성 1000, CPU% 관측)</h3>
+<p>게이트웨이 CPU를 실제로 밀어 로깅의 CPU 비용을 직접 측정. 지표는 서버측 <span class="mono">CpuPercent_Gateway</span>(Azure Monitor)를 구성별 런 윈도우로 조회.</p>
+<table>
+<thead><tr><th>구성</th><th>CPU% max (2런 평균)</th><th>개별 런</th><th>성공 RPS</th><th>EH 스로틀/드롭</th></tr></thead>
+<tbody>
+<tr><td><span class="c1">C1 무로깅</span></td><td><b>65%</b></td><td>64 / 66</td><td>2506</td><td>—</td></tr>
+<tr><td><span class="c2">C2 AI 8KB</span></td><td><b>77.5%</b></td><td>76 / 79</td><td>2554</td><td>—</td></tr>
+<tr><td><span class="c3">C3 body=0+EH</span></td><td>73.5%</td><td>69 / 78</td><td>2738</td><td>0 / 0</td></tr>
+</tbody></table>
+<div class="chartbox"><svg viewBox="0 0 640 360" width="100%" role="img" style="max-width:640px">
+<line x1="56" y1="40" x2="620" y2="40" stroke="var(--cp-border)" stroke-width="1" opacity="0.6"/>
+<text x="48" y="44" text-anchor="end" font-size="11" fill="var(--cp-text-muted)">100</text>
+<line x1="56" y1="91" x2="620" y2="91" stroke="var(--cp-border)" stroke-width="1" opacity="0.6"/>
+<text x="48" y="95" text-anchor="end" font-size="11" fill="var(--cp-text-muted)">80</text>
+<line x1="56" y1="142" x2="620" y2="142" stroke="var(--cp-border)" stroke-width="1" opacity="0.6"/>
+<text x="48" y="146" text-anchor="end" font-size="11" fill="var(--cp-text-muted)">60</text>
+<line x1="56" y1="194" x2="620" y2="194" stroke="var(--cp-border)" stroke-width="1" opacity="0.6"/>
+<text x="48" y="198" text-anchor="end" font-size="11" fill="var(--cp-text-muted)">40</text>
+<line x1="56" y1="245" x2="620" y2="245" stroke="var(--cp-border)" stroke-width="1" opacity="0.6"/>
+<text x="48" y="249" text-anchor="end" font-size="11" fill="var(--cp-text-muted)">20</text>
+<line x1="56" y1="296" x2="620" y2="296" stroke="var(--cp-border)" stroke-width="1" opacity="0.6"/>
+<text x="48" y="300" text-anchor="end" font-size="11" fill="var(--cp-text-muted)">0</text>
+<rect x="98" y="130" width="103" height="166" rx="6" fill="var(--cp-text-soft)"/>
+<text x="150" y="112" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">65%</text>
+<text x="150" y="127" text-anchor="middle" font-size="11" fill="var(--cp-text-muted)">baseline</text>
+<text x="150" y="316" text-anchor="middle" font-size="12" fill="var(--cp-text)">C1</text>
+<text x="150" y="330" text-anchor="middle" font-size="12" fill="var(--cp-text)">no logging</text>
+<rect x="286" y="98" width="103" height="198" rx="6" fill="var(--cp-danger)"/>
+<text x="338" y="80" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">77.5%</text>
+<text x="338" y="95" text-anchor="middle" font-size="11" fill="var(--cp-text-muted)">+12.5pp</text>
+<text x="338" y="316" text-anchor="middle" font-size="12" fill="var(--cp-text)">C2</text>
+<text x="338" y="330" text-anchor="middle" font-size="12" fill="var(--cp-text)">AI 8KB</text>
+<rect x="474" y="108" width="103" height="188" rx="6" fill="var(--cp-success)"/>
+<text x="526" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">73.5%</text>
+<text x="526" y="105" text-anchor="middle" font-size="11" fill="var(--cp-text-muted)">+8.5pp</text>
+<text x="526" y="316" text-anchor="middle" font-size="12" fill="var(--cp-text)">C3</text>
+<text x="526" y="330" text-anchor="middle" font-size="12" fill="var(--cp-text)">body=0+EH</text>
+<line x1="56" y1="40" x2="620" y2="40" stroke="var(--cp-danger)" stroke-dasharray="4 4" opacity="0.5"/>
+<text x="620" y="36" text-anchor="end" font-size="9" fill="var(--cp-danger)">100% 포화</text>
+</svg><div class="cap">그림 · 구성별 게이트웨이 CPU% (동일 부하 · 값이 낮을수록 로깅 비용 적음)</div></div>
+<div class="callout"><b>✅ 메커니즘 확인:</b> App Insights body 로깅(C2)이 동일 부하에서 게이트웨이 CPU를 C1보다 일관되게 더 쓴다(<b>+12.5%p</b>) — 문서가 말하는 성능 저하의 근본 원인. <b>⚠️ 단</b> CPU가 65~80%까지만 올라 <b>100% 포화 미도달</b>이라 throughput 붕괴는 미관측(부분 검증). C3(EH)는 73.5%로 C2보다 가볍고 EH 스로틀 0.</div>
 
 <h2>2 · 실험 설계 &amp; 가설</h2>
 <p>백엔드 지연을 원천 배제하기 위해 <span class="mono">return-response</span> mock(백엔드 없음)으로 크기 지정 응답을 생성하는 <span class="mono">bench</span> API를 대상으로, 3개 로깅 구성을 동일 조건에서 비교했다.</p>
