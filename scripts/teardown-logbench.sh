@@ -10,13 +10,14 @@ if [ -f ".env.logbench" ]; then
 fi
 
 SUFFIX="${1:-${LOGBENCH_SUFFIX:-}}"
-RESOURCE_GROUP="${LOGBENCH_RG:-rg-ai-gw-logbench-${SUFFIX}}"
 
-if [ -z "$RESOURCE_GROUP" ] || [[ "$RESOURCE_GROUP" == *"logbench-" && -z "$SUFFIX" ]]; then
+if [ -z "${LOGBENCH_RG:-}" ] && [ -z "$SUFFIX" ]; then
     echo "❌ 삭제할 리소스 그룹을 결정하지 못했습니다. suffix 를 인자로 주세요:"
     echo "   ./scripts/teardown-logbench.sh <suffix>"
     exit 1
 fi
+
+RESOURCE_GROUP="${LOGBENCH_RG:-rg-ai-gw-logbench-${SUFFIX}}"
 
 APIM_NAME="${LOGBENCH_APIM_NAME:-}"
 APIM_LOCATION="${LOGBENCH_LOCATION:-koreacentral}"
