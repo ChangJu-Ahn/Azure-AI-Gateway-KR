@@ -27,8 +27,8 @@ def test_bench_policy_xml_eventhub_toggle():
     assert 'logger-id="logbench-eh"' in with_eh
     assert "log-to-eventhub" not in without
     # 두 경우 모두 return-response 로 파이프라인 취소
-    assert with_eh.count("return-response") == 2
-    assert "return-response" in without
+    assert with_eh.count("<return-response>") == 1
+    assert without.count("<return-response>") == 1
     # log-to-eventhub 는 return-response 앞에 있어야 한다 (inbound, 취소 전)
     assert with_eh.index("log-to-eventhub") < with_eh.index("return-response")
 
