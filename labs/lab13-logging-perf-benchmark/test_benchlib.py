@@ -37,7 +37,14 @@ def test_gatewaylogs_kql_shape():
     kql = b.gatewaylogs_kql("bench")
     assert "ApiManagementGatewayLogs" in kql
     assert "ApiId == 'bench'" in kql
-    assert "TotalTime - BackendTime" in kql
+    assert "TotalTime - coalesce(BackendTime, 0)" in kql
+    assert "ago(30m)" in kql
+
+
+def test_gatewaylogs_kql_time_window():
+    kql = b.gatewaylogs_kql("bench", start_iso="2026-01-01T00:00:00Z", end_iso="2026-01-01T00:05:00Z")
+    assert "between (datetime('2026-01-01T00:00:00Z') .. datetime('2026-01-01T00:05:00Z'))" in kql
+    assert "ago(" not in kql
 
 
 def test_summarize_latencies_percentiles():

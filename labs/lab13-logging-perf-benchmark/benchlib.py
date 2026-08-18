@@ -65,13 +65,22 @@ def config_uses_eventhub(config: str) -> bool:
     return config == "C3"
 
 
-def gatewaylogs_kql(api_id: str, lookback_min: int = 15) -> str:
-    """서버측 게이트웨이 처리시간(TotalTime - BackendTime)을 RequestSize 별 집계."""
+def gatewaylogs_kql(api_id: str, start_iso=None, end_iso=None, lookback_min: int = 30) -> str:
+    """서버측 게이트웨이 처리시간(TotalTime - BackendTime)을 ResponseSize 별 집계.
+
+    start_iso/end_iso(둘 다 UTC ISO8601)를 주면 그 시간창으로만 필터해 특정 구성의
+    트래픽을 귀속한다. 없으면 최근 lookback_min 분을 본다. mock(return-response)은
+    BackendTime 이 null 이므로 coalesce 로 0 처리한다(그러지 않으면 percentile 이 전부 null).
+    """
+    if start_iso and end_iso:
+        time_filter = f"| where TimeGenerated between (datetime('{start_iso}') .. datetime('{end_iso}')) "
+    else:
+        time_filter = f"| where TimeGenerated > ago({lookback_min}m) "
     return (
         "ApiManagementGatewayLogs "
         f"| where ApiId == '{api_id}' "
-        f"| where TimeGenerated > ago({lookback_min}m) "
-        "| extend gateway_ms = TotalTime - BackendTime "
+        f"{time_filter}"
+        "| extend gateway_ms = TotalTime - coalesce(BackendTime, 0) "
         "| summarize p50=percentile(gateway_ms,50), p95=percentile(gateway_ms,95), "
         "avg=avg(gateway_ms), n=count() by ResponseSize "
         "| order by ResponseSize asc"

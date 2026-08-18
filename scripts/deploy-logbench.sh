@@ -52,6 +52,7 @@ get_out() {
 {
     echo "LOGBENCH_SUFFIX=\"${SUFFIX}\""
     echo "LOGBENCH_RG=\"${RESOURCE_GROUP}\""
+    echo "LOGBENCH_LOCATION=\"${LOCATION}\""
     echo "LOGBENCH_APIM_NAME=\"$(get_out apimName)\""
     echo "LOGBENCH_APIM_URL=\"$(get_out apimGatewayUrl)\""
     echo "LOGBENCH_EH_NAMESPACE=\"$(get_out eventHubNamespace)\""
