@@ -6,7 +6,10 @@ param location string = resourceGroup().location
 @description('리소스 이름 접미사')
 param suffix string = 'logbench-${utcNow('yyyyMMdd')}'
 
-@description('APIM SKU (벤치마크는 StandardV2 권장)')
+@description('APIM SKU (벤치마크 전용: StandardV2 고정)')
+@allowed([
+  'StandardV2'
+])
 param apimSku string = 'StandardV2'
 
 @description('APIM 관리자 이메일')
