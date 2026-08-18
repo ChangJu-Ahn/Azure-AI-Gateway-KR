@@ -116,3 +116,35 @@ def parse_load_test_throughput(run: dict) -> dict:
         out["p95_ms"] = total.get("pct95ResponseTime")
         out["error_pct"] = total.get("errorPct")
     return out
+
+
+def parse_load_test_metrics(metrics: dict) -> dict:
+    """`az load test-run metrics list`(namespace LoadTestRunMetrics) 결과 요약.
+
+    이 az load 확장 버전은 `test-run show`의 `testRunStatistics`가 비어(null) 있으므로
+    분당 시계열 메트릭(TotalRequests/ResponseTime/Errors/VirtualUsers)에서 집계한다.
+    """
+    out = {"peak_rps": None, "avg_resp_ms": None, "errors": 0, "total_requests": 0, "max_vus": None}
+    if not metrics:
+        return out
+
+    def series(name):
+        try:
+            return [p["value"] for p in metrics[name][0]["data"] if p.get("value") is not None]
+        except (KeyError, IndexError, TypeError):
+            return []
+
+    tr = series("TotalRequests")
+    rt = series("ResponseTime")
+    er = series("Errors")
+    vu = series("VirtualUsers")
+    if tr:
+        out["peak_rps"] = round(max(tr) / 60.0, 1)   # 분당 요청 버킷 → 초당
+        out["total_requests"] = int(sum(tr))
+    if rt:
+        out["avg_resp_ms"] = round(sum(rt) / len(rt), 1)
+    if er:
+        out["errors"] = int(sum(er))
+    if vu:
+        out["max_vus"] = int(max(vu))
+    return out

@@ -20,7 +20,7 @@ fi
 RESOURCE_GROUP="${LOGBENCH_RG:-rg-ai-gw-logbench-${SUFFIX}}"
 
 APIM_NAME="${LOGBENCH_APIM_NAME:-}"
-APIM_LOCATION="${LOGBENCH_LOCATION:-koreacentral}"
+APIM_LOCATION="${LOGBENCH_LOCATION:-japaneast}"
 
 echo "=== LogBench 삭제 ==="
 echo "리소스 그룹: ${RESOURCE_GROUP}"

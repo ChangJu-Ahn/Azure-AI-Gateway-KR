@@ -63,11 +63,16 @@ resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
   }
 }
 
-resource ehSendAuth 'Microsoft.EventHub/namespaces/eventhubs/authorizationRules@2024-01-01' = {
-  parent: eventHub
-  name: 'apim-send'
+// APIM System MI 가 Event Hub 로 Send 하도록 RBAC 부여 (SAS 비활성 테넌트 대응).
+// SAS 연결문자열 로거는 disableLocalAuth=true 환경에서 배포가 거부되므로 사용하지 않는다.
+var ehDataSenderRoleId = '2b629674-e913-4c01-ae53-ef4638d8f975' // Azure Event Hubs Data Sender
+resource ehSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(ehNamespace.id, apimService.id, ehDataSenderRoleId)
+  scope: ehNamespace
   properties: {
-    rights: [ 'Send', 'Listen' ]
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', ehDataSenderRoleId)
+    principalId: apimService.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -100,25 +105,20 @@ resource apimAiLogger 'Microsoft.ApiManagement/service/loggers@2023-09-01-previe
   }
 }
 
-resource apimEhLogger 'Microsoft.ApiManagement/service/loggers@2023-09-01-preview' = {
-  parent: apimService
-  name: 'logbench-eh'
-  properties: {
-    loggerType: 'azureEventHub'
-    credentials: {
-      name: ehName
-      connectionString: listKeys(ehSendAuth.id, ehSendAuth.apiVersion).primaryConnectionString
-    }
-    isBuffered: true
-  }
-}
+// ⚠️ Event Hub 로거(logbench-eh)는 bicep 이 아니라 scripts/deploy-logbench.sh 가
+// 배포 후 Managed Identity 방식으로 생성한다. 이유: (1) 테넌트가 EH SAS 를 비활성화하면
+// 연결문자열 로거 배포가 실패하고, (2) MI 로거는 위 ehSenderRole RBAC 전파(수십 초)를
+// 기다려야 검증을 통과하므로 재시도 루프가 필요하다.
 
 // 중립 자(ruler): GatewayLogs → Log Analytics, 전 구성 상시 ON
+// resource-specific(Dedicated) 모드여야 ApiManagementGatewayLogs 테이블에 TotalTime/
+// BackendTime 이 채워진다(기본 AzureDiagnostics 에는 타이밍 컬럼이 없음).
 resource apimDiagSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'gatewaylogs-to-la'
   scope: apimService
   properties: {
     workspaceId: logAnalytics.id
+    logAnalyticsDestinationType: 'Dedicated'
     logs: [
       {
         category: 'GatewayLogs'

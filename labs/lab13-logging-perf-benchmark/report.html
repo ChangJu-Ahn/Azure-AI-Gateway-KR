@@ -232,12 +232,12 @@ ul{margin:8px 0;padding-left:22px;}li{margin:4px 0;}
 <table>
 <thead><tr><th>증상</th><th>원인</th><th>조치</th></tr></thead>
 <tbody>
-<tr><td>LoadTest 배포 실패(koreacentral)</td><td>해당 리전 미지원</td><td>region → japaneast</td></tr>
-<tr><td>EH 로거 배포 실패 <span class="mono">LocalAuthDisabled</span></td><td>테넌트가 EH SAS 비활성</td><td>MI 로거 + Event Hubs Data Sender 역할</td></tr>
-<tr><td><span class="mono">ApiManagementGatewayLogs</span> 0행</td><td>진단이 기본 AzureDiagnostics로 감(타이밍 없음)</td><td>진단 resource-specific(Dedicated) 모드</td></tr>
+<tr><td>LoadTest 배포 실패(koreacentral)</td><td>해당 리전 미지원</td><td>region → japaneast <span class="pill ok">커밋됨</span></td></tr>
+<tr><td>EH 로거 배포 실패 <span class="mono">LocalAuthDisabled</span></td><td>테넌트가 EH SAS 비활성</td><td>MI 로거 + Event Hubs Data Sender 역할 <span class="pill ok">커밋됨</span></td></tr>
+<tr><td><span class="mono">ApiManagementGatewayLogs</span> 0행</td><td>진단이 기본 AzureDiagnostics로 감(타이밍 없음)</td><td>진단 resource-specific(Dedicated) 모드 <span class="pill ok">커밋됨</span></td></tr>
 <tr><td>ALT 생성 실패 <span class="mono">path '.'</span></td><td>yaml 빈 userPropertyFile</td><td>제거 <span class="pill ok">커밋됨</span></td></tr>
 <tr><td>ALT 전 요청 401→자동중단</td><td><span class="mono">--env</span>는 환경변수인데 JMX가 <span class="mono">__P</span>로 읽음</td><td>JMX <span class="mono">__groovy(System.getenv())</span> <span class="pill ok">커밋됨</span></td></tr>
-<tr><td><span class="mono">--wait</span>/<span class="mono">testRunStatistics</span></td><td>이 az load 버전 특성</td><td>후속: 노트북을 metrics list 파싱으로</td></tr>
+<tr><td><span class="mono">--wait</span>/<span class="mono">testRunStatistics</span></td><td>이 az load 버전 특성</td><td>노트북 metrics list 파싱 + <span class="mono">--wait</span> 제거 <span class="pill ok">커밋됨</span></td></tr>
 </tbody></table>
 
 <h2>7 · 한계</h2>

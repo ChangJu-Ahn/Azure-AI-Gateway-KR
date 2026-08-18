@@ -65,3 +65,24 @@ def test_parse_load_test_throughput():
     assert out["p95_ms"] == 57.0
     assert out["error_pct"] == 0.5
     assert b.parse_load_test_throughput({}) == {"rps": None, "p95_ms": None, "error_pct": None}
+
+
+def test_parse_load_test_metrics():
+    m = {
+        "TotalRequests": [{"data": [{"timestamp": "t1", "value": 3288.0},
+                                     {"timestamp": "t2", "value": 39097.0}]}],
+        "ResponseTime": [{"data": [{"timestamp": "t1", "value": 90.0},
+                                    {"timestamp": "t2", "value": 92.0}]}],
+        "Errors": [{"data": []}],
+        "VirtualUsers": [{"data": [{"timestamp": "t1", "value": 31.0},
+                                    {"timestamp": "t2", "value": 49.0}]}],
+    }
+    out = b.parse_load_test_metrics(m)
+    assert out["peak_rps"] == round(39097 / 60.0, 1)
+    assert out["total_requests"] == 42385
+    assert out["avg_resp_ms"] == 91.0
+    assert out["errors"] == 0
+    assert out["max_vus"] == 49
+    assert b.parse_load_test_metrics({}) == {
+        "peak_rps": None, "avg_resp_ms": None, "errors": 0,
+        "total_requests": 0, "max_vus": None}
