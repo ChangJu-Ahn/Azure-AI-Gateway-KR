@@ -244,3 +244,28 @@ az monitor log-analytics query -w "$WS_ID" --analytics-query "AppRequests | wher
   az apim update -g rg-ai-gw-aigateway-20260716 -n apim-ai-gw-aigateway-20260716 --sku-name Developer --sku-capacity 1
   ```
 - 목적: SKU를 올려 게이트웨이 여유↑ → 같은 500 RPS·8KB에서 EH 드롭이 줄면 "드롭 원인=APIM 처리능력" 직접 확정.
+
+## ★★★ SKU 비교 결과 (Developer v1 vs Basic v2) — 드롭 인과 직접 확정
+
+같은 실험 리소스(EH 40TU, VM)에 **Basic v2 APIM 신규 배포** 후 동일 조건(8KB 500 RPS E8) 측정.
+
+| 지표 | Developer v1 | Basic v2 |
+|---|---|---|
+| 8KB 500 RPS E8 EH 도달 | 약 절반만 (대량 드롭) | **분당 ~30,000 일정 = 무손실** |
+| EH Throttled | 0 | 0 |
+| 클라이언트 p99 | ~500ms | **30ms** |
+| 측정창(UTC) | 12:58:25~13:04:40 | 21:20:54~21:25:55 |
+
+**Basic v2 EH 도달 (분당):** 21:21~21:26 = 30056, 29900, 29926, 30108, 29796, 30186 → 500 RPS×60=30,000과 정확히 일치. 드롭 거의 0.
+(v2-E8 클라이언트: 150,000 요청 전부 200, 0오류. Basic v2 APIM Requests 메트릭으로 트래픽 도달 확인.)
+
+### ★★★ 최종 인과 확정
+
+- **드롭의 근본 원인 = APIM 게이트웨이 처리 능력(SKU)**, EH TU 아님.
+- Developer v1: 게이트웨이 포화(89%) → 로깅 큐 못 비움 → 대량 드롭.
+- Basic v2: 게이트웨이 여유 → 로깅 큐 정상 처리 → **무손실**.
+- 앞선 "RPS 낮추면 드롭 감소"(간접 인과)에 더해, "SKU 올리면 드롭 사라짐"(직접 인과)으로 **이중 확정**.
+
+### 실용 결론
+
+> 같은 `log-to-eventhub`라도 **Developer v1은 500 RPS에서 로그 약 절반을 잃지만, Basic v2는 무손실**로 전송한다. 전건 감사 로깅이 필요하면 게이트웨이 SKU를 충분히 확보해야 한다. EH 용량(TU)을 늘리는 것은 (8KB 기준) 해결책이 아니다 — 병목은 APIM 게이트웨이다.

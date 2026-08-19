@@ -1,7 +1,0 @@
-version: v0.1
-testId: logbench-load
-displayName: LogBench Load Test
-testPlan: load-test.jmx
-description: 로깅 구성별 throughput/레이턴시 부하 테스트
-engineInstances: 1
-failureCriteria: []
