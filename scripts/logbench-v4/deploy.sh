@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-LOCATION="${LOGBENCH_LOCATION:-japaneast}"
 APIM_NAME="${LOGBENCH_APIM_NAME:?Set LOGBENCH_APIM_NAME}"
 APIM_RG="${LOGBENCH_APIM_RG:?Set LOGBENCH_APIM_RG}"
 SUFFIX="${LOGBENCH_SUFFIX:-$(date +%Y%m%d%H%M)}"
@@ -17,6 +16,12 @@ az account show >/dev/null
 
 SKU="$(az apim show -g "$APIM_RG" -n "$APIM_NAME" --query sku.name -o tsv)"
 [ "$SKU" = "Developer" ] || { echo "APIM must use Developer SKU, found: $SKU" >&2; exit 1; }
+
+# 신규 리소스(EH·VM)는 APIM과 동일 리전에 배포해 크로스 리전 지연/비용을 제거한다.
+APIM_LOCATION="$(az apim show -g "$APIM_RG" -n "$APIM_NAME" --query location -o tsv | tr -d ' ' | tr '[:upper:]' '[:lower:]')"
+LOCATION="${LOGBENCH_LOCATION:-$APIM_LOCATION}"
+[ -n "$LOCATION" ] || { echo "Could not determine APIM location" >&2; exit 1; }
+echo "APIM: $APIM_NAME (SKU=$SKU, location=$LOCATION). Deploying benchmark resources to same region."
 
 PRINCIPAL_ID="$(az apim show -g "$APIM_RG" -n "$APIM_NAME" --query identity.principalId -o tsv)"
 if [ -z "$PRINCIPAL_ID" ]; then

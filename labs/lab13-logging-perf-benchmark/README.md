@@ -5,7 +5,7 @@
 ## 사전 조건
 
 - Azure CLI, `jq`, `curl`, `ssh`, `scp`
-- 기존 APIM이 Japan East의 Developer SKU
+- 기존 APIM이 Developer SKU (신규 리소스는 APIM과 동일 리전에 배포됨)
 - APIM과 신규 리소스에 대한 배포/RBAC 권한
 
 ## 배포

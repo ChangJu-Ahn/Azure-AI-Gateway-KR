@@ -148,7 +148,7 @@ N64가 SLO를 실패하면 E64를 Event Hub 실패로 판정하지 않고 해당
 
 - SKU: **Developer v1** (기존 인스턴스)
 - APIM autoscale 설정: **없음**
-- 리전: Japan East
+- 리전: APIM과 동일 리전 (Korea Central)
 - multi-region: 사용하지 않음
 - 테스트 중 SKU, unit, zone, network, custom domain, certificate와 기타 인프라 변경 금지
 
@@ -165,7 +165,7 @@ N64가 SLO를 실패하면 E64를 Event Hub 실패로 판정하지 않고 해당
 ### 3.2 부하 생성기
 
 - 도구: k6 constant-arrival-rate (open workload)
-- VM: Japan East의 고정 단일 Standard_D8as_v5 Linux VM
+- VM: APIM과 동일 리전(Korea Central)의 고정 단일 Standard_D8as_v5 Linux VM
 - autoscale: 사용하지 않음
 - HTTP client retry: **OFF**
 
