@@ -9,7 +9,7 @@ import re
 import statistics
 import time
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -171,7 +171,10 @@ async def consume_events(args, run_id: str, events: list[dict], stop: asyncio.Ev
                 "enqueuedTime": event.enqueued_time.isoformat() if event.enqueued_time else None,
             })
 
-    task = asyncio.create_task(client.receive(on_event=on_event, starting_position="@latest"))
+    # 소비 시작 시각에서 여유를 두고(과거 datetime) 읽어, consumer 기동 지연 중
+    # 도착한 초반 측정 메시지도 놓치지 않는다. warmup 트래픽은 measurement id 필터가 제외한다.
+    start_position = datetime.now(timezone.utc) - timedelta(seconds=60)
+    task = asyncio.create_task(client.receive(on_event=on_event, starting_position=start_position))
     try:
         await stop.wait()
     finally:
