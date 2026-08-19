@@ -216,6 +216,23 @@ knee 탐색: 2×250→CPU32%/1322rps · 4×250→CPU61%/2695rps · 6×250→CPU6
 - **EH 200KB 소비 샘플 미확보**: 소비 배치 타이밍상 8192·65536만 잡힘(200KB는 log-to-eventhub 200KB 상한 이내라 전송은 됨).
 - **성공 RPS 노이즈**: 프로파일 B는 1엔진·소규모라 RPS 절대값 변동 존재. CPU%가 더 안정적 지표.
 
+### 10.5.1 공식 문서 근거 (C2 vs C3 성능 서술의 비대칭)
+**C2와 C3를 직접(head-to-head) 벤치마크한 공식 문서는 없다.** 그러나 성능 저하 경고가 **오직 C2/App Insights 문서에만** 붙어 있고, C3/Event Hub 문서는 정반대로 포지셔닝된다 — 이 **서술의 비대칭 자체**가 우리 실측(C2 CPU +8%p·8KB 잘림 vs C3 +1%p·무손실)과 방향이 일치한다.
+
+| 근거 | C2 (App Insights) | C3 (Event Hub) |
+|------|---|---|
+| 성능 경고 | ✅ **명시**: "internal load tests, **40%–50% reduction in throughput** when request rate exceeded **1,000 requests per second**" | ❌ 없음. 오히려 "**millions of events per second**", "**decouples** production from consumption"(비동기) |
+| body 로깅 | "**might significantly decrease the performance**" → "To improve performance issues, **skip … Body logging**" | log-to-eventhub: "**not affected by … sampling. All invocations … will be logged**"(무손실) |
+| 손실/상한 | 샘플링으로 **의도적 유실** 전제, body **8KB** | 샘플링 무관 전량, 메시지 **200KB** |
+| 감사 적합성 | "**not** intended to be an audit system. **Not suited for logging each individual request for high-volume APIs**" | "highly scalable data ingress service" (감사·오프라인 분석용) |
+
+**출처**
+- [Integrate APIM with Application Insights — "Performance implications and log sampling"](https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-app-insights#performance-implications-and-log-sampling): "40%–50% reduction in throughput … over 1,000 rps", "skip … Body logging", "not intended to be an audit system"
+- [`log-to-eventhub` policy reference — Usage notes](https://learn.microsoft.com/en-us/azure/api-management/log-to-eventhub-policy): "not affected by Application Insights sampling. All invocations … logged", "maximum … message size … is 200 KB"
+- [How to log events to Azure Event Hubs](https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-log-event-hubs): "ingest millions of events per second", "decouples the production … from the consumption"
+
+**단, 정직하게**: 문서의 "-40~50% throughput"은 **완전 포화(>1000rps)** 전제이고, 본 실험은 mock이 게이트웨이를 60-75%까지만 써서 그 **수치(크기)는 미재현**(H3, §10.5). **저하 방향**은 문서·실측 일치, **크기**는 본 환경 미검증.
+
 ### 10.6 산출물
 - **HTML 리포트**: [`report.html`](./report.html) — 자체완결(인라인 SVG, Clawpilot 테마), 위 결과 시각화
 - **차트(PNG)**: [`v2-assets/verify.png`](./v2-assets/verify.png) (내용검증), [`v2-assets/A-cpu.png`](./v2-assets/A-cpu.png) (CPU 포화), [`v2-assets/B-directionality.png`](./v2-assets/B-directionality.png) (EH 방향성)

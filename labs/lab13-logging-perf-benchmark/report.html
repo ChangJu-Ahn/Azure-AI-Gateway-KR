@@ -164,7 +164,18 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <tr><td>H7 의도한 로그만</td><td>✅ 확정</td><td>C1 없음/C2 8192/C3 0 +EH 전량</td></tr>
 </tbody></table>
 
-<h2>6 · 한계</h2>
+<h2>6 · 공식 문서 근거 (C2 vs C3 성능 서술의 비대칭)</h2>
+<div class="callout"><b>핵심:</b> C2·C3를 <b>직접 비교(head-to-head)한 공식 문서는 없다.</b> 그러나 성능 저하 경고가 <b>오직 C2/App Insights 문서에만</b> 붙어 있고 C3/Event Hub는 정반대로 포지셔닝된다 — 이 <b>서술의 비대칭 자체</b>가 본 실측(C2 +8pp·8KB 잘림 vs C3 +1pp·무손실)과 방향이 일치한다.</div>
+<table><thead><tr><th>근거</th><th>C2 · App Insights</th><th>C3 · Event Hub</th></tr></thead><tbody>
+<tr><td>성능 경고</td><td class="c2">✅ 명시: "40–50% reduction in throughput" (&gt;1,000 rps)</td><td class="c3">❌ 없음 — "millions of events/sec", "decouples"(비동기)</td></tr>
+<tr><td>body 로깅</td><td class="c2">"significantly decrease performance" → "skip … Body logging"</td><td class="c3">"not affected by sampling. All invocations logged"(무손실)</td></tr>
+<tr><td>손실 / 상한</td><td class="c2">샘플링 의도적 유실, body <b>8KB</b></td><td class="c3">샘플링 무관 전량, <b>200KB</b></td></tr>
+<tr><td>감사 적합성</td><td class="c2">"<b>not</b> intended to be an audit system"</td><td class="c3">"highly scalable data ingress"(감사·오프라인 분석)</td></tr>
+</tbody></table>
+<div class="callout warn"><b>정직하게:</b> 문서의 "−40~50% throughput"은 <b>완전 포화(&gt;1000rps)</b> 전제 → 본 실험은 mock이 게이트웨이를 60-75%까지만 써서 <b>수치(크기)는 미재현</b>(H3). <b>저하 방향</b>은 문서·실측 일치, <b>크기</b>는 본 환경 미검증.</div>
+<p style="font-size:.85rem;color:var(--cp-text-muted)">출처 · <a href="https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-app-insights#performance-implications-and-log-sampling" style="color:var(--cp-accent)">App Insights — Performance implications and log sampling</a> · <a href="https://learn.microsoft.com/en-us/azure/api-management/log-to-eventhub-policy" style="color:var(--cp-accent)">log-to-eventhub policy — Usage notes</a> · <a href="https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-log-event-hubs" style="color:var(--cp-accent)">Log events to Event Hubs</a></p>
+
+<h2>7 · 한계</h2>
 <ol>
 <li><b>CPU 완전 포화(100%) 미도달</b>: mock <span class="mono">return-response</span>는 게이트웨이를 60-75%까지만 사용 → 문서의 "throughput 40~50%↓"(완전 포화 전제)는 여전히 미검증(H3). 실백엔드/무거운 정책이면 포화 가능.</li>
 <li><b>EH throttle 미발생</b>: 우리 부하로 1TU를 유실까지 몰지 못함(버퍼 흡수). drop은 더 센 부하 필요.</li>
