@@ -66,7 +66,7 @@ Microsoft의 [`log-to-eventhub` 정책 문서 — Usage notes](https://learn.mic
 
 - `log-to-eventhub`를 사용하면 APIM throughput이 저하되지 않는다는 직접적인 성능 보장은 없다.
 - "All invocations ... will be logged"는 정책이 sampling으로 생략되지 않는다는 뜻이지, 최종 consumer에서 누락이 항상 0이라는 end-to-end 보장은 아니다.
-- Event Hubs 서비스가 초당 수백만 이벤트를 수집할 수 있다는 설명은 선택한 tier, TU/PU/CU, partition 수와 메시지 크기에서 용량이 자동 보장된다는 뜻이 아니다.
+- Event Hubs 자체가 대규모 이벤트를 수집할 수 있다는 설명만으로는, APIM gateway가 `log-to-eventhub` 정책을 실행해도 같은 처리량을 유지하거나 payload 증가에 따른 정책 실행 비용이 없다고 볼 수 없다.
 
 따라서 H2는 **App Insights가 실패한 동일 `R*`에서 Event Hub가 처리량을 확보하는지**, H3는 **그 처리가 최대 몇 KB까지 유지되는지**, H4는 **모든 요청의 로그가 최종 consumer까지 실제 도달했는지**를 각각 실측한다.
 
