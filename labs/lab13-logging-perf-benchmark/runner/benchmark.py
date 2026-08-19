@@ -13,26 +13,45 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
-def build_payload(request_id: str, target_bytes: int) -> tuple[str, str]:
-    sent_at = datetime.now(timezone.utc).isoformat()
-    template = {
-        "requestId": request_id,
-        "sentAt": sent_at,
-        "payloadHash": "0" * 64,
-        "payload": "",
-    }
-    base = json.dumps(template, separators=(",", ":"), ensure_ascii=True)
-    padding_size = target_bytes - len(base.encode("utf-8"))
+def _assemble(request_id: str, digest: str, padding: str) -> str:
+    return (
+        '{"requestId":"' + request_id
+        + '","payloadHash":"' + digest
+        + '","payload":"' + padding + '"}'
+    )
+
+
+def _pad_and_digest(request_id: str, target_bytes: int) -> tuple[str, str]:
+    overhead = len(_assemble(request_id, "0" * 64, "").encode("utf-8"))
+    padding_size = target_bytes - overhead
     if padding_size < 0:
         raise ValueError(f"target size {target_bytes} is too small")
-    payload = "x" * padding_size
-    digest = hashlib.sha256(payload.encode("ascii")).hexdigest()
-    template["payloadHash"] = digest
-    template["payload"] = payload
-    body = json.dumps(template, separators=(",", ":"), ensure_ascii=True)
+    padding = "x" * padding_size
+    digest = hashlib.sha256(padding.encode("ascii")).hexdigest()
+    return padding, digest
+
+
+def build_payload(request_id: str, target_bytes: int) -> tuple[str, str]:
+    padding, digest = _pad_and_digest(request_id, target_bytes)
+    body = _assemble(request_id, digest, padding)
     if len(body.encode("utf-8")) != target_bytes:
         raise ValueError("payload serialization did not reach the exact target size")
     return body, digest
+
+
+def make_payload_factory(run_id: str, target_bytes: int):
+    # padding 과 hash 는 요청마다 동일하므로 런당 1회만 계산한다. requestId 는
+    # f"{run_id}-{index:08d}" 로 길이가 고정이라, 조립만으로 정확한 크기가 보장된다.
+    sample_id = f"{run_id}-{0:08d}"
+    padding, digest = _pad_and_digest(sample_id, target_bytes)
+    expected = len(_assemble(sample_id, digest, padding).encode("utf-8"))
+    if expected != target_bytes:
+        raise ValueError("payload factory did not reach the exact target size")
+
+    def factory(request_id: str) -> tuple[str, str]:
+        return _assemble(request_id, digest, padding), digest
+
+    return factory
 
 
 def percentile(values: list[float], pct: float) -> float:
@@ -81,22 +100,24 @@ def reconcile(successes: dict, events: list[dict], expected_size: int) -> dict:
     }
 
 
-async def run_load(args, run_id: str, duration: int, record: bool) -> tuple[dict, dict]:
+async def run_load(args, run_id: str) -> tuple[dict, dict]:
     import aiohttp
+    import gc
 
     successes = {}
     latencies = []
     errors = []
-    started = time.monotonic()
-    total = args.rate * duration
-    connector = aiohttp.TCPConnector(limit=args.concurrency, ttl_dns_cache=300)
+    measure_body = make_payload_factory(run_id, args.payload_bytes)
+    warmup_body = make_payload_factory(run_id + "-w", args.payload_bytes)
+    connector = aiohttp.TCPConnector(
+        limit=args.concurrency, ttl_dns_cache=300, force_close=False, enable_cleanup_closed=True
+    )
     timeout = aiohttp.ClientTimeout(total=args.timeout)
     semaphore = asyncio.Semaphore(args.concurrency)
 
     async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        async def request(index: int):
-            request_id = f"{run_id}-{index:08d}"
-            body, digest = build_payload(request_id, args.payload_bytes)
+        async def one(request_id: str, record: bool, make_body):
+            body, digest = make_body(request_id)
             headers = {
                 "Content-Type": "application/json",
                 "x-logbench-request-id": request_id,
@@ -109,37 +130,58 @@ async def run_load(args, run_id: str, duration: int, record: bool) -> tuple[dict
                         elapsed = (time.perf_counter() - before) * 1000
                         if response.status == 200:
                             if record:
-                                successes[request_id] = {
-                                    "payloadHash": digest,
-                                    "latencyMs": elapsed,
-                                }
+                                successes[request_id] = {"payloadHash": digest, "latencyMs": elapsed}
                                 latencies.append(elapsed)
                         else:
                             errors.append({"requestId": request_id, "status": response.status})
                 except Exception as exc:
                     errors.append({"requestId": request_id, "error": type(exc).__name__})
 
-        tasks = []
-        for index in range(total):
-            due = started + index / args.rate
-            delay = due - time.monotonic()
-            if delay > 0:
-                await asyncio.sleep(delay)
-            tasks.append(asyncio.create_task(request(index)))
-        await asyncio.gather(*tasks)
+        # 커넥션 풀 예열: 측정 시작 전에 concurrency 만큼 커넥션을 미리 열어
+        # 측정 초반의 TLS 핸드셰이크 버스트가 꼬리 지연으로 잡히는 것을 막는다.
+        await asyncio.gather(*[
+            asyncio.create_task(one(f"{run_id}-w-prewarm-{k:03d}", False, warmup_body))
+            for k in range(args.concurrency)
+        ])
 
-    elapsed = time.monotonic() - started
+        async def phase(seconds: int, record: bool, prefix: str, make_body) -> tuple[int, float]:
+            total = args.rate * seconds
+            start = time.monotonic()
+            tasks = []
+            for index in range(total):
+                due = start + index / args.rate
+                delay = due - time.monotonic()
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                tasks.append(asyncio.create_task(one(f"{prefix}-{index:08d}", record, make_body)))
+            dispatch_wall = time.monotonic() - start
+            await asyncio.gather(*tasks)
+            return total, dispatch_wall
+
+        if args.warmup_seconds > 0:
+            await phase(args.warmup_seconds, False, run_id + "-w", warmup_body)
+        gc.collect()
+        gc.disable()
+        measure_start_utc = datetime.now(timezone.utc)
+        try:
+            measure_total, dispatch_wall = await phase(args.duration, True, run_id, measure_body)
+        finally:
+            gc.enable()
+        measure_end_utc = datetime.now(timezone.utc)
+
     summary = {
-        "offered": total,
+        "offered": measure_total,
         "successful": len(successes),
         "errors": len(errors),
-        "generatedRate": total / elapsed,
-        "successfulRps": len(successes) / duration if record else None,
-        "errorRate": len(errors) / total if total else 0,
+        "generatedRate": measure_total / dispatch_wall if dispatch_wall else 0,
+        "successfulRps": len(successes) / args.duration,
+        "errorRate": len(errors) / measure_total if measure_total else 0,
         "p50Ms": percentile(latencies, 50),
         "p95Ms": percentile(latencies, 95),
         "p99Ms": percentile(latencies, 99),
         "meanMs": statistics.fmean(latencies) if latencies else 0,
+        "measureStartUtc": measure_start_utc.isoformat(),
+        "measureEndUtc": measure_end_utc.isoformat(),
     }
     return {"successes": successes, "errors": errors}, summary
 
@@ -195,8 +237,7 @@ async def execute(args):
         consumer_task = asyncio.create_task(consume_events(args, run_id, events, stop))
         await asyncio.sleep(5)
 
-    await run_load(args, f"{run_id}-warmup", args.warmup_seconds, False)
-    records, summary = await run_load(args, run_id, args.duration, True)
+    records, summary = await run_load(args, run_id)
     if consumer_task:
         previous = -1
         quiet = 0
@@ -231,7 +272,7 @@ def parse_args():
     parser.add_argument("--rate", type=int, default=500)
     parser.add_argument("--warmup-seconds", type=int, default=120)
     parser.add_argument("--duration", type=int, default=300)
-    parser.add_argument("--concurrency", type=int, default=250)
+    parser.add_argument("--concurrency", type=int, default=20)
     parser.add_argument("--timeout", type=int, default=10)
     parser.add_argument("--drain-seconds", type=int, default=600)
     parser.add_argument("--quiet-seconds", type=int, default=120)

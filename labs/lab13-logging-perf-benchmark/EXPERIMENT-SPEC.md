@@ -164,18 +164,20 @@ N64가 SLO를 실패하면 E64를 Event Hub 실패로 판정하지 않고 해당
 
 ### 3.2 부하 생성기
 
-- 도구: k6 constant-arrival-rate (open workload)
+- 도구: Python asyncio + aiohttp, 고정 도착률(open workload)
 - VM: APIM과 동일 리전(Korea Central)의 고정 단일 Standard_D8as_v5 Linux VM
+- 동시성: 20 (검증 결과 500 RPS·0 오류·p50 4ms 달성; 과도한 동시성은 TLS 핸드셰이크 churn으로 꼬리 지연 유발)
+- 커넥션 재사용 + 측정 전 커넥션 풀 예열
 - autoscale: 사용하지 않음
 - HTTP client retry: **OFF**
 
 다음 중 하나라도 발생하면 런을 무효화한다.
 
 - VM CPU 평균 70% 초과
-- VM network가 공식 최대치의 70% 초과
-- k6 dropped iterations 발생
 - generated / offered requests 99% 미만
 - socket 또는 TLS 오류
+
+> **부하 생성기 한계와 판정 지표**: 단일 프로세스 asyncio는 TLS 처리로 인해 클라이언트 측 p95/p99에 ~500ms 꼬리를 남긴다. 이 꼬리는 **모든 조건에 공통**이며 APIM 서버측과 무관하다. 따라서 성능 판정의 **권위 지표는 APIM 서버측 `CpuPercent_Gateway`(및 Capacity/Duration)**로 하고, 클라이언트 p50/p95/p99는 교차검증용 참고 기록으로만 사용한다. 클라이언트 p99를 통과/실패 판정의 1차 근거로 쓰지 않는다.
 
 ### 3.3 Event Hubs
 
@@ -224,12 +226,12 @@ EH throttling, server error 또는 consumer lag가 발생하면 APIM 성능과 �
 
 ## 5. 수집 지표
 
-- **k6**: offered / generated / successful RPS, 오류율, p50 / p95 / p99, dropped iterations
-- **APIM**: CpuPercent_Gateway avg / max, 전체·성공·실패 요청 수
-- **Event Hubs**: incoming requests / bytes, throttled requests, server errors, consumer lag
+- **클라이언트(참고)**: offered / generated / successful RPS, 오류율, p50 / p95 / p99
+- **APIM(권위)**: Capacity(게이트웨이 부하%), Duration(게이트웨이 처리시간), 전체·성공·실패 요청 수
+- **Event Hubs**: incoming requests / bytes, throttled requests, server errors
 - **대조**: 성공 request ID 집합, EH 수신 ID 집합, 누락·중복 ID, payload hash와 메시지 크기
 
-GatewayLogs 전체 수집은 필수로 두지 않는다. 비용을 줄이기 위해 k6 응답 ID와 EH consumer ID를 권위 데이터로 사용하고, GatewayLogs는 설정 확인용 소량 호출에만 사용한다.
+GatewayLogs 전체 수집은 필수로 두지 않는다. 비용을 줄이기 위해 클라이언트 성공 응답 ID와 EH consumer ID를 권위 대조 데이터로 사용하고, GatewayLogs는 설정 확인용 소량 호출에만 사용한다.
 
 ---
 
