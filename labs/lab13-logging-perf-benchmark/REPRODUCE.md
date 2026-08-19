@@ -50,12 +50,14 @@ scripts/logbench-v4/sweeps/run_64k_500-300.sh         # 500,300 × N64/E64
 ### 4. 서버측 메트릭 조회 (EXPERIMENT-LOG.md 상단 "서버측 재조회 명령" 참조)
 측정창(UTC)만 있으면 APIM Capacity/Duration/EventHubDroppedEvents, EH IncomingMessages/Throttled, App Insights AppRequests count 를 조회.
 
-### 5. Basic v2 비교 (선택)
+### 5. Basic v2 SKU 비교 (선택) — 완전 자동화
 ```bash
-az deployment group create -g "$LOGBENCH_RG" -n apim-basicv2 \
-  --template-file infra/apim-basicv2.bicep --parameters suffix="$LOGBENCH_SUFFIX"
-# 출력 apimPrincipalId에 EH Data Sender 역할 부여 후, logbench-v4 API/로거/E8 정책 설정 (deploy.sh의 APIM 설정 부분 참조)
+./scripts/logbench-v4/setup-basicv2.sh   # Basic v2 배포 + API/EH로거/E8 정책 전부 설정
+# 그 후 VM에서 benchmark.py로 8KB 500 RPS E8 측정
+# 드롭 판정: EH IncomingMessages 분당 수 = 500×60=30,000 이면 무손실, 적으면 드롭
+# (Basic v2는 EventHubDroppedEvents 메트릭이 비어있을 수 있어 EH IncomingMessages로 교차검증)
 ```
+결과: Developer v1은 500 RPS에서 약 절반 드롭, Basic v2는 무손실 → 드롭 원인=게이트웨이 SKU 확정.
 
 ### 6. 삭제
 ```bash
