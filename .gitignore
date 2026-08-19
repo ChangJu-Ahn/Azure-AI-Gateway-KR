@@ -10,6 +10,7 @@
 .env
 .env.local
 *.env
+.env.logbench-v4
 scripts/env.sh
 
 # OS
@@ -30,6 +31,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+labs/lab13-logging-perf-benchmark/results/
 
 # Bicep compiled
 *.json.bak
