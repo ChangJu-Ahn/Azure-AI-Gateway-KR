@@ -76,6 +76,7 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <div class="callout"><b>✅ 핵심 실증:</b> <span class="mono">azure-eventhub</span>로 EH를 직접 소비해 메시지 크기 = 8192·65536(전량) 확인. App Insights EventHub 송신 메트릭은 0(수집지연)이었으나 <b>실데이터로 무손실 저장 확정</b>. 이것이 v1에서 빠졌던 검증.</div>
 
 <h2>3 · EH 대용량 방향성 (프로파일 B, body 스윕(단계별 변화), 1×100)</h2>
+<div class="callout"><b>목적:</b> 부하는 낮게 고정하고 <b>body 크기만</b> 8→200KB로 키워 각 조건의 <b>비용 기울기</b>를 본다 → 그래서 일부러 <b>낮은 동시성(100 VU)</b>(200KB를 고부하로 걸면 엔진·네트워크·EH가 게이트웨이보다 먼저 터져 body 효과가 가려짐). <b>프로파일 A(1,000 VU)와 부하가 달라 절대값 직접 비교 불가</b> — 공통 앵커가 없어 "고부하 × 대용량 body" 구석은 미측정.</div>
 <table><thead><tr><th>body</th><th>조건-1 CPU%/성공 RPS</th><th>조건-2 CPU%/성공 RPS</th><th>조건-3 CPU%/성공 RPS</th><th>EH 제한/유실</th></tr></thead><tbody>
 <tr><td>8KB</td><td>17 / 653</td><td>18 / 553</td><td><b>21 / 521</b></td><td>0 / 0</td></tr>
 <tr><td>64KB</td><td>17 / 492</td><td>24 / 540</td><td><b>26 / 598</b></td><td>0 / 0</td></tr>
@@ -117,6 +118,7 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <div class="callout warn"><b>EH throttle/drop(처리 제한/유실) = 0 (전 구간):</b> 200KB×수백 RPS는 1TU(1MB/s)를 넘겼을 것으로 추정되나 <b>버퍼링·재시도로 유실 없이 흡수</b>. "무손실의 대가=drop"은 더 센 부하에서만 (미도달). EH가 APIM 레이턴시에 back-pressure(후단 지연이 앞단에 전파되는 역압)를 주지 않는 <b>비동기 디커플링(결합 분리)</b> 가정과 정합.</div>
 
 <h2>4 · 고부하 CPU 비교 (프로파일 A · <b>미포화</b> · 1,000 VU·body 8KB 고정)</h2>
+<div class="callout"><b>목적:</b> 게이트웨이를 <b>고부하로 눌러</b> 로깅 방식이 CPU·처리량에 주는 영향을 본다 → 그래서 <b>높은 동시성(1,000 VU)</b>. 조건-3의 <b>EH 로깅 용량 = 요청당 8KB</b>(=§3의 8KB와 같은 body, 단 부하가 1,000 vs 100 VU로 달라 CPU가 67.5% vs 21%로 다름).</div>
 <div class="callout warn"><b>부하 모델 주의(closed-loop):</b> VU(가상 사용자) 수를 고정하고 그 결과로 나온 RPS를 관측 — <b>RPS는 입력이 아니라 결과값</b>이며 아래는 <b>"견디는 최대 용량"이 아니다</b>. <b>포화 탐색 결과 미도달</b>: 500VU→CPU32%/1,322rps · 1,000VU→CPU<b>61%</b>/2,695rps · 1,500VU→CPU<b>61%</b>/4,100rps — CPU가 61%인데 사람 늘리자 RPS는 계속 상승 → knee(한계) 못 찾음(mock 왕복 ~0.37s 지연 바닥이 CPU보다 먼저 제한).</div>
 <table><thead><tr><th>구성</th><th>CPU% max (2런 균형)</th><th>개별 런</th><th>관측 RPS(용량 아님)</th></tr></thead><tbody>
 <tr><td><span class="c1">조건-1 무로깅</span></td><td><b>66.5%</b></td><td>65 / 68</td><td>2539</td></tr>
