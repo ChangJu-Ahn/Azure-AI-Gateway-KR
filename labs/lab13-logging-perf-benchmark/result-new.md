@@ -2,7 +2,7 @@
 
 > **상태**: 신규 재실험 설계서  
 > **적용 범위**: Azure API Management **Basic v2, 1 unit**, 단일 리전  
-> **핵심 질문**: App Insights가 sampling 100%와 8KB body 로깅 때문에 처리량을 잃는 구간에서, Event Hub는 동일하거나 더 큰 body를 전건 로깅하면서도 같은 요청 처리량과 지연 SLO를 만족하는가?
+> **핵심 질문**: App Insights가 sampling 100%와 8KB body 로깅 때문에 처리량을 잃는 구간에서, Event Hub는 동일하거나 더 큰 body를 모든 요청에 대해 로깅하면서도 같은 요청 처리량과 지연 SLO를 만족하는가?
 
 ---
 
@@ -28,10 +28,10 @@ Microsoft의 [APIM과 Application Insights 통합 문서 — Performance implica
 
 #### 이 문서가 증명하는 것
 
-- App Insights 전건 로깅은 요청률에 따라 심각한 성능 영향을 줄 수 있다.
+- App Insights로 모든 요청을 로깅하면 요청률에 따라 심각한 성능 영향을 줄 수 있다.
 - Microsoft 내부 테스트에서는 1,000 RPS를 초과했을 때 throughput이 40~50% 감소했다.
 - sampling 100%는 모든 요청을 로깅하도록 설정하는 값이다.
-- sampling 축소와 body 로깅 생략은 성능 완화책이지만 전건 body 감사 요구와 충돌한다.
+- sampling 축소와 body 로깅 생략은 성능 완화책이지만 모든 요청의 body를 감사하려는 요구와 충돌한다.
 
 #### 이 문서가 증명하지 않는 것
 
@@ -40,9 +40,9 @@ Microsoft의 [APIM과 Application Insights 통합 문서 — Performance implica
 
 따라서 H1은 공식 수치를 그대로 재현하는 실험이 아니라, **본 환경에서 App Insights 100% + 8KB body 로깅이 실제로 실패하는 `R*`를 먼저 찾는 실험**이다.
 
-### 질문 2 — 전건 로깅을 유지하면서 성능 저하를 피할 방법이 있는가
+### 질문 2 — 모든 요청을 로깅하면서 성능 저하를 피할 방법이 있는가
 
-App Insights 문서의 완화책은 sampling 축소 또는 body 생략이므로 전건 body 감사 요구를 만족하지 못한다. Event Hub를 대안 가설로 세우는 공식 근거는 두 문서에 있다.
+App Insights 문서의 완화책은 sampling 축소 또는 body 생략이므로 모든 요청의 body를 감사하려는 요구를 만족하지 못한다. Event Hub를 대안 가설로 세우는 공식 근거는 두 문서에 있다.
 
 Microsoft의 [APIM events를 Event Hubs에 로깅하는 방법](https://learn.microsoft.com/azure/api-management/api-management-howto-log-event-hubs)은 Event Hubs를 다음과 같이 설명한다.
 
@@ -68,7 +68,7 @@ Microsoft의 [`log-to-eventhub` 정책 문서 — Usage notes](https://learn.mic
 - "All invocations ... will be logged"는 정책이 sampling으로 생략되지 않는다는 뜻이지, 최종 consumer에서 누락이 항상 0이라는 end-to-end 보장은 아니다.
 - Event Hubs 서비스가 초당 수백만 이벤트를 수집할 수 있다는 설명은 선택한 tier, TU/PU/CU, partition 수와 메시지 크기에서 용량이 자동 보장된다는 뜻이 아니다.
 
-따라서 H2는 **App Insights가 실패한 동일 `R*`에서 Event Hub가 처리량을 확보하는지**, H3는 **그 처리가 최대 몇 KB까지 유지되는지**, H4는 **최종 consumer까지 실제 전건 도달했는지**를 각각 실측한다.
+따라서 H2는 **App Insights가 실패한 동일 `R*`에서 Event Hub가 처리량을 확보하는지**, H3는 **그 처리가 최대 몇 KB까지 유지되는지**, H4는 **모든 요청의 로그가 최종 consumer까지 실제 도달했는지**를 각각 실측한다.
 
 ---
 
@@ -78,7 +78,7 @@ Microsoft의 [`log-to-eventhub` 정책 문서 — Usage notes](https://learn.mic
 
 검증하려는 주장은 다음 하나다.
 
-> **App Insights 100% sampling + 8KB body 로깅이 실패하는 동일한 offered RPS에서, `log-to-eventhub`는 8KB 또는 더 큰 body를 전건 전달하면서 성공 처리량·오류율·p99 SLO를 만족한다.**
+> **App Insights 100% sampling + 8KB body 로깅이 실패하는 동일한 offered RPS에서, `log-to-eventhub`는 모든 요청의 8KB 또는 더 큰 body를 전달하면서 성공 처리량·오류율·p99 SLO를 만족한다.**
 
 따라서 결과도 "Event Hub가 성능을 향상시켰다"라고 쓰지 않는다. 통과한 경우에만 아래처럼 쓴다.
 
@@ -495,7 +495,7 @@ raw/
 
 ### 전체 통과
 
-> Basic v2 1 unit에서 App Insights sampling 100% + 8KB body 로깅은 R\*에서 성능 SLO를 위반했다. 동일 R\*에서 Event Hub는 최대 N KB payload까지 successful RPS, 오류율, p99와 전건 수신 기준을 모두 충족했다. 따라서 본 실험 범위에서는 App Insights 8KB로 인해 잃은 처리량을 Event Hub가 더 큰 감사 payload에서도 확보했다.
+> Basic v2 1 unit에서 App Insights sampling 100% + 8KB body 로깅은 R\*에서 성능 SLO를 위반했다. 동일 R\*에서 Event Hub는 모든 요청에 대해 최대 N KB payload까지 successful RPS, 오류율, p99와 수신 기준을 모두 충족했다. 따라서 본 실험 범위에서는 App Insights 8KB로 인해 잃은 처리량을 Event Hub가 더 큰 감사 payload에서도 확보했다.
 
 ### 부분 통과
 
@@ -514,7 +514,7 @@ raw/
 - "Event Hub가 APIM을 더 빠르게 만든다."
 - "Event Hub는 모든 환경에서 성능 저하가 없다."
 - "정책 상한이 200KB이므로 200KB에서도 성능이 보장된다."
-- "EH metric에서 drop이 0이므로 전건 무손실이다."
+- "EH metric에서 drop이 0이므로 모든 요청의 로그가 누락 없이 전달됐다."
 - "Basic v2 결과가 Standard v2 또는 운영 API에도 그대로 적용된다."
 
 ---
