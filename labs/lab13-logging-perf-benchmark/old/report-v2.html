@@ -29,25 +29,24 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <div class="sub">v1의 헛점(8KB 고정·미검증·노이즈)을 통제하고 <b>재실험</b>: body(본문) 크기 스윕(단계별 변화)으로 <b>Event Hub의 존재 이유(8KB 초과 무손실)</b>와 <b>용량 방향성</b>을 실측.</div>
 <div class="badges"><span class="badge">측정일 <b>2026-08-18</b></span><span class="badge">APIM <b>StandardV2</b>·cap1</span><span class="badge">EH <b>Standard 1TU</b>·auto-inflate(자동 확장) off·4part</span><span class="badge">region <b>japaneast</b></span><span class="badge">워밍업+균형순서+반복</span></div>
 <div class="kpis">
-<div class="kpi"><div class="v c2">8KB</div><div class="l">조건-2가 64KB 요청을 8KB로 잘라 저장(56KB 유실)</div></div>
-<div class="kpi"><div class="v c3">64KB</div><div class="l">조건-3(EH)는 전량 무손실 저장(소비로 확인)</div></div>
-<div class="kpi"><div class="v c3">2,539~2,820</div><div class="l">기준 부하에서 초당 성공 처리한 요청(RPS)</div></div>
+<div class="kpi"><div class="v c2">8KB</div><div class="l">C2가 64KB 요청을 8KB로 잘라 저장(56KB 유실)</div></div>
+<div class="kpi"><div class="v c3">64KB</div><div class="l">C3(EH)는 전량 무손실 저장(소비로 확인)</div></div>
+<div class="kpi"><div class="v c3">21→37%</div><div class="l">body↑ 시 C3 CPU 방향성(8→200KB)</div></div>
 </div></div>
-<div class="callout"><b>왜 TPS가 아니라 RPS인가?</b> 이 실험은 HTTP API 게이트웨이가 <b>초당 몇 개의 요청을 성공 처리하는지</b> 측정한다. TPS(Transactions Per Second)는 주문·결제 같은 업무 트랜잭션 하나에 API 요청 여러 개가 포함될 수 있어 기준이 모호하다. 따라서 <b>성공 RPS(Requests Per Second, 초당 성공 요청 수)</b>를 처리량으로 사용한다.</div>
 
 <h2>1 · 결론 (TL;DR)</h2>
 <div class="grid3">
-<div class="card verdict"><span class="tag">확정 · 핵심</span><h3>EH는 8KB 초과를 무손실로 찍는다</h3><p>64KB 요청: <b>조건-2=8KB 잘림</b>(App Insights 상한), <b>조건-3=EH에 64KB 전량</b>(소비로 확인). EH를 쓰는 이유를 직접 실증.</p></div>
-<div class="card verdict"><span class="tag">방향성 확인</span><h3>용량↑ → EH 비용↑</h3><p>body 8→64→200KB에서 조건-3 CPU <b>21→26→37%</b>로 가장 가파르게 상승. 조건-2는 8KB 상한이라 로깅 몫 평탄.</p></div>
-<div class="card verdict"><span class="tag">사용자 관점</span><h3>초당 2,539~2,820건 성공 처리</h3><p>body 8KB·knee(기준 부하)=4×250 실측. 부하 탐색에서는 <b>최대 4,100건/초</b>를 처리했다. CPU 완전 포화 전 수치이므로 최대 용량 보장은 아니다.</p></div>
+<div class="card verdict"><span class="tag">확정 · 핵심</span><h3>EH는 8KB 초과를 무손실로 찍는다</h3><p>64KB 요청: <b>C2=8KB 잘림</b>(App Insights 상한), <b>C3=EH에 64KB 전량</b>(소비로 확인). EH를 쓰는 이유를 직접 실증.</p></div>
+<div class="card verdict"><span class="tag">방향성 확인</span><h3>용량↑ → EH 비용↑</h3><p>body 8→64→200KB에서 C3 CPU <b>21→26→37%</b>로 가장 가파르게 상승. C2는 8KB 상한이라 로깅 몫 평탄.</p></div>
+<div class="card verdict"><span class="tag">재확인</span><h3>App Insights body 로깅은 CPU를 더 쓴다</h3><p>knee(기준 부하)=4×250: C2 CPU <b>74.5% vs C1 66.5%</b>(+8pp, 퍼센트포인트). C3는 비동기라 <b>+1pp</b>(게이트웨이 거의 무부담).</p></div>
 </div>
-<div class="callout"><b>한 줄:</b> <b>성능</b>으로 EH(조건-3)는 게이트웨이에 거의 부담 없음(비동기) — 단 <b>body가 커질수록 인라인(요청 처리 중) 직렬화 비용이 증가</b>. <b>감사</b>로 EH는 App Insights(8KB 잘림)와 달리 <b>전량 무손실</b> — 큰 payload(데이터 본문)일수록 EH의 가치가 커진다.</div>
+<div class="callout"><b>한 줄:</b> <b>성능</b>으로 EH(C3)는 게이트웨이에 거의 부담 없음(비동기) — 단 <b>body가 커질수록 인라인(요청 처리 중) 직렬화 비용이 증가</b>. <b>감사</b>로 EH는 App Insights(8KB 잘림)와 달리 <b>전량 무손실</b> — 큰 payload(데이터 본문)일수록 EH의 가치가 커진다.</div>
 
 <h2>2 · 내용 검증 (64KB 요청) — 무엇이 실제로 기록됐나</h2>
 <table><thead><tr><th>구성</th><th>App Insights <span class="mono">Response-Body</span></th><th>Event Hub 실제 메시지(소비 확인)</th></tr></thead><tbody>
-<tr><td><span class="c1">조건-1 무로깅</span></td><td>없음</td><td>—</td></tr>
-<tr><td><span class="c2">조건-2 App Insights</span></td><td><b>8192 (=8KB 잘림)</b> × 15</td><td>—</td></tr>
-<tr><td><span class="c3">조건-3 Event Hub</span></td><td><b>0</b> × 15</td><td><b>8192·65536 전량 저장</b> ✅</td></tr>
+<tr><td><span class="c1">C1 무로깅</span></td><td>없음</td><td>—</td></tr>
+<tr><td><span class="c2">C2 App Insights</span></td><td><b>8192 (=8KB 잘림)</b> × 15</td><td>—</td></tr>
+<tr><td><span class="c3">C3 Event Hub</span></td><td><b>0</b> × 15</td><td><b>8192·65536 전량 저장</b> ✅</td></tr>
 </tbody></table>
 <div class="chartbox"><svg viewBox="0 0 640 360" width="100%" style="max-width:640px">
 <line x1="56" y1="44" x2="620" y2="44" stroke="var(--cp-border)" opacity="0.6"/>
@@ -65,19 +64,18 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <rect x="126" y="268" width="141" height="28" rx="6" fill="var(--cp-danger)"/>
 <text x="197" y="252" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">8KB</text>
 <text x="197" y="266" text-anchor="middle" font-size="10" fill="var(--cp-text-muted)">8KB stored (56KB LOST)</text>
-<text x="197" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">조건-2 App Insights</text>
+<text x="197" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">C2 App Insights</text>
 <text x="197" y="327" text-anchor="middle" font-size="11" fill="var(--cp-text)">(8KB cap)</text>
 <rect x="408" y="72" width="141" height="224" rx="6" fill="var(--cp-success)"/>
 <text x="479" y="56" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">64KB</text>
 <text x="479" y="70" text-anchor="middle" font-size="10" fill="var(--cp-text-muted)">64KB stored (full)</text>
-<text x="479" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">조건-3 Event Hub</text>
+<text x="479" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">C3 Event Hub</text>
 <text x="479" y="327" text-anchor="middle" font-size="11" fill="var(--cp-text)">(lossless)</text>
 </svg><div class="cap">그림 1 · 64KB 요청에서 각 sink(로그 저장 대상)가 실제 저장한 body 크기 — App Insights는 8KB로 잘려 56KB 유실, EH는 전량</div></div>
 <div class="callout"><b>✅ 핵심 실증:</b> <span class="mono">azure-eventhub</span>로 EH를 직접 소비해 메시지 크기 = 8192·65536(전량) 확인. App Insights EventHub 송신 메트릭은 0(수집지연)이었으나 <b>실데이터로 무손실 저장 확정</b>. 이것이 v1에서 빠졌던 검증.</div>
 
 <h2>3 · EH 대용량 방향성 (프로파일 B, body 스윕(단계별 변화), 1×100)</h2>
-<div class="callout"><b>목적:</b> 부하는 낮게 고정하고 <b>body 크기만</b> 8→200KB로 키워 각 조건의 <b>비용 기울기</b>를 본다 → 그래서 일부러 <b>낮은 동시성(100 VU)</b>(200KB를 고부하로 걸면 엔진·네트워크·EH가 게이트웨이보다 먼저 터져 body 효과가 가려짐). <b>프로파일 A(1,000 VU)와 부하가 달라 절대값 직접 비교 불가</b> — 공통 앵커가 없어 "고부하 × 대용량 body" 구석은 미측정.</div>
-<table><thead><tr><th>body</th><th>조건-1 CPU%/성공 RPS</th><th>조건-2 CPU%/성공 RPS</th><th>조건-3 CPU%/성공 RPS</th><th>EH 제한/유실</th></tr></thead><tbody>
+<table><thead><tr><th>body</th><th>C1 CPU%/RPS</th><th>C2 CPU%/RPS</th><th>C3 CPU%/RPS</th><th>EH 제한/유실</th></tr></thead><tbody>
 <tr><td>8KB</td><td>17 / 653</td><td>18 / 553</td><td><b>21 / 521</b></td><td>0 / 0</td></tr>
 <tr><td>64KB</td><td>17 / 492</td><td>24 / 540</td><td><b>26 / 598</b></td><td>0 / 0</td></tr>
 <tr><td>200KB</td><td>25.5 / 458</td><td>29 / 453</td><td><b>37 / 388</b></td><td>0 / 0</td></tr>
@@ -110,20 +108,18 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <circle cx="56.0" cy="232.6" r="4" fill="var(--cp-success)"/><text x="56.0" y="223.6" text-anchor="middle" font-size="10" fill="var(--cp-success)">21</text>
 <circle cx="358.0" cy="185.6" r="4" fill="var(--cp-success)"/><text x="358.0" y="176.6" text-anchor="middle" font-size="10" fill="var(--cp-success)">26</text>
 <circle cx="660.0" cy="82.2" r="4" fill="var(--cp-success)"/><text x="660.0" y="73.2" text-anchor="middle" font-size="10" fill="var(--cp-success)">37</text>
-<rect x="66" y="58" width="12" height="12" rx="2" fill="var(--cp-text-soft)"/><text x="83" y="68" font-size="12" fill="var(--cp-text)">조건-1</text>
-<rect x="130" y="58" width="12" height="12" rx="2" fill="var(--cp-danger)"/><text x="147" y="68" font-size="12" fill="var(--cp-text)">조건-2</text>
-<rect x="194" y="58" width="12" height="12" rx="2" fill="var(--cp-success)"/><text x="211" y="68" font-size="12" fill="var(--cp-text)">조건-3</text>
+<rect x="66" y="58" width="12" height="12" rx="2" fill="var(--cp-text-soft)"/><text x="83" y="68" font-size="12" fill="var(--cp-text)">C1</text>
+<rect x="130" y="58" width="12" height="12" rx="2" fill="var(--cp-danger)"/><text x="147" y="68" font-size="12" fill="var(--cp-text)">C2</text>
+<rect x="194" y="58" width="12" height="12" rx="2" fill="var(--cp-success)"/><text x="211" y="68" font-size="12" fill="var(--cp-text)">C3</text>
 <text x="340" y="392" text-anchor="middle" font-size="11" fill="var(--cp-text-muted)">response body size (KB)</text>
-</svg><div class="cap">그림 2 · body 크기별 게이트웨이 CPU% — 조건-3(EH)가 가장 가파르게 상승(방향성). 조건-2는 8KB 상한이라 로깅 몫 평탄</div></div>
+</svg><div class="cap">그림 2 · body 크기별 게이트웨이 CPU% — C3(EH)가 가장 가파르게 상승(방향성). C2는 8KB 상한이라 로깅 몫 평탄</div></div>
 <div class="callout warn"><b>EH throttle/drop(처리 제한/유실) = 0 (전 구간):</b> 200KB×수백 RPS는 1TU(1MB/s)를 넘겼을 것으로 추정되나 <b>버퍼링·재시도로 유실 없이 흡수</b>. "무손실의 대가=drop"은 더 센 부하에서만 (미도달). EH가 APIM 레이턴시에 back-pressure(후단 지연이 앞단에 전파되는 역압)를 주지 않는 <b>비동기 디커플링(결합 분리)</b> 가정과 정합.</div>
 
-<h2>4 · 고부하 CPU 비교 (프로파일 A · <b>미포화</b> · 1,000 VU·body 8KB 고정)</h2>
-<div class="callout"><b>목적:</b> 게이트웨이를 <b>고부하로 눌러</b> 로깅 방식이 CPU·처리량에 주는 영향을 본다 → 그래서 <b>높은 동시성(1,000 VU)</b>. 조건-3의 <b>EH 로깅 용량 = 요청당 8KB</b>(=§3의 8KB와 같은 body, 단 부하가 1,000 vs 100 VU로 달라 CPU가 67.5% vs 21%로 다름).</div>
-<div class="callout warn"><b>부하 모델 주의(closed-loop):</b> VU(가상 사용자) 수를 고정하고 그 결과로 나온 RPS를 관측 — <b>RPS는 입력이 아니라 결과값</b>이며 아래는 <b>"견디는 최대 용량"이 아니다</b>. <b>포화 탐색 결과 미도달</b>: 500VU→CPU32%/1,322rps · 1,000VU→CPU<b>61%</b>/2,695rps · 1,500VU→CPU<b>61%</b>/4,100rps — CPU가 61%인데 사람 늘리자 RPS는 계속 상승 → knee(한계) 못 찾음(mock 왕복 ~0.37s 지연 바닥이 CPU보다 먼저 제한).</div>
-<table><thead><tr><th>구성</th><th>CPU% max (2런 균형)</th><th>개별 런</th><th>관측 RPS(용량 아님)</th></tr></thead><tbody>
-<tr><td><span class="c1">조건-1 무로깅</span></td><td><b>66.5%</b></td><td>65 / 68</td><td>2539</td></tr>
-<tr><td><span class="c2">조건-2 App Insights 8KB</span></td><td><b>74.5% (+8.0pp)</b></td><td>79 / 70</td><td>2759</td></tr>
-<tr><td><span class="c3">조건-3 body=0+EH</span></td><td>67.5% (+1.0pp)</td><td>69 / 66</td><td>2820</td></tr>
+<h2>4 · CPU 포화 (프로파일 A, body 8KB, knee(기준 부하) 4×250)</h2>
+<table><thead><tr><th>구성</th><th>CPU% max (2런 균형)</th><th>개별 런</th><th>성공 RPS</th></tr></thead><tbody>
+<tr><td><span class="c1">C1 무로깅</span></td><td><b>66.5%</b></td><td>65 / 68</td><td>2539</td></tr>
+<tr><td><span class="c2">C2 App Insights 8KB</span></td><td><b>74.5% (+8.0pp)</b></td><td>79 / 70</td><td>2759</td></tr>
+<tr><td><span class="c3">C3 body=0+EH</span></td><td>67.5% (+1.0pp)</td><td>69 / 66</td><td>2820</td></tr>
 </tbody></table>
 <div class="chartbox"><svg viewBox="0 0 640 360" width="100%" style="max-width:640px">
 <line x1="56" y1="44" x2="620" y2="44" stroke="var(--cp-border)" opacity="0.6"/>
@@ -141,56 +137,56 @@ ul,ol{margin:8px 0;padding-left:22px}li{margin:4px 0}
 <rect x="103" y="128" width="94" height="168" rx="6" fill="var(--cp-text-soft)"/>
 <text x="150" y="112" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">66.5%</text>
 <text x="150" y="126" text-anchor="middle" font-size="10" fill="var(--cp-text-muted)">baseline(기준값)</text>
-<text x="150" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">조건-1</text>
+<text x="150" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">C1</text>
 <text x="150" y="327" text-anchor="middle" font-size="11" fill="var(--cp-text)">no logging</text>
 <rect x="291" y="108" width="94" height="188" rx="6" fill="var(--cp-danger)"/>
 <text x="338" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">74.5%</text>
 <text x="338" y="106" text-anchor="middle" font-size="10" fill="var(--cp-text-muted)">+8.0pp</text>
-<text x="338" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">조건-2</text>
+<text x="338" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">C2</text>
 <text x="338" y="327" text-anchor="middle" font-size="11" fill="var(--cp-text)">AI 8KB</text>
 <rect x="479" y="126" width="94" height="170" rx="6" fill="var(--cp-success)"/>
 <text x="526" y="110" text-anchor="middle" font-size="14" font-weight="700" fill="var(--cp-text)">67.5%</text>
 <text x="526" y="124" text-anchor="middle" font-size="10" fill="var(--cp-text-muted)">+1.0pp</text>
-<text x="526" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">조건-3</text>
+<text x="526" y="314" text-anchor="middle" font-size="11" fill="var(--cp-text)">C3</text>
 <text x="526" y="327" text-anchor="middle" font-size="11" fill="var(--cp-text)">body=0+EH</text>
-<line x1="56" y1="44" x2="620" y2="44" stroke="var(--cp-danger)" stroke-dasharray="4 4" opacity="0.5"/><text x="620" y="40" text-anchor="end" font-size="9" fill="var(--cp-danger)">100%(미도달)</text>
-</svg><div class="cap">그림 3 · 동일 부하(1,000 VU·8KB)에서 구성별 게이트웨이 CPU% — 조건-2가 +8pp, 조건-3는 조건-1과 사실상 동등. CPU 61%대라 100% 포화는 미도달</div></div>
-<div class="callout"><b>가설-2 경향 지지(확정 아님):</b> 동일 부하에서 App Insights body 로깅(조건-2) CPU +8pp 경향. 단 <b>n=2·조건-2 런 편차 9pp가 효과 8pp와 맞먹어</b> 이 표만으로 확정은 아니며, 방향이 v1(+12.5pp)·공식문서·프로파일 B와 일치해 정황상 지지. <b>조건-3는 비동기라 +1pp</b>(게이트웨이 무부담). <b>관측 RPS 유사</b>는 미포화라 처리량 우열 판단 불가.</div>
+<line x1="56" y1="44" x2="620" y2="44" stroke="var(--cp-danger)" stroke-dasharray="4 4" opacity="0.5"/><text x="620" y="40" text-anchor="end" font-size="9" fill="var(--cp-danger)">100% 포화</text>
+</svg><div class="cap">그림 3 · 포화 부하에서 구성별 게이트웨이 CPU% — C2가 +8pp, C3는 C1과 사실상 동등</div></div>
+<div class="callout"><b>재확인:</b> App Insights body 로깅(C2)이 CPU +8pp(v1 +12.5pp와 방향 일치). <b>C3는 비동기라 +1pp</b>(사용자 통찰 실증). knee(기준 부하) 탐색에서 CPU가 ~61%에서 정체 → mock(모의 응답) 워크로드는 게이트웨이를 60%대까지만 사용(100% 포화 미도달).</div>
 
 <h2>5 · 판정표 (가설별)</h2>
 <table><thead><tr><th>가설</th><th>판정</th><th>근거</th></tr></thead><tbody>
-<tr><td>가설-1 단건 sub-ms(1ms 미만)</td><td>✅ 확정</td><td>(v1) TotalTime 0~1ms</td></tr>
-<tr><td>가설-2 조건-2가 CPU 더 씀</td><td>△ 경향 지지</td><td>A: +8pp(n=2, 런 편차 9pp) — v1·문서·B와 방향 일치</td></tr>
-<tr><td>가설-3 CPU→throughput 붕괴</td><td>⚠️ 미도달</td><td>CPU ~61-75% 정체(mock 미포화)</td></tr>
-<tr><td>가설-4 8KB에서 조건-2≈조건-3</td><td>✅ 확정</td><td>B 8KB: 18 vs 21</td></tr>
-<tr><td><b>가설-5 body&gt;8KB: 조건-2 잘림·조건-3 무손실</b></td><td>✅ <b>확정(핵심)</b></td><td>조건-2=8192, 조건-3=EH 전량</td></tr>
-<tr><td><b>가설-6 body↑ → 조건-3 비용↑</b></td><td>✅ <b>방향성 확인</b></td><td>조건-3 CPU 21→26→37%</td></tr>
-<tr><td>가설-7 의도한 로그만</td><td>✅ 확정</td><td>조건-1 없음/조건-2 8192/조건-3 0 +EH 전량</td></tr>
+<tr><td>H1 단건 sub-ms(1ms 미만)</td><td>✅ 확정</td><td>(v1) TotalTime 0~1ms</td></tr>
+<tr><td>H2 C2가 CPU 더 씀</td><td>✅ 재확인</td><td>A: +8pp</td></tr>
+<tr><td>H3 CPU→throughput 붕괴</td><td>⚠️ 미도달</td><td>CPU ~61-75% 정체(mock 미포화)</td></tr>
+<tr><td>H4 8KB에서 C2≈C3</td><td>✅ 확정</td><td>B 8KB: 18 vs 21</td></tr>
+<tr><td><b>H5 body&gt;8KB: C2 잘림·C3 무손실</b></td><td>✅ <b>확정(핵심)</b></td><td>C2=8192, C3=EH 전량</td></tr>
+<tr><td><b>H6 body↑ → C3 비용↑</b></td><td>✅ <b>방향성 확인</b></td><td>C3 CPU 21→26→37%</td></tr>
+<tr><td>H7 의도한 로그만</td><td>✅ 확정</td><td>C1 없음/C2 8192/C3 0 +EH 전량</td></tr>
 </tbody></table>
 
-<div class="card verdict warn" style="margin-top:18px"><span class="tag">성능 판정 · 핵심</span><h3>조건-3의 성능 향상은 없다</h3>
-<p>성능축에서 로깅은 <b>비용이지 이득이 아니다</b> — 어떤 구성도 무로깅(조건-1)을 못 이긴다. 조건-3의 정당화는 <b>성능이 아니라 역량</b>(무손실·200KB·샘플링 무관·감사)이다.</p>
+<div class="card verdict warn" style="margin-top:18px"><span class="tag">성능 판정 · 핵심</span><h3>C3의 성능 향상은 없다</h3>
+<p>성능축에서 로깅은 <b>비용이지 이득이 아니다</b> — 어떤 구성도 무로깅(C1)을 못 이긴다. C3의 정당화는 <b>성능이 아니라 역량</b>(무손실·200KB·샘플링 무관·감사)이다.</p>
 <ol style="margin:8px 0 4px">
-<li><b>무로깅(조건-1) 대비: 향상 0.</b> 조건-3도 +1pp CPU(66.5→67.5).</li>
-<li><b>조건-2 대비: 조건부 "덜 나쁨", 견고하지 않음</b> — 8KB·포화(A)에선 조건-3 67.5% &lt; 조건-2 74.5%(−7pp, 비동기). 그러나 <b>body가 커지면 역전</b>: 200KB(B)에서 조건-3 37% &gt; 조건-2 29%(조건-2는 8KB 상한, 조건-3는 전량 직렬화). 같은 8KB인데 A(조건-3&lt;조건-2)·B(조건-3&gt;조건-2)가 상반 → 조건 의존적.</li>
-<li><b>CPU를 아껴도 throughput/latency 개선으로 측정 안 됨</b> — CPU-bound가 아니라 동시성·네트워크 한계, 성공 RPS 노이즈 혼재(2539/2759/2820, 가설-3 미도달).</li>
+<li><b>무로깅(C1) 대비: 향상 0.</b> C3도 +1pp CPU(66.5→67.5).</li>
+<li><b>C2 대비: 조건부 "덜 나쁨", 견고하지 않음</b> — 8KB·포화(A)에선 C3 67.5% &lt; C2 74.5%(−7pp, 비동기). 그러나 <b>body가 커지면 역전</b>: 200KB(B)에서 C3 37% &gt; C2 29%(C2는 8KB 상한, C3는 전량 직렬화). 같은 8KB인데 A(C3&lt;C2)·B(C3&gt;C2)가 상반 → 조건 의존적.</li>
+<li><b>CPU를 아껴도 throughput/latency 개선으로 측정 안 됨</b> — CPU-bound가 아니라 동시성·네트워크 한계, 성공 RPS 노이즈 혼재(2539/2759/2820, H3 미도달).</li>
 </ol>
-<p style="margin-top:6px">→ 순수 성능: 잘해야 "작은 body·포화 한정 조건-2보다 덜 씀"(측정된 처리량 이득 없음), 나쁘면 "큰 body에서 조건-2보다 더 씀". <b>무로깅 대비 개선 0.</b></p></div>
+<p style="margin-top:6px">→ 순수 성능: 잘해야 "작은 body·포화 한정 C2보다 덜 씀"(측정된 처리량 이득 없음), 나쁘면 "큰 body에서 C2보다 더 씀". <b>무로깅 대비 개선 0.</b></p></div>
 
-<h2>6 · 공식 문서 근거 (조건-2 vs 조건-3 성능 서술의 비대칭)</h2>
-<div class="callout"><b>핵심:</b> 조건-2·조건-3를 <b>직접 비교(head-to-head)한 공식 문서는 없다.</b> 그러나 성능 저하 경고가 <b>오직 조건-2/App Insights 문서에만</b> 붙어 있고 조건-3/Event Hub는 정반대로 포지셔닝된다 — 이 <b>서술의 비대칭 자체</b>가 본 실측(조건-2 +8pp·8KB 잘림 vs 조건-3 +1pp·무손실)과 방향이 일치한다.</div>
-<table><thead><tr><th>근거</th><th>조건-2 · App Insights</th><th>조건-3 · Event Hub</th></tr></thead><tbody>
+<h2>6 · 공식 문서 근거 (C2 vs C3 성능 서술의 비대칭)</h2>
+<div class="callout"><b>핵심:</b> C2·C3를 <b>직접 비교(head-to-head)한 공식 문서는 없다.</b> 그러나 성능 저하 경고가 <b>오직 C2/App Insights 문서에만</b> 붙어 있고 C3/Event Hub는 정반대로 포지셔닝된다 — 이 <b>서술의 비대칭 자체</b>가 본 실측(C2 +8pp·8KB 잘림 vs C3 +1pp·무손실)과 방향이 일치한다.</div>
+<table><thead><tr><th>근거</th><th>C2 · App Insights</th><th>C3 · Event Hub</th></tr></thead><tbody>
 <tr><td>성능 경고</td><td class="c2">✅ 명시: "40–50% reduction in throughput" (&gt;1,000 rps)</td><td class="c3">❌ 없음 — "millions of events/sec", "decouples"(비동기)</td></tr>
 <tr><td>body 로깅</td><td class="c2">"significantly decrease performance" → "skip … Body logging"</td><td class="c3">"not affected by sampling. All invocations logged"(무손실)</td></tr>
 <tr><td>손실 / 상한</td><td class="c2">샘플링 의도적 유실, body <b>8KB</b></td><td class="c3">샘플링 무관 전량, <b>200KB</b></td></tr>
 <tr><td>감사 적합성</td><td class="c2">"<b>not</b> intended to be an audit system"</td><td class="c3">"highly scalable data ingress"(감사·오프라인 분석)</td></tr>
 </tbody></table>
-<div class="callout warn"><b>정직하게:</b> 문서의 "−40~50% throughput"은 <b>완전 포화(&gt;1000rps)</b> 전제 → 본 실험은 mock이 게이트웨이를 60-75%까지만 써서 <b>수치(크기)는 미재현</b>(가설-3). <b>저하 방향</b>은 문서·실측 일치, <b>크기</b>는 본 환경 미검증.</div>
+<div class="callout warn"><b>정직하게:</b> 문서의 "−40~50% throughput"은 <b>완전 포화(&gt;1000rps)</b> 전제 → 본 실험은 mock이 게이트웨이를 60-75%까지만 써서 <b>수치(크기)는 미재현</b>(H3). <b>저하 방향</b>은 문서·실측 일치, <b>크기</b>는 본 환경 미검증.</div>
 <p style="font-size:.85rem;color:var(--cp-text-muted)">출처 · <a href="https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-app-insights#performance-implications-and-log-sampling" style="color:var(--cp-accent)">App Insights — Performance implications and log sampling</a> · <a href="https://learn.microsoft.com/en-us/azure/api-management/log-to-eventhub-policy" style="color:var(--cp-accent)">log-to-eventhub policy — Usage notes</a> · <a href="https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-log-event-hubs" style="color:var(--cp-accent)">Log events to Event Hubs</a></p>
 
 <h2>7 · 한계</h2>
 <ol>
-<li><b>CPU 완전 포화(100%) 미도달</b>: mock <span class="mono">return-response</span>는 게이트웨이를 60-75%까지만 사용 → 문서의 "throughput 40~50%↓"(완전 포화 전제)는 여전히 미검증(가설-3). 실백엔드/무거운 정책이면 포화 가능.</li>
+<li><b>CPU 완전 포화(100%) 미도달</b>: mock <span class="mono">return-response</span>는 게이트웨이를 60-75%까지만 사용 → 문서의 "throughput 40~50%↓"(완전 포화 전제)는 여전히 미검증(H3). 실백엔드/무거운 정책이면 포화 가능.</li>
 <li><b>EH throttle(처리 제한) 미발생</b>: 우리 부하로 1TU를 유실까지 몰지 못함(버퍼 흡수). drop(유실)은 더 센 부하 필요.</li>
 <li><b>EH 200KB 소비 샘플 미확보</b>: 소비 배치 타이밍상 8192·65536만 캡처(200KB는 log-to-eventhub 200KB 상한 이내라 전송은 됨).</li>
 <li><b>프로파일 B RPS 노이즈</b>: 1엔진·소규모라 RPS 절대값 변동. CPU%가 더 안정적 지표.</li>

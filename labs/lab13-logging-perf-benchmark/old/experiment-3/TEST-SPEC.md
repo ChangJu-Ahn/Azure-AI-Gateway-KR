@@ -6,7 +6,7 @@
 
 ## ① 부하 테스트 조건
 
-ALT은 **closed-model**(고정 VU) → `RPS = 동시성 ÷ 응답시간`. **정확한 RPS 고정 불가** → 동시성을 고정하고 **달성 RPS를 실측**한다. 매 측정은 **steady-state만**(ramp 제외), 배포 직후 **워밍업 런 1회 폐기**.
+ALT(Azure Load Testing)는 **closed-model**(고정 VU) → `RPS = 동시성 ÷ 응답시간`. **정확한 RPS 고정 불가** → 동시성을 고정하고 **달성 RPS를 실측**한다. 매 측정은 **steady-state만**(ramp 제외), 배포 직후 **워밍업 런 1회 폐기**.
 
 ### 프로파일 A — CPU 포화 (가설 H2·H3, body = 8KB 고정)
 | 항목 | 값 |
@@ -14,7 +14,7 @@ ALT은 **closed-model**(고정 VU) → `RPS = 동시성 ÷ 응답시간`. **정�
 | 목적 | 게이트웨이 CPU를 포화(≥90%)까지 밀어 로깅 CPU 비용의 throughput 영향 관측 |
 | knee 탐색 | 동시성 계단식 `2×250(500)` → `4×250(1000)` → `6×250(1500)`, ramp 30s, dur 120s, 각 1회 |
 | knee 판정 | CPU% 포화 & 성공RPS 평탄 & **오류 < 5%** 인 동시성 |
-| 본 측정 | knee 동시성에서 C1/C2/C3, 각 **R회**(②), 워밍업+균형순서 |
+| 본 측정 | knee 동시성에서 조건-1/조건-2/조건-3, 각 **R회**(②), 워밍업+균형순서 |
 | body | 8,192 B 고정 |
 
 ### 프로파일 B — EH 대용량 방향성 (가설 H5·H6)
@@ -22,8 +22,8 @@ ALT은 **closed-model**(고정 VU) → `RPS = 동시성 ÷ 응답시간`. **정�
 |---|---|
 | body 스윕 | **8 / 32 / 64 / 128 / 200 KB** |
 | 부하 | **1 엔진 × 100 threads**(동시성 100), ramp 20s, dur 90s |
-| 구성 | 각 body에서 **C2·C3**(+ C1 기준 1회), 각 **R회** |
-| 관측 | C3의 **EH Throttled/Dropped/BytesSent** + CPU% + 성공RPS (C2는 8KB 상한 대조) |
+| 구성 | 각 body에서 **조건-2·조건-3**(+ 조건-1 기준 1회), 각 **R회** |
+| 관측 | 조건-3의 **EH Throttled/Dropped/BytesSent** + CPU% + 성공RPS (조건-2는 8KB 상한 대조) |
 | EH 대역폭 참고 | 1 TU=1MB/s. 100 rps 가정 시 8KB=0.8·32KB=3.2·64KB=6.4·128KB=12.8·200KB=20 MB/s |
 | EH 용량 | **Standard 1 TU·auto-inflate OFF·4 파티션 고정.** ⚠️ 용량 대조 세트는 **제외** — `log-to-eventhub`는 fire-and-forget 비동기라 EH throttle/drop이 APIM 레이턴시에 back-pressure를 주지 않는다(성능 무관). EH throttle/drop은 **감사 유실(audit loss)의 증거 + 비동기 디커플링 가정 검증**용으로만 기록 |
 
@@ -35,12 +35,12 @@ ALT은 **closed-model**(고정 VU) → `RPS = 동시성 ÷ 응답시간`. **정�
 |---|---|
 | 반복 R | **셀(구성×부하)당 2회** (축소안). 범위 > 평균의 15% 면 해당 셀만 +1회 |
 | body 스윕(B) | **8 / 64 / 200 KB** (3개, 축소안) |
-| 순서 균형 | 정순·역순 교차. 2회: `C1 C2 C3` · `C3 C2 C1` (각 구성이 앞/뒤 위치 경험) |
+| 순서 균형 | 정순·역순 교차. 2회: `조건-1 조건-2 조건-3` · `조건-3 조건-2 조건-1` (각 구성이 앞/뒤 위치 경험) |
 | 워밍업 | 배포 직후 1회 **폐기**. 구성 전환 시 전파 대기 90~150s |
 | 게이트웨이 | **단일 워밍업된 게이트웨이**에서 구성만 토글(배포 편차 상수화) |
 | 이상치 | mean ± (min/max) 보고. 콜드 등 이상치는 **표시**, 제외 시 **근거 명시** |
 
-**실행 예산(축소안)**: A(knee탐색 3 + 3구성×2회=6) ≈ 9런 + B(3크기×3구성×2회≈18) → 합 **~27런 ≈ 2~2.5h + 배포**. ⚠️ ALT VUH·APIM·EH 시간당 과금.
+**실행 예산(축소안)**: A(knee탐색 3 + 3구성×2회=6) ≈ 9런 + B(3크기×3구성×2회≈18) → 합 **~27런 ≈ 2~2.5h + 배포**. ⚠️ ALT(Azure Load Testing) VUH·APIM·EH 시간당 과금.
 
 ---
 
@@ -78,6 +78,6 @@ ALT은 **closed-model**(고정 VU) → `RPS = 동시성 ÷ 응답시간`. **정�
 ## 확정 체크리스트 (재실험 착수 전)
 - [ ] 부하 조건(①) 확정: knee 탐색 동시성, body 스윕, 프로파일 B 동시성
 - [ ] 반복(②) 확정: R=3(또는 축소안), 순서 균형
-- [ ] SKU(③) 확정: APIM StandardV2/cap1/autoscale off · EH Standard/1TU/inflate off/4파티션 · ALT 엔진·VU
+- [ ] SKU(③) 확정: APIM StandardV2/cap1/autoscale off · EH Standard/1TU/inflate off/4파티션 · ALT(Azure Load Testing) 엔진·VU
 - [ ] EH 용량 대조 세트(auto-inflate/파티션↑) 포함 여부
 - [ ] 실행 예산(시간/비용) 승인

@@ -6,6 +6,72 @@
 
 ---
 
+## 0. 이 실험을 시작한 두 질문과 공식 문서의 답
+
+### 질문 1 — APIM에 App Insights 로깅을 연결하면 성능이 저하되는가
+
+Microsoft의 [APIM과 Application Insights 통합 문서 — Performance implications and log sampling](https://learn.microsoft.com/azure/api-management/api-management-howto-app-insights#performance-implications-and-log-sampling)은 다음과 같이 명시한다.
+
+> "Logging all events might have serious performance implications, depending on incoming requests rate."
+>
+> "Based on internal load tests, enabling the logging feature caused a 40%-50% reduction in throughput when request rate exceeded 1,000 requests per second."
+
+문서는 이어서 Application Insights가 통계적 성능 분석용이며 다음 용도에는 맞지 않는다고 설명한다.
+
+> "It's not: Intended to be an audit system. Suited for logging each individual request for high-volume APIs."
+
+공식 완화책은 sampling을 낮추고 request/response header와 body 로깅을 생략하는 것이다.
+
+> "Sampling helps to reduce telemetry volume, effectively preventing significant performance degradation while still carrying the benefits of logging."
+>
+> "To improve performance issues, skip: Request and responses headers; Body logging."
+
+#### 이 문서가 증명하는 것
+
+- App Insights 전건 로깅은 요청률에 따라 심각한 성능 영향을 줄 수 있다.
+- Microsoft 내부 테스트에서는 1,000 RPS를 초과했을 때 throughput이 40~50% 감소했다.
+- sampling 100%는 모든 요청을 로깅하도록 설정하는 값이다.
+- sampling 축소와 body 로깅 생략은 성능 완화책이지만 전건 body 감사 요구와 충돌한다.
+
+#### 이 문서가 증명하지 않는 것
+
+- Basic v2 1 unit에서도 정확히 1,000 RPS 또는 40~50% 감소가 재현된다는 보장은 없다.
+- 정책, payload, 연결과 리전이 다른 본 실험 환경의 저하 지점은 문서 수치가 아니라 실측해야 한다.
+
+따라서 H1은 공식 수치를 그대로 재현하는 실험이 아니라, **본 환경에서 App Insights 100% + 8KB body 로깅이 실제로 실패하는 `R*`를 먼저 찾는 실험**이다.
+
+### 질문 2 — 전건 로깅을 유지하면서 성능 저하를 피할 방법이 있는가
+
+App Insights 문서의 완화책은 sampling 축소 또는 body 생략이므로 전건 body 감사 요구를 만족하지 못한다. Event Hub를 대안 가설로 세우는 공식 근거는 두 문서에 있다.
+
+Microsoft의 [APIM events를 Event Hubs에 로깅하는 방법](https://learn.microsoft.com/azure/api-management/api-management-howto-log-event-hubs)은 Event Hubs를 다음과 같이 설명한다.
+
+> "Azure Event Hubs is a highly scalable data ingress service that can ingest millions of events per second."
+>
+> "Event Hubs decouples the production of a stream of events from the consumption of those events, so that event consumers can access the events on their own schedule."
+
+Microsoft의 [`log-to-eventhub` 정책 문서 — Usage notes](https://learn.microsoft.com/azure/api-management/log-to-eventhub-policy#usage-notes)는 다음을 명시한다.
+
+> "The policy is not affected by Application Insights sampling. All invocations of the policy will be logged."
+>
+> "The maximum supported message size that can be sent to an event hub from this policy is 200 kilobytes (KB). A larger message will be automatically truncated to 200 KB."
+
+#### 이 문서가 증명하는 것
+
+- Event Hubs는 대규모 이벤트 수집과 생산자·소비자 분리를 목적으로 설계됐다.
+- `log-to-eventhub` 정책 호출은 App Insights sampling의 영향을 받지 않는다.
+- 정책이 보내는 메시지는 최대 200KB이며 초과분은 자동으로 잘린다.
+
+#### 이 문서가 증명하지 않는 것
+
+- `log-to-eventhub`를 사용하면 APIM throughput이 저하되지 않는다는 직접적인 성능 보장은 없다.
+- "All invocations ... will be logged"는 정책이 sampling으로 생략되지 않는다는 뜻이지, 최종 consumer에서 누락이 항상 0이라는 end-to-end 보장은 아니다.
+- Event Hubs 서비스가 초당 수백만 이벤트를 수집할 수 있다는 설명은 선택한 tier, TU/PU/CU, partition 수와 메시지 크기에서 용량이 자동 보장된다는 뜻이 아니다.
+
+따라서 H2는 **App Insights가 실패한 동일 `R*`에서 Event Hub가 처리량을 확보하는지**, H3는 **그 처리가 최대 몇 KB까지 유지되는지**, H4는 **최종 consumer까지 실제 전건 도달했는지**를 각각 실측한다.
+
+---
+
 ## 1. 결론부터 정의한다
 
 이 실험은 Event Hub가 무로깅보다 빠르거나 APIM 자체 성능을 높인다는 주장을 검증하지 않는다.
@@ -28,6 +94,7 @@
 
 동일한 8KB 요청을 처리할 때 App Insights sampling 100% + request body 8KB 로깅은 metadata-only 기준선보다 먼저 성능 SLO를 위반한다.
 
+- **공식 근거**: App Insights 로깅은 1,000 RPS 초과 내부 테스트에서 throughput 40~50% 감소가 관측됐고, body 로깅 생략이 성능 완화책으로 권고된다. 정확한 `R*`와 감소 폭은 본 환경에서 다시 측정한다.
 - **통과 조건**: metadata-only 기준선 `N8`은 통과하지만 App Insights `A8`은 실패하는 가장 낮은 offered RPS `R*`가 반복 측정에서 재현된다.
 - **의미**: `R*`가 없으면 Event Hub가 회복할 App Insights 성능 손실도 없으므로 이후 비교를 진행하지 않는다.
 - **실패 시 결론**: "본 조건에서 App Insights 8KB의 처리량 저하 구간을 재현하지 못해 Event Hub 회복 가설을 평가할 수 없음."
@@ -36,6 +103,8 @@
 
 H1에서 확정한 `R*`에서 Event Hub `E8`은 8KB body를 전달하면서 성능 SLO와 감사 완전성 기준을 모두 충족한다.
 
+- **공식 근거**: Event Hubs는 고처리량 수집과 생산·소비 분리를 제공하고, `log-to-eventhub`는 App Insights sampling과 무관하게 모든 정책 호출에 실행된다.
+- **검증 공백**: 공식 문서는 APIM throughput 무저하를 직접 보장하지 않으므로 이 가설을 실측해야 한다.
 - **통과 조건**: `E8`이 `R*`에서 성공 처리량, 오류율, p99, 감사 완전성 기준을 모두 통과한다.
 - **의미**: Event Hub가 더 빠르다는 뜻이 아니라 App Insights에서 잃은 처리량을 동일한 8KB 감사 payload로 확보했다는 뜻이다.
 
@@ -43,6 +112,8 @@ H1에서 확정한 `R*`에서 Event Hub `E8`은 8KB body를 전달하면서 성�
 
 `R*`를 고정한 상태에서 Event Hub payload를 32/64/128/200KB로 늘려도 일정 범위까지 성능 SLO와 감사 완전성을 함께 충족한다.
 
+- **공식 근거**: `log-to-eventhub`의 정책상 최대 메시지 크기는 200KB이며 초과 메시지는 자동 절단된다.
+- **검증 공백**: 200KB는 크기 상한이지 성능 보장값이 아니므로 각 크기를 직접 측정한다.
 - **통과 조건**: `E32`, `E64`, `E128`, `E200`을 순서대로 평가해 모든 기준을 연속으로 통과한 최대 크기를 보장 범위로 선언한다.
 - **부분 통과 예시**: 64KB까지 통과하고 128KB에서 실패하면 "최대 64KB까지 검증"으로 기록한다.
 - **금지**: 200KB를 실제로 통과하지 않았다면 정책의 문서상 상한만으로 "200KB 성능 보장"이라고 쓰지 않는다.
