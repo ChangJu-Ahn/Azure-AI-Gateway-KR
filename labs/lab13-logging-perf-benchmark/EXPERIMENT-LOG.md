@@ -268,4 +268,4 @@ az monitor log-analytics query -w "$WS_ID" --analytics-query "AppRequests | wher
 
 ### 실용 결론
 
-> 같은 `log-to-eventhub`라도 **Developer v1은 500 RPS에서 로그 약 절반을 잃지만, Basic v2는 무손실**로 전송한다. 전건 감사 로깅이 필요하면 게이트웨이 SKU를 충분히 확보해야 한다. EH 용량(TU)을 늘리는 것은 (8KB 기준) 해결책이 아니다 — 병목은 APIM 게이트웨이다.
+> 같은 `log-to-eventhub`라도 **Developer v1은 500 RPS에서 로그 약 절반을 잃지만, Basic v2는 무손실**로 전송한다. 모든 로그 감사가 필요하면 게이트웨이 SKU를 충분히 확보해야 한다. EH 용량(TU)을 늘리는 것은 (8KB 기준) 해결책이 아니다 — 병목은 APIM 게이트웨이다.
