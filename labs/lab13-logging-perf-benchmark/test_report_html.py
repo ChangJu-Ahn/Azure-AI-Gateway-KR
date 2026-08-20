@@ -22,8 +22,28 @@ SOURCE_DOCS = [
     "EXPERIMENT-SPEC.md",
     "EXPERIMENT-LOG.md",
     "RESULTS.md",
+    "old/RESULTS.md",
+    "old/REVIEW.md",
     "DECISION-TREE.md",
 ]
+
+RESULT_SUMMARY_HEADINGS = [
+    "App Insights 본문 로깅은 처리시간을 늘렸다",
+    "App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다",
+    "API 성공과 Event Hub 로그 전달 성공은 별개다",
+    "관측된 드롭은 EH 스로틀링으로 설명되지 않았다",
+    "8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다",
+    "큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다",
+    "Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다",
+]
+
+RESULT_VERDICTS = {
+    "q1": "조건부 지지",
+    "q2": "미검증",
+    "q3": "반박(본 Developer v1 고부하 조건)",
+    "q4": "조건부 강함",
+    "q5": "조건부 지지",
+}
 
 RESULT_FILES = sorted(
     str(path.relative_to(ROOT))
@@ -446,6 +466,37 @@ class ReportContractTests(unittest.TestCase):
         for evidence in ("8KB 500 RPS", "약 4 MB/s", "40 TU의 약 10%", "EH throttling 0"):
             self.assertIn(evidence, summary)
 
+    def test_html_summary_matches_active_results_order(self):
+        summary = re.search(
+            r'id="panel-summary"[\s\S]*?</section>',
+            self.html,
+        ).group(0)
+        positions = [summary.index(f'data-result-key="{index}"') for index in range(1, 8)]
+        self.assertEqual(positions, sorted(positions))
+        for heading in RESULT_SUMMARY_HEADINGS:
+            self.assertIn(heading, summary)
+
+    def test_html_question_verdicts_match_active_results(self):
+        hypotheses = re.search(
+            r'id="panel-hypotheses"[\s\S]*?</section>',
+            self.html,
+        ).group(0)
+        for question, verdict in RESULT_VERDICTS.items():
+            card = re.search(
+                rf'data-question="{question}"[\s\S]*?</article>',
+                hypotheses,
+            ).group(0)
+            self.assertIn(verdict, card)
+
+    def test_sources_link_active_and_archived_reports(self):
+        for href in (
+            "RESULTS.md",
+            "old/RESULTS.md",
+            "old/REVIEW.md",
+        ):
+            self.assertIn(f'href="{href}"', self.html)
+        self.assertNotIn('href="REVIEW.md"', self.html)
+
     def test_hero_marks_queue_mechanism_as_conditional_or_inferred(self):
         hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
         self.assertIn("큐 한도 메커니즘은 조건부/추정", hero)
@@ -485,7 +536,7 @@ class ReportContractTests(unittest.TestCase):
             "진단 기능 비활성화",
             "원문 문서",
             "클라이언트 결과 json",
-            "작업 트리",
+            "활성 공식 결과 보고서",
             "백엔드 지연",
             "로깅 비용",
             "출처:",
@@ -494,13 +545,14 @@ class ReportContractTests(unittest.TestCase):
         for phrase in required_phrases:
             self.assertIn(phrase, visible)
 
-    def test_hypothesis_cards_include_safe_reuse_payload_sku_and_corrections(self):
+    def test_hypothesis_cards_include_safe_reuse_payload_and_sku_messages(self):
         hypotheses = re.search(r'id="panel-hypotheses"[\s\S]*?</section>', self.html).group(0)
-        self.assertGreaterEqual(hypotheses.count("안전 재사용 문장:"), 5)
-        for heading in ("페이로드 운영 범위", "SKU 비교", "교정된 문장:"):
+        self.assertEqual(re.findall(r'data-question="(q[1-5])"', hypotheses), ["q1", "q2", "q3", "q4", "q5"])
+        self.assertEqual(hypotheses.count("안전 재사용 문장:"), 5)
+        for heading in ("요청 크기는 APIM 처리와 로그 전달에 영향을 주는가", "Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가"):
             self.assertIn(heading, hypotheses)
-        self.assertIn("Event Hub가 항상 App Insights보다 빠르다고 말하지 않는다", hypotheses)
-        self.assertIn("Developer v1의 최대 처리량을 500 RPS로 확정하지 않는다", hypotheses)
+        self.assertIn("HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없다", hypotheses)
+        self.assertIn("원인을 SKU 하나로 단정하지 않는다", hypotheses)
 
     def test_64kb_duration_chart_has_delivery_completeness_caution(self):
         fragment = self.chart_fragment("chart-duration-64k")

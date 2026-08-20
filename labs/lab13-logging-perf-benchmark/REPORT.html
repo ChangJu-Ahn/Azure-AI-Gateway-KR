@@ -610,7 +610,7 @@
         </dl>
         <p class="notice">
           수동 유지보수 안내: 이 보고서는 오프라인에서 자체 완결적으로 유지됩니다. 모든 차트는 정적이며,
-          현재 작업 트리의 근거 파일을 사용하므로 출처 번호가 바뀌면 수동으로 갱신해야 합니다.
+          동봉된 근거 파일을 사용하므로 출처 번호가 바뀌면 수동으로 갱신해야 합니다.
         </p>
       </header>
 
@@ -628,30 +628,40 @@
         <section role="tabpanel" id="panel-summary" aria-labelledby="tab-summary" class="panel-stack is-active">
           <h2>요약</h2>
           <div class="summary-grid">
-            <article class="panel-card summary-card">
-              <h3>API 성공 ≠ 로그 전달</h3>
-              <p>19개 클라이언트 결과 JSON은 모두 목표 요청 == 성공 요청, 오류 0이지만, E8/E64에서는 APIM EventHubDroppedEvents가 관측됐습니다.</p>
-              <span class="evidence confirmed">확정 · RESULTS.md + result.json</span>
+            <article class="panel-card summary-card" data-result-key="1">
+              <h3>App Insights 본문 로깅은 처리시간을 늘렸다</h3>
+              <p>기록된 8KB RPS 포인트에서 A8 Duration은 App Insights 메타데이터만 기록한 기준선보다 높았습니다. 다만 사전 명세의 CPU/p99/3회 반복 기준은 그대로 수행되지 않았습니다.</p>
+              <span class="evidence conditional">조건부 지지 · RESULTS.md + EXPERIMENT-LOG.md</span>
             </article>
-            <article class="panel-card summary-card">
-              <h3>EH 네임스페이스는 병목 아님</h3>
-              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%이며, 관측 실행에서 EH throttling 0이었습니다. 드롭은 APIM 쪽에서 보고됐습니다.</p>
-              <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
+            <article class="panel-card summary-card" data-result-key="2">
+              <h3>App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다</h3>
+              <p>A8 500 RPS 관측 창의 AppRequests 수는 발신 요청 수 이상이었지만, 워밍업 혼입과 요청 ID/해시 대조 부재 때문에 전건 단위 증명으로 보지 않습니다.</p>
+              <span class="evidence conditional">조건부 · RESULTS.md + AppRequests 집계</span>
             </article>
-            <article class="panel-card summary-card">
-              <h3>페이로드가 운영 범위를 좁힘</h3>
-              <p>8KB E8은 300 RPS에서 드롭 0, 400 RPS에서 2,933 드롭이었고 64KB E64는 300 RPS에서도 41,435 드롭이었습니다.</p>
-              <span class="evidence conditional">조건부 · RESULTS.md</span>
+            <article class="panel-card summary-card" data-result-key="3">
+              <h3>API 성공과 Event Hub 로그 전달 성공은 별개다</h3>
+              <p>E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, 동시에 APIM은 Event Hub drop을 보고했습니다. 19개 result.json의 API 성공과 감사 로그 전달은 별도 SLO입니다.</p>
+              <span class="evidence confirmed">확정 · RESULTS.md + result.json + APIM EventHubDroppedEvents</span>
             </article>
-            <article class="panel-card summary-card">
-              <h3>본문 로깅은 Duration 증가</h3>
-              <p>A8은 메타데이터만 기록한 N8 대비 APIM Duration을 높였습니다. 500 RPS에서는 N8 0.10~0.35 ms, A8 0.90~2.50 ms입니다.</p>
-              <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
+            <article class="panel-card summary-card" data-result-key="4">
+              <h3>관측된 드롭은 EH 스로틀링으로 설명되지 않았다</h3>
+              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%였고 관측 실행에서 EH throttling 0이었습니다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않습니다.</p>
+              <span class="evidence confirmed">확정 · RESULTS.md + EXPERIMENT-LOG.md</span>
             </article>
-            <article class="panel-card summary-card">
-              <h3>Basic v2 차이는 조건부</h3>
-              <p>Basic v2는 관측 창에서 분당 약 30,000 EH 도달과 클라이언트 전부 200을 보였지만, v2 CPU/메모리와 드롭 메커니즘은 미수집입니다.</p>
-              <span class="evidence conditional">조건부 · RESULTS.md</span>
+            <article class="panel-card summary-card" data-result-key="5">
+              <h3>8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다</h3>
+              <p>E8에서 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐습니다. 안정 임계값이 아니라 관측된 전이 구간입니다.</p>
+              <span class="evidence confirmed">확정 · RESULTS.md + EXPERIMENT-LOG.md</span>
+            </article>
+            <article class="panel-card summary-card" data-result-key="6">
+              <h3>큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다</h3>
+              <p>64KB 요청은 메타데이터만 기준선에서도 8KB보다 Duration이 뚜렷하게 높았고, E64는 300·500 RPS 모두에서 APIM-reported drop이 있었습니다.</p>
+              <span class="evidence conditional">조건부 강함 · RESULTS.md + EXPERIMENT-LOG.md</span>
+            </article>
+            <article class="panel-card summary-card" data-result-key="7">
+              <h3>Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다</h3>
+              <p>동일한 8KB 500 RPS E8 비교에서 Developer v1은 대량 drop을 보였고 Basic v2 관측 창은 EH 도달 수가 발신량과 대체로 맞았습니다. 단, 지표 수집은 비대칭이었습니다.</p>
+              <span class="evidence conditional">조건부 지지 · RESULTS.md + Basic v2 EH IncomingMessages</span>
             </article>
           </div>
           <article class="panel-card full-span">
@@ -660,69 +670,56 @@
               <li>API SLO와 로깅 SLO를 분리하십시오.</li>
               <li>APIM EH 드롭/성공과 EH 유입/스로틀링을 함께 모니터링하십시오.</li>
               <li>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오.</li>
-              <li>v1은 클래식 티어 Capacity, v2는 게이트웨이 CPU/메모리를 권위 부하 지표로 사용하십시오.</li>
+              <li>v1은 클래식 티어 Capacity, v2는 게이트웨이 CPU/메모리 지표를 권위 부하 지표로 수집하십시오.</li>
             </ol>
           </article>
           <p class="warning">
-            범위 주의: 원래 계획은 조건별 3회 반복과 요청 ID/해시 대조였으나 실행 데이터는 조건별 대부분 1회 실행이며 서버 카운터 중심입니다. N은 메타데이터만 기준선이지 진단 기능 비활성화가 아닙니다.
+            범위 주의: 결론은 Korea Central의 기록된 APIM 배포, 8KB·64KB 요청, 100~500 RPS 관측 창에 한정됩니다. 반복, 요청 ID/해시 대조, 워밍업, 메타데이터만 기준선, 클라이언트 지연, v1/v2 지표 비대칭 주의는 한계 탭에서 별도로 다룹니다.
           </p>
         </section>
 
         <section role="tabpanel" id="panel-hypotheses" aria-labelledby="tab-hypotheses" class="panel-stack">
           <h2>가설 판정</h2>
           <div class="panel-grid">
-            <article class="panel-card">
-              <h3>H1 · App Insights 8KB 본문 비용</h3>
-              <p><strong>의도 기준:</strong> A8 평균 게이트웨이 CPU 또는 p99가 N8보다 의미 있게 높고 세 반복이 같은 방향.</p>
-              <p><strong>실제 증거:</strong> 3회 반복은 없었지만 APIM Duration은 기록된 모든 RPS에서 N8보다 A8이 높았고 500 RPS는 0.10~0.35 ms에서 0.90~2.50 ms로 증가했습니다.</p>
-              <p><strong>판정:</strong> 기록된 포인트에서는 본문 로깅 비용 방향이 확인됩니다. 1,000 RPS 공식 경고 구간은 미검증입니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 본 Developer v1·Korea Central·8KB 관측에서는 App Insights 본문 로깅이 APIM Duration을 늘렸습니다.</p>
-              <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md / RESULTS.md</span>
+            <article class="panel-card" data-question="q1">
+              <h3>질문 1 · App Insights 본문 로깅은 APIM 처리에 영향을 주는가</h3>
+              <p><strong>가설:</strong> App Insights body 로깅은 APIM 처리시간에 영향을 준다.</p>
+              <p><strong>실제 증거:</strong> 기록된 8KB 조건에서 A8 Duration은 N8 메타데이터만 기준선보다 높았습니다. 100 RPS는 0.01 ms에서 0.03 ms, 300 RPS는 0.06 ms에서 0.13 ms, 400 RPS는 0.03 ms에서 0.64 ms, 500 RPS는 0.10~0.35 ms에서 0.90~2.50 ms로 증가했습니다.</p>
+              <p><strong>판정:</strong> 조건부 지지. 방향은 본문 로깅이 게이트웨이 처리시간을 늘렸다는 해석을 지지하지만, 원래 H1의 CPU, p99, 성공 처리율, 조건별 3회 반복 기준은 그대로 수행되지 않았습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 본 실험의 8KB 관측 포인트에서는 App Insights body 로깅이 APIM Duration을 늘렸습니다. Microsoft 문서의 1,000 RPS 초과 처리량 저하 수치를 재현했다고 말하지 않습니다.</p>
+              <span class="evidence conditional">조건부 지지 · RESULTS.md + EXPERIMENT-LOG.md</span>
             </article>
-            <article class="panel-card">
-              <h3>H2 · Event Hub 8KB 500 RPS 무손실</h3>
-              <p><strong>의도 기준:</strong> 생성/목표 요청 ≥ 99%, 성공 RPS ≥ 495, 오류율 ≤ 1%, p99 ≤ N8의 120%, 요청 ID와 페이로드 해시 대조.</p>
-              <p><strong>실제 증거:</strong> 클라이언트는 150,000/150,000 성공했지만 APIM EventHubDroppedEvents가 대량 관측됐습니다. 300 RPS 이하는 드롭 0, 400 RPS는 2,933 드롭입니다.</p>
-              <p><strong>판정:</strong> 500 RPS 무손실은 반박. 정확한 드롭률은 미확정이며 축 범위 밖 질적 표시만 사용합니다.</p>
-              <p><strong>안전 재사용 문장:</strong> API 200 성공은 Event Hub 감사 로그 전달 성공을 보장하지 않습니다.</p>
-              <span class="evidence risk">드롭/위험 · RESULTS.md</span>
+            <article class="panel-card" data-question="q2">
+              <h3>질문 2 · 성능 저하 없이 모든 요청을 로깅할 수 있는가</h3>
+              <p><strong>가설:</strong> 로깅 방식을 선택하면 모든 요청을 성능 저하 없이 로깅할 수 있다.</p>
+              <p><strong>실제 증거:</strong> A8 500 RPS에서는 클라이언트 150,000 요청에 대해 AppRequests 150,178건이 조회됐지만 워밍업 잔여와 요청 ID/해시 대조 부재가 있습니다. E8 500 RPS에서는 클라이언트 요청 150,000건이 모두 200으로 성공했지만 APIM은 Event Hub drop을 대량 보고했습니다.</p>
+              <p><strong>판정:</strong> 미검증. 성공 요청 ID 집합, EH 수신 ID 집합, 페이로드 해시, 메시지 크기 대조가 최종 판정의 주된 근거로 수집되지 않아 “모든 요청”과 “성능 저하 없음”을 end-to-end로 동시에 증명하지 못했습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 이번 환경에서는 로깅 방식 선택만으로 무손실과 무저하를 함께 입증하지 못했습니다.</p>
+              <span class="evidence unverified">미검증 · RESULTS.md + EXPERIMENT-SPEC.md</span>
             </article>
-            <article class="panel-card">
-              <h3>H3 · 64KB Event Hub 무손실</h3>
-              <p><strong>의도 기준:</strong> H2와 동일하되 64KB 전체 메시지와 N64 대비 p99를 확인.</p>
-              <p><strong>실제 증거:</strong> E64는 300 RPS에서 41,435, 500 RPS에서 76,434 EventHubDroppedEvents가 관측됐고 EH throttling은 0입니다.</p>
-              <p><strong>판정:</strong> 64KB에서는 관측 운영 범위가 8KB보다 더 좁습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 페이로드가 커지면 같은 RPS에서도 로그 전달 가능 범위가 급격히 줄 수 있습니다.</p>
-              <span class="evidence risk">드롭/위험 · EXPERIMENT-LOG.md</span>
+            <article class="panel-card" data-question="q3">
+              <h3>질문 3 · Event Hub 연결은 무손실 로그 전송을 보장하는가</h3>
+              <p><strong>가설:</strong> Event Hub 연결 자체가 무손실 로그 전송을 보장한다.</p>
+              <p><strong>실제 증거:</strong> 본 Developer v1의 8KB·64KB 고부하 관측에서는 API 요청이 성공해도 APIM이 Event Hub 로그 drop을 보고했습니다. E8은 300 RPS에서 drop 0, 400 RPS에서 2,933, 500 RPS에서 대량 drop이었고, 기록상 EH 스로틀링 관측 없음으로 정리됩니다.</p>
+              <p><strong>판정:</strong> 반박(본 Developer v1 고부하 조건). 이 결과는 Event Hub 연결 자체가 무손실 전달을 보장한다는 주장을 본 조건에서 반박하며, 모든 SKU·부하로 일반화하지 않습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없다. APIM Event Hub drop/success 카운터와 Event Hubs ingress/throttling을 함께 모니터링해야 합니다.</p>
+              <span class="evidence risk">반박(본 Developer v1 고부하 조건) · RESULTS.md + APIM EventHubDroppedEvents</span>
             </article>
-            <article class="panel-card">
-              <h3>H4 · 페이로드 운영 범위</h3>
-              <p><strong>실제 증거:</strong> 8KB E8은 300 RPS에서 드롭 0, 400 RPS에서 2,933 드롭이었고 64KB E64는 300 RPS에서도 41,435 드롭이었습니다.</p>
-              <p><strong>판정:</strong> 병목 판단은 RPS만이 아니라 초당 기록 bytes를 함께 봐야 합니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 피크 RPS × 기록 페이로드 크기로 APIM 로깅 용량을 계획해야 합니다.</p>
-              <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
+            <article class="panel-card" data-question="q4">
+              <h3>질문 4 · 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가</h3>
+              <p><strong>가설:</strong> 요청 크기가 커지면 APIM 처리시간과 로그 전달 운영 범위에 영향을 준다.</p>
+              <p><strong>실제 증거:</strong> N64 Duration은 300 RPS 6.04 ms, 500 RPS 7.32 ms로 8KB보다 높았습니다. E64는 300 RPS Duration 5.24 ms와 APIM-reported drop 41,435건, 500 RPS Duration 7.58 ms와 drop 76,434건을 함께 보였습니다.</p>
+              <p><strong>판정:</strong> 조건부 강함. 두 payload 크기와 제한된 RPS 포인트, 대부분 1회 측정만 있으므로 임계 곡선은 확정하지 않지만, 큰 요청이 처리시간과 Event Hub 전달 운영 범위에 영향을 준다는 방향은 강하게 지지됩니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 큰 요청은 처리시간과 로깅 전달 가능 운영 범위에 영향을 줄 수 있으므로 운영 목표 RPS와 실제 request/log 크기로 사전 부하 테스트를 수행해야 합니다.</p>
+              <span class="evidence conditional">조건부 강함 · RESULTS.md + EXPERIMENT-LOG.md</span>
             </article>
-            <article class="panel-card">
-              <h3>H5 · SKU 비교</h3>
-              <p><strong>실제 증거:</strong> 동일한 EH 40 TU와 부하 VM에서 Developer v1은 8KB 500 RPS E8 대량 드롭, Basic v2는 분당 약 30,000 EH 도달과 클라이언트 150,000 전부 200을 보였습니다.</p>
-              <p><strong>판정:</strong> SKU에 따른 결과 차이는 관측됐지만 v2 CPU/메모리가 없어 메커니즘은 조건부입니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 모든 로그 감사가 필요하면 목표 부하에서 게이트웨이 SKU와 권위 지표를 직접 검증해야 합니다.</p>
-              <span class="evidence conditional">조건부 · EXPERIMENT-LOG.md</span>
-            </article>
-            <article class="panel-card">
-              <h3>교정된 표현</h3>
-              <p><strong>거부할 표현:</strong> Event Hub가 항상 App Insights보다 빠르다. Developer v1의 최대 처리량은 500 RPS다.</p>
-              <p><strong>교정된 문장:</strong> Event Hub가 항상 App Insights보다 빠르다고 말하지 않는다. 정상 전달 구간과 드롭 구간을 분리해 해석해야 합니다.</p>
-              <p><strong>교정된 문장:</strong> Developer v1의 최대 처리량을 500 RPS로 확정하지 않는다. 본 실험은 500 RPS까지만 관측했습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 이번 숫자는 본 환경의 관측값이며 운영 한계나 보장값이 아닙니다.</p>
-              <span class="evidence corrected">교정 · RESULTS.md / DECISION-TREE.md</span>
-            </article>
-            <article class="panel-card">
-              <h3>계획 대비 실행</h3>
-              <p><strong>계획:</strong> 조건별 3회 반복, 요청 ID 대조, 페이로드 해시, 메시지 크기 검증.</p>
-              <p><strong>실행:</strong> 대부분 한 번씩 실행했고, 결과 판정은 APIM/EH 서버 카운터와 19개 result.json의 클라이언트 성공값에 의존했습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 결론은 방향성과 관측 사실 중심이며, 반복 분산과 종단 간 대조는 별도 검증해야 합니다.</p>
-              <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md 대비 실행 로그</span>
+            <article class="panel-card" data-question="q5">
+              <h3>질문 5 · Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가</h3>
+              <p><strong>가설:</strong> Developer v1과 Basic v2 비교에서 Event Hub 전달 결과가 다르게 관측된다.</p>
+              <p><strong>실제 증거:</strong> 동일한 8KB 500 RPS E8 비교에서 Developer v1은 약 절반만 EH에 도달한 것으로 기록되고 대량 drop을 보였습니다. Basic v2 관측 창은 분당 약 30,000건 수준의 EH 도달 수와 클라이언트 요청 200 성공을 보였지만 v2 CPU/메모리와 직접 비교 가능한 drop 카운터는 확보하지 못했습니다.</p>
+              <p><strong>판정:</strong> 조건부 지지. 전달 결과 차이는 관측됐지만 지표가 비대칭이므로 원인을 SKU 하나로 단정하지 않는다.</p>
+              <p><strong>안전 재사용 문장:</strong> 이번 Basic v2 관측 창에서는 EH 도달 수가 발신량과 대체로 맞았고 Developer v1과 다른 운영 결과가 관측됐습니다. 원인 확인에는 v2 CPU/메모리와 drop 카운터를 포함한 대칭 측정이 필요합니다.</p>
+              <span class="evidence conditional">조건부 지지 · RESULTS.md + Basic v2 EH IncomingMessages</span>
             </article>
           </div>
         </section>
@@ -1602,7 +1599,9 @@
           <div class="source-list">
             <article class="source-item"><h3><a href="EXPERIMENT-SPEC.md"><code>EXPERIMENT-SPEC.md</code></a></h3><p>가설, 성공 기준, 3회 반복 계획, 요청 ID/해시/메시지 크기 대조 요구.</p><span class="pill">원문 문서</span></article>
             <article class="source-item"><h3><a href="EXPERIMENT-LOG.md"><code>EXPERIMENT-LOG.md</code></a></h3><p>실행 조건, 시간창, 8KB/64KB 서버 메트릭, 메타데이터만 기준선 설명.</p><span class="pill">원문 문서</span></article>
-            <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>현재 작업 트리 최종 결과, 한계, SKU 비교, 교정된 해석.</p><span class="pill">원문 문서</span></article>
+            <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>활성 공식 결과 보고서. HTML 요약과 다섯 질문 판정의 권위 출처입니다.</p><span class="pill">활성 공식 결과</span></article>
+            <article class="source-item"><h3><a href="old/RESULTS.md"><code>old/RESULTS.md</code></a></h3><p>보관된 이전 해석입니다. 현재 고객용 판정의 권위 출처가 아니며 비교·변경 이력 확인용입니다.</p><span class="pill">보관 원문</span></article>
+            <article class="source-item"><h3><a href="old/REVIEW.md"><code>old/REVIEW.md</code></a></h3><p>반복, 워밍업, 요청 ID/해시, 메타데이터만 기준선, 클라이언트 지연, v1/v2 지표 비대칭 한계를 정리한 보관된 검토 근거입니다.</p><span class="pill">보관 검토 근거</span></article>
             <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델.</p><span class="pill">원문 문서</span></article>
               <article class="source-item">
                 <h3><a href="results/r100-A8/result.json"><code>results/r100-A8/result.json</code></a></h3>
