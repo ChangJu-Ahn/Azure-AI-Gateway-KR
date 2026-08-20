@@ -4,7 +4,7 @@
 
 이 보고서는 Azure API Management(APIM)에서 App Insights body 로깅과 `log-to-eventhub` 기반 Event Hub 전달을 비교한 고객용 최종 결과다. 판정은 `EXPERIMENT-SPEC.md`, `EXPERIMENT-LOG.md`, 그리고 보관된 검토 근거 `old/REVIEW.md`에 맞춰 증거 범위를 제한했다.
 
-- **metadata-only 기준선**: N8/N64 조건은 App Insights diagnostic을 완전히 끈 상태가 아니라, 모든 조건에 공통으로 켜진 App Insights 메타데이터만 기록한 기준선이다.
+- **metadata-only 기준선**: N8/N64 조건은 App Insights diagnostic을 완전히 끈 상태가 아니다. 모든 조건에 공통으로 켜진 App Insights 메타데이터만 기록한 기준선이다.
 - **body 로깅**: A8은 8KB request body를 App Insights에 기록한 조건이다.
 - **Event Hub 전달**: E8/E64는 요청 body를 `log-to-eventhub`로 Event Hub에 보낸 조건이다.
 - **drop**: 이 보고서의 Event Hub drop은 APIM `EventHubDroppedEvents`가 보고한 값이다. API 응답 실패와 같은 의미가 아니다.
@@ -15,9 +15,9 @@
 1. **App Insights 본문 로깅은 처리시간을 늘렸다.** 기록된 8KB RPS 포인트에서 A8 Duration은 App Insights 메타데이터만 기록한 기준선보다 높았다. 다만 사전 명세의 CPU/p99/3회 반복 기준은 그대로 수행되지 않았다.
 2. **App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다.** A8 500 RPS 관측 창의 AppRequests 수는 발신 요청 수 이상이었지만, warmup 혼입과 요청 ID 대조 부재 때문에 전건 단위 증명으로 보지는 않는다.
 3. **API 성공과 Event Hub 로그 전달 성공은 별개다.** E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, 동시에 APIM은 Event Hub drop을 보고했다.
-4. **관측된 드롭은 EH 스로틀링으로 설명되지 않았다.** 기록된 드롭 창에서 Event Hubs throttling은 0으로 보고됐다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않는다.
+4. **관측된 드롭은 EH 스로틀링으로 설명되지 않았다.** 기록상 EH 스로틀링 관측 없음으로 정리된다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않는다.
 5. **8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다.** E8에서 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐다.
-6. **큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다.** 64KB 요청은 metadata-only 기준선에서도 8KB보다 Duration이 크게 높았고, E64는 300·500 RPS 모두에서 APIM-reported drop이 있었다.
+6. **큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다.** 64KB 요청은 metadata-only 기준선에서도 8KB보다 Duration이 뚜렷하게 높았고, E64는 300·500 RPS 모두에서 APIM-reported drop이 있었다.
 7. **Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다.** 동일한 8KB 500 RPS E8 비교에서 Developer v1은 대량 drop을 보였고 Basic v2 관측 창은 EH 도달 수가 발신량과 대체로 맞았다. 단, 지표 수집은 비대칭이었다.
 
 ---
@@ -32,6 +32,18 @@
 | 300 | 0.06 ms | 0.13 ms |
 | 400 | 0.03 ms | 0.64 ms |
 | 500 | 0.1~0.35 ms | 0.9~2.5 ms |
+
+Capacity 관측값은 다음과 같다. N은 App Insights 메타데이터만 기록한 기준선이지 diagnostics-off 조건이 아니다.
+
+| RPS | N8 Capacity | A8 Capacity | E8 Capacity |
+|---:|---:|---:|---:|
+| 100 | 31.5% | 39% | 38% |
+| 200 | 58% | 66% | 85% |
+| 300 | 79% | 88.5% | 86.5% |
+| 400 | 85.5% | 84.5% | 85.5% |
+| 500 | 약 89% | 약 89% | 약 87% |
+
+200 RPS에서 E8 Capacity는 85%였고 N8은 58%, A8은 66%였다. 그러나 400~500 RPS에서는 세 조건 모두 상단 범위에 가까워 Capacity만으로 로깅 효과를 분리할 수 없었다. 이 단일 실행들에서 보편 Capacity 임계값을 제시하지 않는다.
 
 고객 해석은 다음 범위가 안전하다. 본 실험의 8KB 관측 포인트에서는 body 로깅이 Duration을 늘렸다. 그러나 원래 H1은 CPU, p99, 성공 처리율, 조건별 3회 반복을 기준으로 삼았고 실제 실행은 Duration/Capacity 중심의 대부분 1회 측정이었으므로, 공식 문서의 1,000 RPS 초과 처리량 저하 수치를 재현했다고 말하지 않는다.
 
@@ -49,24 +61,26 @@
 
 **판정: 반박(본 Developer v1 고부하 조건).** 본 Developer v1의 8KB·64KB 고부하 관측에서는 API 요청이 성공해도 APIM이 Event Hub 로그 drop을 보고했다. 이 결과는 “Event Hub 연결 자체가 무손실 전달을 보장한다”는 주장을 본 조건에서 반박한다.
 
-| 조건 | RPS | 클라이언트 성공 | APIM-reported EH drop | EH throttling | 해석 |
-|---|---:|---:|---:|---:|---|
-| E8 | 300 | 54,000 / 54,000 | 0 | 0 | 이 관측 창에서는 APIM drop이 보고되지 않음 |
-| E8 | 400 | 72,000 / 72,000 | 2,933 | 0 | API 성공과 로그 전달 실패가 분리됨 |
-| E8 | 500 | 150,000 / 150,000 | 대량, 약 절반으로 기록됨 | 0 | 정확한 비율은 warmup 경계 때문에 미확정 |
+| 조건 | RPS | 클라이언트 성공 | APIM-reported EH drop | 해석 |
+|---|---:|---:|---:|---|
+| E8 | 300 | 54,000 / 54,000 | 0 | 이 관측 창에서는 APIM drop이 보고되지 않음 |
+| E8 | 400 | 72,000 / 72,000 | 2,933 | API 성공과 로그 전달 실패가 분리됨 |
+| E8 | 500 | 150,000 / 150,000 | 대량, 약 절반으로 기록됨 | 정확한 비율은 warmup 경계 때문에 미확정 |
 
-중요한 운영 메시지는 두 가지다. 첫째, HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없다. 둘째, 이번 드롭은 기록상 Event Hubs throttling으로 설명되지 않았으므로 APIM의 Event Hub drop/success 카운터와 Event Hubs ingress/throttling을 함께 모니터링해야 한다. 이 판정은 본 Developer v1 고부하 조건에 한정하며 모든 SKU·부하로 일반화하지 않는다.
+기록상 EH 스로틀링 관측 없음은 해당 측정창에서 확인 가능한 집계 기준이며, 각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아니다. 중요한 운영 메시지는 두 가지다. 첫째, HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없다. 둘째, APIM의 Event Hub drop/success 카운터와 Event Hubs ingress/throttling을 함께 모니터링해야 한다. 이 판정은 본 Developer v1 고부하 조건에 한정하며 모든 SKU·부하로 일반화하지 않는다.
 
 ## 질문 4 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가
 
 **판정: 조건부 강함.** 두 payload 크기만 측정했지만, 큰 요청이 처리시간과 Event Hub 전달 운영 범위에 영향을 준다는 방향은 강하게 지지된다.
 
-| RPS | N64 — App Insights 메타데이터만 기록한 기준선 Duration | E64 — Event Hub 64KB Duration | E64 APIM-reported EH drop | EH throttling |
-|---:|---:|---:|---:|---:|
-| 300 | 6.04 ms | 5.24 ms | 41,435 | 0 |
-| 500 | 7.32 ms | 7.58 ms | 76,434 | 0 |
+| RPS | N64 — App Insights 메타데이터만 기록한 기준선 Duration | E64 — Event Hub 64KB Duration | E64 APIM-reported EH drop |
+|---:|---:|---:|---:|
+| 300 | 6.04 ms | 5.24 ms | 41,435 |
+| 500 | 7.32 ms | 7.58 ms | 76,434 |
 
-64KB 조건은 metadata-only 기준선만으로도 8KB보다 Duration이 materially 높았다. 또한 E64는 300 RPS와 500 RPS 모두에서 APIM-reported drop을 보였다. 다만 8KB와 64KB 두 크기, 제한된 RPS 포인트, 대부분 1회 측정에 기반하므로 정확한 임계 곡선은 후속 측정이 필요하다.
+E64 300 RPS는 N64보다 Duration이 낮지만 APIM-reported drop 41,435건이 함께 발생했다. Duration은 로그 전달 완전성 지표가 아니며, 이 차이를 순수 EH 로깅 비용이나 더 나은 성능으로 해석하지 않는다.
+
+64KB 조건은 metadata-only 기준선만으로도 8KB보다 Duration이 뚜렷하게 높았다. 또한 E64는 300 RPS와 500 RPS 모두에서 APIM-reported drop을 보였다. 다만 8KB와 64KB 두 크기, 제한된 RPS 포인트, 대부분 1회 측정에 기반하므로 정확한 임계 곡선은 후속 측정이 필요하다.
 
 ## 질문 5 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가
 
@@ -87,11 +101,12 @@
 ## 직접 확인된 사실
 
 1. 8KB A8 Duration은 기록된 100/300/400/500 RPS 포인트에서 App Insights 메타데이터만 기록한 기준선보다 높았다.
-2. E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, APIM `EventHubDroppedEvents`는 별도로 증가했다.
-3. 관측된 Event Hub drop 창에서 Event Hubs `ThrottledRequests`는 0으로 기록됐다.
-4. E8 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐다.
-5. 64KB metadata-only 기준선 Duration은 300 RPS 6.04 ms, 500 RPS 7.32 ms로 기록돼 8KB보다 컸다.
-6. Basic v2 비교 관측 창의 EH IncomingMessages는 분당 약 30,000건 수준으로 발신량과 대체로 맞았다.
+2. 8KB Capacity는 200 RPS에서 N8 58%, A8 66%, E8 85%였고, 400~500 RPS에서는 N8/A8/E8 모두 상단 범위에 가까웠다.
+3. E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, APIM `EventHubDroppedEvents`는 별도로 증가했다.
+4. 기록상 EH 스로틀링 관측 없음으로 정리되지만, 행 단위 독립 필드 완전성을 뜻하지는 않는다.
+5. E8 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐다.
+6. 64KB metadata-only 기준선 Duration은 300 RPS 6.04 ms, 500 RPS 7.32 ms로 기록돼 8KB보다 컸다.
+7. Basic v2 비교 관측 창의 EH IncomingMessages는 분당 약 30,000건 수준으로 발신량과 대체로 맞았다.
 
 ## 조건부로 지지되는 해석
 
@@ -128,4 +143,4 @@
 - 보관된 이전 결과 원문: `old/RESULTS.md`
 - 본 보고서의 계약 테스트: `test_results_report.py`
 
-본 문서는 active customer result report이며, `old/REVIEW.md`는 감사 성격의 보관 근거로만 참조한다.
+본 문서는 활성 고객 결과보고서이며, `old/REVIEW.md`는 감사 성격의 보관 근거로만 참조한다.
