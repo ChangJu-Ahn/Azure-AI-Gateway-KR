@@ -111,4 +111,4 @@ flowchart TD
 
 ---
 
-*근거: [RESULTS.md](./RESULTS.md)(질문 1–6, 추가 가설 1–6), 원시 데이터 [EXPERIMENT-LOG.md](./EXPERIMENT-LOG.md). 재현: [REPRODUCE.md](./REPRODUCE.md).*
+*근거: [RESULTS.md](./RESULTS.md)(질문 1–5, 추가 가설 1–6), 원시 데이터 [EXPERIMENT-LOG.md](./EXPERIMENT-LOG.md). 재현: [REPRODUCE.md](./REPRODUCE.md).*
