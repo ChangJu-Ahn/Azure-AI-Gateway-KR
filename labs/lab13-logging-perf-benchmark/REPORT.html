@@ -186,6 +186,8 @@
       .panel-card,
       .source-item,
       .chart-card {
+        margin: 0;
+        min-width: 0;
         padding: 16px;
         border: 1px solid var(--cp-border);
         border-radius: 16px;
@@ -354,6 +356,7 @@
       }
 
       .metric-chart {
+        display: block;
         width: 100%;
         height: auto;
         margin-top: 12px;
@@ -414,6 +417,7 @@
 
       .value-label {
         fill: var(--cp-text);
+        text-anchor: end;
       }
 
       .chart-source {

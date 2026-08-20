@@ -143,6 +143,26 @@ class ReportContractTests(unittest.TestCase):
         for chart_id in REQUIRED_CHARTS:
             self.assertIn(chart_id, self.parser.ids)
 
+    def test_chart_cards_reset_default_figure_margin_and_can_shrink(self):
+        match = re.search(
+            r"\.chart-card\s*\{(?P<body>.*?)\n\s*\}",
+            self.html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        body = match.group("body")
+        self.assertIn("margin: 0;", body)
+        self.assertIn("min-width: 0;", body)
+
+    def test_value_labels_are_right_aligned_for_narrow_viewports(self):
+        match = re.search(
+            r"\.value-label\s*\{(?P<body>.*?)\n\s*\}",
+            self.html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        self.assertIn("text-anchor: end;", match.group("body"))
+
     def test_uses_all_evidence_labels(self):
         for label in REQUIRED_EVIDENCE_LABELS:
             self.assertIn(label, self.html)
