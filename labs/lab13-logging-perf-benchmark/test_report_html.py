@@ -138,6 +138,13 @@ class ReportContractTests(unittest.TestCase):
     def text_without_tags(self, fragment):
         return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", fragment)).strip()
 
+    def chart_text_sequence(self, chart_id):
+        fragment = self.chart_fragment(chart_id)
+        return re.findall(
+            r'<text class="(?:group-label|series-label(?: mono)?|value-label)"[^>]*>([^<]+)</text>',
+            fragment,
+        )
+
     def test_has_required_tabs_and_panels(self):
         self.assertEqual(
             [tab["data-tab"] for tab in self.parser.tabs],
@@ -221,14 +228,27 @@ class ReportContractTests(unittest.TestCase):
         for banned in ("drops/risks(교정)", "planned", "reconciled", "pending"):
             self.assertNotIn(banned, legend)
 
-    def test_evidence_badges_map_states_to_distinct_tokens(self):
-        self.assertIn("color: var(--cp-success);", self.css_body(".evidence.confirmed"))
-        self.assertIn("color: var(--cp-warning);", self.css_body(".evidence.conditional"))
-        self.assertIn("color: var(--cp-danger);", self.css_body(".evidence.risk"))
-        self.assertIn("color: var(--cp-text-muted);", self.css_body(".evidence.unverified"))
-        corrected = self.css_body(".evidence.corrected")
-        self.assertIn("color: var(--cp-accent);", corrected)
-        self.assertNotRegex(corrected, r"var\(--cp-(?:danger|warning)\)")
+    def test_evidence_badges_use_neutral_text_and_semantic_accent_tokens(self):
+        base = next(
+            match.group("body")
+            for match in re.finditer(r"\.evidence\s*\{(?P<body>.*?)\n\s*\}", self.html, re.DOTALL)
+            if "--evidence-accent" in match.group("body")
+        )
+        self.assertIn("--evidence-accent: var(--cp-border-strong);", base)
+        self.assertIn("color: var(--cp-text);", base)
+        self.assertIn("border: 1px solid var(--evidence-accent);", base)
+        dot = self.css_body(".evidence::before")
+        self.assertIn("background: var(--evidence-accent);", dot)
+        for selector, token in (
+            (".evidence.confirmed", "var(--cp-success)"),
+            (".evidence.conditional", "var(--cp-warning)"),
+            (".evidence.risk", "var(--cp-danger)"),
+            (".evidence.unverified", "var(--cp-text-muted)"),
+            (".evidence.corrected", "var(--cp-accent)"),
+        ):
+            body = self.css_body(selector)
+            self.assertIn(f"--evidence-accent: {token};", body)
+            self.assertNotRegex(body, r"\bcolor\s*:")
 
     def test_references_all_19_client_results(self):
         self.assertEqual(len(RESULT_FILES), 19)
@@ -258,6 +278,13 @@ class ReportContractTests(unittest.TestCase):
         )
         self.assertIsNotNone(match)
         self.assertIn("text-anchor: start;", match.group("body"))
+
+    def test_long_metric_names_wrap_inside_cards(self):
+        self.assertRegex(
+            self.html,
+            r"\.panel-card p,\s*\.panel-card li,\s*\.source-item p,\s*\.chart-note,\s*\.chart-source\s*\{"
+            r"[\s\S]*?overflow-wrap:\s*anywhere;",
+        )
 
     def test_numeric_chart_bars_stay_within_tracks(self):
         for chart_id in REQUIRED_CHARTS:
@@ -293,6 +320,37 @@ class ReportContractTests(unittest.TestCase):
         for chart_id, expected_width, description in expectations:
             with self.subTest(description):
                 self.assertIn(expected_width, self.chart_fragment(chart_id))
+
+    def test_capacity_chart_matches_every_source_matrix_value(self):
+        self.assertEqual(
+            self.chart_text_sequence("chart-capacity-8k"),
+            [
+                "100 RPS", "N8", "31.5%", "A8", "39%", "E8", "38%",
+                "200 RPS", "N8", "58%", "A8", "66%", "E8", "85%",
+                "300 RPS", "N8", "79%", "A8", "88.5%", "E8", "86.5%",
+                "400 RPS", "N8", "85.5%", "A8", "84.5%", "E8", "85.5%",
+                "500 RPS", "N8", "~89%", "A8", "~89%", "E8", "~87%",
+            ],
+        )
+
+    def test_duration_charts_match_every_source_matrix_value(self):
+        self.assertEqual(
+            self.chart_text_sequence("chart-duration-8k"),
+            [
+                "100 RPS", "N8", "0.01 ms", "A8", "0.03 ms", "E8", "0.03 ms",
+                "200 RPS", "N8", "0.02 ms", "A8", "0.05 ms", "E8", "0.04 ms",
+                "300 RPS", "N8", "0.06 ms", "A8", "0.13 ms", "E8", "0.36 ms",
+                "400 RPS", "N8", "0.03 ms", "A8", "0.64 ms", "E8", "1.00 ms",
+                "500 RPS", "N8", "0.10~0.35 ms", "A8", "0.90~2.50 ms", "E8", "0.40~1.70 ms",
+            ],
+        )
+        self.assertEqual(
+            self.chart_text_sequence("chart-duration-64k"),
+            [
+                "300 RPS", "N64", "6.04 ms", "E64", "5.24 ms",
+                "500 RPS", "N64", "7.32 ms", "E64", "7.58 ms",
+            ],
+        )
 
     def test_500_rps_e8_drop_marker_is_off_scale_qualitative(self):
         fragment = self.chart_fragment("chart-drops-8k")
@@ -344,12 +402,21 @@ class ReportContractTests(unittest.TestCase):
             self.assertIn(phrase, conditions)
         self.assertNotIn("<th>증거 등급</th>", conditions)
 
+    def test_condition_definition_source_line_has_no_evidence_badge(self):
+        conditions = re.search(
+            r'<section role="tabpanel" id="panel-conditions"[\s\S]*?</section>',
+            self.html,
+        ).group(0)
+        source = re.search(r'<p class="chart-source">(?P<body>[\s\S]*?)</p>', conditions).group("body")
+        self.assertIn("조건 정의에는 색상 등급을 붙이지 않고", self.text_without_tags(source))
+        self.assertNotRegex(source, r'class="evidence')
+
     def test_summary_has_customer_action_list_and_scoped_eh_bottleneck_evidence(self):
         summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
         required_actions = [
             "API SLO와 로깅 SLO를 분리",
             "APIM EH drop/success와 EH ingress/throttling을 함께 모니터링",
-            "peak RPS × logged payload size",
+            "피크 RPS × 기록 페이로드 크기",
             "v1은 classic Capacity, v2는 gateway CPU/memory",
         ]
         for action in required_actions:
@@ -371,8 +438,8 @@ class ReportContractTests(unittest.TestCase):
 
     def test_64kb_duration_chart_has_delivery_completeness_caution(self):
         fragment = self.chart_fragment("chart-duration-64k")
-        self.assertIn("Duration은 delivery completeness metric이 아닙니다", fragment)
-        self.assertIn("E/N 차이는 clean logging-cost measurement가 아닙니다", fragment)
+        self.assertIn("APIM Duration은 전달 완전성 지표가 아닙니다", fragment)
+        self.assertIn("E/N 차이는 순수한 로깅 비용 측정치가 아닙니다", fragment)
 
     def test_client_latency_chart_is_supporting_and_uses_neutral_series_color(self):
         fragment = self.chart_fragment("chart-client-latency")
@@ -406,6 +473,12 @@ class ReportContractTests(unittest.TestCase):
             self.assertNotIn(phrase, checked)
         for phrase in ("반복 실행 부족", "요청 ID·해시 대조 누락", "메타데이터만 기록한 기준선", "v2 CPU/memory 미수집"):
             self.assertIn(phrase, checked)
+
+    def test_confidence_matrix_source_line_is_not_mislabeled_as_confirmed(self):
+        fragment = self.chart_fragment("chart-confidence")
+        source = re.search(r'<p class="chart-source">(?P<body>[\s\S]*?)</p>', fragment).group("body")
+        self.assertIn("확정/조건부/미검증/교정", self.text_without_tags(source))
+        self.assertNotRegex(source, r'class="evidence')
 
     def test_latency_rows_match_all_json_results_with_sensible_precision(self):
         self.assertEqual(len(self.results), 19)

@@ -296,6 +296,7 @@
       .chart-note,
       .chart-source {
         color: var(--cp-text-muted);
+        overflow-wrap: anywhere;
       }
 
       .panel-card ul,
@@ -333,8 +334,7 @@
         color: var(--cp-text-muted);
       }
 
-      .pill,
-      .evidence {
+      .pill {
         margin-top: 8px;
         padding: 4px 10px;
         background: var(--cp-highlight);
@@ -342,24 +342,43 @@
         font-size: 0.8rem;
       }
 
+      .evidence {
+        --evidence-accent: var(--cp-border-strong);
+        margin-top: 8px;
+        padding: 4px 10px;
+        border: 1px solid var(--evidence-accent);
+        background: var(--cp-surface);
+        color: var(--cp-text);
+        font-size: 0.8rem;
+      }
+
+      .evidence::before {
+        content: "";
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        background: var(--evidence-accent);
+      }
+
       .evidence.confirmed {
-        color: var(--cp-success);
+        --evidence-accent: var(--cp-success);
       }
 
       .evidence.conditional {
-        color: var(--cp-warning);
+        --evidence-accent: var(--cp-warning);
       }
 
       .evidence.risk {
-        color: var(--cp-danger);
+        --evidence-accent: var(--cp-danger);
       }
 
       .evidence.unverified {
-        color: var(--cp-text-muted);
+        --evidence-accent: var(--cp-text-muted);
       }
 
       .evidence.corrected {
-        color: var(--cp-accent);
+        --evidence-accent: var(--cp-accent);
       }
 
       .metric-chart {
@@ -640,7 +659,7 @@
             <ol>
               <li>API SLO와 로깅 SLO를 분리하십시오.</li>
               <li>APIM EH drop/success와 EH ingress/throttling을 함께 모니터링하십시오.</li>
-              <li>peak RPS × logged payload size로 용량을 계획하십시오.</li>
+              <li>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오.</li>
               <li>v1은 classic Capacity, v2는 gateway CPU/memory를 권위 부하 지표로 사용하십시오.</li>
             </ol>
           </article>
@@ -680,7 +699,7 @@
               <h3>H4 · payload 운영 범위</h3>
               <p><strong>실제 증거:</strong> 8KB E8은 300 RPS에서 드롭 0, 400 RPS에서 2,933 드롭이었고 64KB E64는 300 RPS에서도 41,435 드롭이었습니다.</p>
               <p><strong>판정:</strong> 병목 판단은 RPS만이 아니라 초당 기록 bytes를 함께 봐야 합니다.</p>
-              <p><strong>안전 재사용 문장:</strong> peak RPS × logged payload size로 APIM 로깅 용량을 계획해야 합니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 피크 RPS × 기록 페이로드 크기로 APIM 로깅 용량을 계획해야 합니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
             </article>
             <article class="panel-card">
@@ -733,7 +752,7 @@
                 </tbody>
               </table>
             </div>
-            <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md. 조건 정의에는 색상 등급을 붙이지 않고, 판정은 별도 가설·차트에서만 표시합니다.</p>
+            <p class="chart-source">Source: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md. 조건 정의에는 색상 등급을 붙이지 않고, 판정은 별도 가설·차트에서만 표시합니다.</p>
           </div>
         </section>
 
@@ -947,7 +966,7 @@
     <rect class="bar series-e" x="130" y="121" width="284.2" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="133">7.58 ms</text>
   </svg>
-  <p class="chart-note">주의: Duration은 delivery completeness metric이 아닙니다. E64 300 RPS는 41,435개 드롭이 있어 E/N 차이는 clean logging-cost measurement가 아닙니다.</p>
+  <p class="chart-note">주의: APIM Duration은 전달 완전성 지표가 아닙니다. E64 300 RPS는 41,435개 드롭이 있어 E/N 차이는 순수한 로깅 비용 측정치가 아닙니다.</p>
   <p class="chart-source"><span class="evidence conditional">조건부</span> Source: EXPERIMENT-LOG.md and RESULTS.md. 64KB는 300/500 RPS 각 1회 관측입니다.</p>
 </figure>
             <figure class="chart-card" id="chart-drops-64k" aria-labelledby="chart-drops-64k-title">
@@ -1164,7 +1183,7 @@
                   </tbody>
                 </table>
               </div>
-              <p class="chart-source"><span class="evidence confirmed">확정/조건부/미검증/교정</span> Source: RESULTS.md, DECISION-TREE.md.</p>
+              <p class="chart-source">Source: RESULTS.md, DECISION-TREE.md. 확정/조건부/미검증/교정 해석은 위 표를 따릅니다.</p>
             </figure>
           </div>
           <p class="chart-source"><span class="evidence confirmed">확정</span> 8KB/64KB 서버 차트 Source: EXPERIMENT-LOG.md and RESULTS.md. 500 RPS E8은 data-drop-count 숫자를 두지 않고 “정확한 드롭률 미확정”으로 표시했습니다.</p>
@@ -1571,7 +1590,7 @@
           <div class="panel-grid">
             <article class="panel-card"><h3>API와 로깅 SLO 분리</h3><p>API 200 성공률과 감사 로그 전달률을 별도 SLO로 정의하십시오. Event Hub 드롭은 API 오류로 나타나지 않습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
             <article class="panel-card"><h3>드롭·싱크 동시 모니터링</h3><p>APIM EventHubSuccessfulEvents/EventHubDroppedEvents와 EH IncomingMessages/ThrottledRequests를 함께 감시해 APIM 큐 문제와 EH 용량 문제를 분리하십시오.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
-            <article class="panel-card"><h3>부하 모델은 bytes/sec로</h3><p>peak RPS multiplied by logged payload size로 계획하십시오. 64KB는 300 RPS에서도 드롭이 발생했습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>부하 모델은 bytes/sec로</h3><p>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오. 64KB는 300 RPS에서도 드롭이 발생했습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
             <article class="panel-card"><h3>SKU별 권위 지표 선택</h3><p>v1은 classic Capacity를 사용하고, v2는 Capacity 대신 CPU/memory metrics를 수집하도록 테스트 계획을 바꾸십시오.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
             <article class="panel-card"><h3>body 크기 축소</h3><p>전체 body 대신 필요한 필드, 요약, 해시, 샘플, 또는 크기 제한을 적용해 gateway logging cost를 낮추십시오.</p><span class="evidence confirmed">확정 · DECISION-TREE.md</span></article>
             <article class="panel-card"><h3>고객 환경 재시험</h3><p>리전, SKU, 정책 조합, backend latency, payload 분포가 바뀌면 결과가 달라질 수 있으므로 customer environment에서 재측정하십시오.</p><span class="evidence conditional">조건부 · DECISION-TREE.md</span></article>
