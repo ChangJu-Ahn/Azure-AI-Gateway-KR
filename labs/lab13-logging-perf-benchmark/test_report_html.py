@@ -24,6 +24,30 @@ SOURCE_DOCS = [
     "DECISION-TREE.md",
 ]
 
+RESULT_FILES = sorted(
+    str(path.relative_to(ROOT))
+    for path in (ROOT / "results").glob("*/result.json")
+)
+
+REQUIRED_CHARTS = [
+    "chart-capacity-8k",
+    "chart-duration-8k",
+    "chart-drops-8k",
+    "chart-duration-64k",
+    "chart-drops-64k",
+    "chart-client-latency",
+    "chart-request-success",
+    "chart-sku-comparison",
+    "chart-confidence",
+]
+
+REQUIRED_EVIDENCE_LABELS = [
+    "확정",
+    "조건부",
+    "미검증",
+    "교정",
+]
+
 
 class ReportParser(HTMLParser):
     def __init__(self):
@@ -109,6 +133,43 @@ class ReportContractTests(unittest.TestCase):
             self.assertIn(required, legend)
         for banned in ("planned", "reconciled", "pending"):
             self.assertNotIn(banned, legend)
+
+    def test_references_all_19_client_results(self):
+        self.assertEqual(len(RESULT_FILES), 19)
+        for result_file in RESULT_FILES:
+            self.assertIn(result_file, self.html)
+
+    def test_has_all_required_charts(self):
+        for chart_id in REQUIRED_CHARTS:
+            self.assertIn(chart_id, self.parser.ids)
+
+    def test_uses_all_evidence_labels(self):
+        for label in REQUIRED_EVIDENCE_LABELS:
+            self.assertIn(label, self.html)
+
+    def test_contains_required_scope_and_cautions(self):
+        required = [
+            "Korea Central",
+            "Developer v1",
+            "Basic v2",
+            "8KB",
+            "64KB",
+            "100~500 RPS",
+            "3회 반복",
+            "metadata-only",
+            "1,000 RPS",
+            "warmup",
+            "request ID",
+        ]
+        for phrase in required:
+            self.assertIn(phrase, self.html)
+
+    def test_does_not_invent_exact_500_rps_e8_drop_count(self):
+        self.assertIn("정확한 드롭률 미확정", self.html)
+        self.assertNotRegex(
+            self.html,
+            r'data-run="real-E8"[^>]*data-drop-count="\d+"',
+        )
 
 
 if __name__ == "__main__":
