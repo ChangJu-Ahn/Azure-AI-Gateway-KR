@@ -466,6 +466,24 @@ class ReportContractTests(unittest.TestCase):
         for evidence in ("8KB 500 RPS", "약 4 MB/s", "40 TU의 약 10%", "EH throttling 0"):
             self.assertIn(evidence, summary)
 
+    def test_summary_uses_intentional_four_three_layout_instead_of_fixed_five_columns(self):
+        body = self.css_body(".summary-grid")
+        self.assertIn("grid-template-columns: repeat(12, minmax(0, 1fr));", body)
+        self.assertNotIn("grid-template-columns: repeat(5, minmax(0, 1fr));", body)
+        self.assertRegex(
+            self.html,
+            r'\.summary-card\[data-result-key="1"\],\s*'
+            r'\.summary-card\[data-result-key="2"\],\s*'
+            r'\.summary-card\[data-result-key="3"\],\s*'
+            r'\.summary-card\[data-result-key="4"\]\s*\{\s*grid-column:\s*span 3;',
+        )
+        self.assertRegex(
+            self.html,
+            r'\.summary-card\[data-result-key="5"\],\s*'
+            r'\.summary-card\[data-result-key="6"\],\s*'
+            r'\.summary-card\[data-result-key="7"\]\s*\{\s*grid-column:\s*span 4;',
+        )
+
     def test_html_summary_matches_active_results_order(self):
         summary = re.search(
             r'id="panel-summary"[\s\S]*?</section>',
@@ -475,6 +493,35 @@ class ReportContractTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         for heading in RESULT_SUMMARY_HEADINGS:
             self.assertIn(heading, summary)
+
+    def test_summary_has_exactly_seven_cards_bound_to_matching_keys_and_headings(self):
+        summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
+        all_cards = re.findall(r'<article class="panel-card summary-card"[\s\S]*?</article>', summary)
+        self.assertEqual(len(all_cards), 7)
+        cards = [
+            (
+                re.search(r'data-result-key="([^"]+)"', card_html).group(1),
+                card_html,
+            )
+            for card_html in all_cards
+        ]
+        self.assertEqual([key for key, _ in cards], [str(index) for index in range(1, 8)])
+        for index, heading in enumerate(RESULT_SUMMARY_HEADINGS, start=1):
+            card_html = next(card for key, card in cards if key == str(index))
+            self.assertIn(f"<h3>{heading}</h3>", card_html)
+
+    def test_summary_cards_consistently_cite_source_documents_in_evidence_badges(self):
+        summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
+        cards = re.findall(
+            r'<article class="panel-card summary-card" data-result-key="([1-7])">([\s\S]*?)</article>',
+            summary,
+        )
+        for key, card_html in cards:
+            badge = re.search(r'<span class="evidence [^"]+">(?P<badge>[^<]+)</span>', card_html)
+            self.assertIsNotNone(badge, key)
+            badge_text = badge.group("badge")
+            self.assertIn("RESULTS.md +", badge_text)
+            self.assertRegex(badge_text, r"RESULTS\.md \+ [^<]*(?:\.md|\.json)")
 
     def test_html_question_verdicts_match_active_results(self):
         hypotheses = re.search(
@@ -496,6 +543,39 @@ class ReportContractTests(unittest.TestCase):
         ):
             self.assertIn(f'href="{href}"', self.html)
         self.assertNotIn('href="REVIEW.md"', self.html)
+
+    def test_confidence_matrix_scopes_throttling_and_uses_archived_review_sources(self):
+        fragment = self.chart_fragment("chart-confidence")
+        self.assertNotIn("8KB RPS를 낮추면 APIM 드롭이 사라졌습니다", fragment)
+        self.assertIn("8KB 드롭 전이는 300~400 RPS 사이에서 관측됐습니다", fragment)
+        self.assertIn("기록된 필드는 EH throttling 없음으로 보였지만", fragment)
+        self.assertIn("각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아닙니다", fragment)
+        self.assertIn("old/RESULTS.md", fragment)
+        self.assertIn("old/REVIEW.md", fragment)
+        self.assertNotIn("RESULTS.md 교정 해석", fragment)
+
+    def test_customer_facing_hypothesis_copy_uses_hamnida_style(self):
+        hypotheses = re.search(r'id="panel-hypotheses"[\s\S]*?</section>', self.html).group(0)
+        plain_style = [
+            "영향을 준다.",
+            "로깅할 수 있다.",
+            "보장한다.",
+            "다르게 관측된다.",
+            "판단할 수 없다.",
+            "원인을 SKU 하나로 단정하지 않는다.",
+        ]
+        polite_style = [
+            "영향을 줍니다.",
+            "로깅할 수 있습니다.",
+            "보장합니다.",
+            "다르게 관측됩니다.",
+            "판단할 수 없습니다.",
+            "원인을 SKU 하나로 단정하지 않습니다.",
+        ]
+        for phrase in plain_style:
+            self.assertNotIn(phrase, hypotheses)
+        for phrase in polite_style:
+            self.assertIn(phrase, hypotheses)
 
     def test_hero_marks_queue_mechanism_as_conditional_or_inferred(self):
         hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
@@ -551,8 +631,8 @@ class ReportContractTests(unittest.TestCase):
         self.assertEqual(hypotheses.count("안전 재사용 문장:"), 5)
         for heading in ("요청 크기는 APIM 처리와 로그 전달에 영향을 주는가", "Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가"):
             self.assertIn(heading, hypotheses)
-        self.assertIn("HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없다", hypotheses)
-        self.assertIn("원인을 SKU 하나로 단정하지 않는다", hypotheses)
+        self.assertIn("HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없습니다", hypotheses)
+        self.assertIn("원인을 SKU 하나로 단정하지 않습니다", hypotheses)
 
     def test_64kb_duration_chart_has_delivery_completeness_caution(self):
         fragment = self.chart_fragment("chart-duration-64k")
