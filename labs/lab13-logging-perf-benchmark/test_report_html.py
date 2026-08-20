@@ -76,6 +76,40 @@ class ReportContractTests(unittest.TestCase):
         self.assertIn("@media print", self.html)
         self.assertIn("<noscript>", self.html)
 
+    def test_print_only_hides_tab_navigation(self):
+        self.assertRegex(
+            self.html,
+            r"@media print[\s\S]*?\[role=\"tablist\"\]\s*\{\s*display:\s*none;",
+        )
+        self.assertRegex(
+            self.html,
+            r"@media print[\s\S]*?\[role=\"tabpanel\"\]\s*\{\s*display:\s*block\s*!important;",
+        )
+        self.assertNotRegex(
+            self.html,
+            r"@media print[\s\S]*?\.tabs\s*\{\s*display:\s*none;",
+        )
+
+    def test_maintenance_notice_mentions_manual_html_update_for_source_numbers(self):
+        self.assertRegex(
+            self.html,
+            r"source-number changes require a manual HTML update",
+            re.IGNORECASE,
+        )
+
+    def test_evidence_legend_uses_required_meanings(self):
+        match = re.search(
+            r"<dt>Evidence legend</dt>\s*<dd>(.*?)</dd>",
+            self.html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        legend = re.sub(r"<[^>]+>", " ", match.group(1)).lower()
+        for required in ("confirmed", "conditional", "drops/risks", "unverified"):
+            self.assertIn(required, legend)
+        for banned in ("planned", "reconciled", "pending"):
+            self.assertNotIn(banned, legend)
+
 
 if __name__ == "__main__":
     unittest.main()

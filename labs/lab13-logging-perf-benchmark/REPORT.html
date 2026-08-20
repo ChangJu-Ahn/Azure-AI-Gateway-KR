@@ -340,7 +340,7 @@
           padding: 0;
         }
 
-        .tabs {
+        [role="tablist"] {
           display: none;
         }
 
@@ -402,16 +402,17 @@
           </div>
           <div class="meta-card">
             <dt>Evidence legend</dt>
-            <dd>Planned · Confirmed · Reconciled · Pending</dd>
+            <dd>Confirmed · Conditional · Drops/risks · Unverified</dd>
           </div>
           <div class="meta-card">
             <dt>Maintenance model</dt>
-            <dd>Manual updates only; no external fetches or live dependencies</dd>
+            <dd>Manual updates only; source-number changes require a manual HTML update and there are no external fetches or live dependencies.</dd>
           </div>
         </dl>
         <p class="notice">
-          Manual-maintenance notice: this shell stays offline and self-contained. Evidence content,
-          charts, and narrative synthesis are added in later lab tasks.
+          Manual-maintenance notice: this shell stays offline and self-contained. Source-number
+          changes require a manual HTML update. Evidence content, charts, and narrative synthesis
+          are added in later lab tasks.
         </p>
       </header>
 
