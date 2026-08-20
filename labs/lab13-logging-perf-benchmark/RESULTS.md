@@ -10,11 +10,6 @@
 > - **게이트웨이**: 요청을 실제로 처리하는 APIM 본체.
 > - **sampling(샘플링)**: 전부가 아니라 **일부만 골라** 기록하는 것. 100%면 전부 기록.
 > - **Capacity(부하%)** / **Duration(처리시간)**: APIM이 얼마나 바쁜지 / 요청 하나 처리에 걸린 시간.
->
-> **환경**: Azure API Management **Developer v1** (Korea Central, capacity 1) + Event Hubs Standard 40 TU + Standard_D8as_v5 부하 VM. 비교군으로 **Basic v2** APIM 신규 배포.
-> **부하**: Python asyncio 고정 도착률(open workload = 초당 일정 수 요청을 계속 보냄), 8KB/64KB 요청, 100~500 RPS, warmup(예열) 후 안정 구간(steady-state) 측정.
-> **권위 지표**: APIM 서버측 `Capacity`(게이트웨이 부하%), `Duration`(게이트웨이 처리시간), `EventHubDroppedEvents`(APIM이 버린 로그 수), EH `IncomingMessages`(EH 도달)/`ThrottledRequests`(EH 거절). 클라이언트(부하 VM) 측 지연은 참고용.
-> **원시 데이터·재조회 명령**: `EXPERIMENT-LOG.md` (측정 시간창 보존, Azure 메트릭 90일 재조회 가능).
 
 ---
 
@@ -241,3 +236,12 @@
 - Developer v1·Basic v2 두 SKU만 비교. Standard/Premium v2는 미측정.
 - 부하 생성기(단일 프로세스 asyncio)의 클라이언트 p99 꼬리(~500ms, TLS 핸드셰이크)는 전 조건 공통이라 상대 비교엔 무해하나, 절대 체감 레이턴시 측정엔 부적합 → 서버측 지표로 판정.
 - Basic v2는 `EventHubDroppedEvents` 메트릭이 비어 EH IncomingMessages로 무손실을 판정(간접).
+
+---
+
+## 부록 — 실험 환경·측정 방법
+
+- **환경**: Azure API Management **Developer v1** (Korea Central, capacity 1) + Event Hubs Standard 40 TU + Standard_D8as_v5 부하 VM. 비교군으로 **Basic v2** APIM 신규 배포.
+- **부하**: Python asyncio 고정 도착률(open workload = 초당 일정 수 요청을 계속 보냄), 8KB/64KB 요청, 100~500 RPS, warmup(예열) 후 안정 구간(steady-state) 측정.
+- **권위 지표(판정 근거로 삼은 값)**: APIM 서버측 `Capacity`(게이트웨이 부하%), `Duration`(게이트웨이 처리시간), `EventHubDroppedEvents`(APIM이 버린 로그 수), EH `IncomingMessages`(EH 도달)/`ThrottledRequests`(EH 거절). 클라이언트(부하 VM) 측 지연은 참고용.
+- **원시 데이터·재조회 명령**: `EXPERIMENT-LOG.md` (측정 시간창 보존, Azure 메트릭 90일 재조회 가능).
