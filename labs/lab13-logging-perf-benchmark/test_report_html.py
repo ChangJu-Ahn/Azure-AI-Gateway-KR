@@ -102,12 +102,37 @@ class ReportParser(HTMLParser):
             self.hrefs.append(values["href"])
 
 
+class VisibleTextParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._skip_tags = []
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in {"script", "style"}:
+            self._skip_tags.append(tag)
+
+    def handle_endtag(self, tag):
+        if self._skip_tags and self._skip_tags[-1] == tag:
+            self._skip_tags.pop()
+
+    def handle_data(self, data):
+        if self._skip_tags:
+            return
+        text = " ".join(data.split())
+        if text:
+            self.parts.append(text)
+
+
 class ReportContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.html = REPORT.read_text(encoding="utf-8")
         cls.parser = ReportParser()
         cls.parser.feed(cls.html)
+        visible_parser = VisibleTextParser()
+        visible_parser.feed(cls.html)
+        cls.visible_text = " ".join(visible_parser.parts)
         cls.results = {
             str(path.relative_to(ROOT)): json.loads(path.read_text(encoding="utf-8"))
             for path in sorted((ROOT / "results").glob("*/result.json"))
@@ -209,15 +234,12 @@ class ReportContractTests(unittest.TestCase):
         self.assertIn("page-break-inside: avoid;", media)
 
     def test_maintenance_notice_mentions_manual_html_update_for_source_numbers(self):
-        self.assertRegex(
-            self.html,
-            r"source-number changes require a manual HTML update",
-            re.IGNORECASE,
-        )
+        self.assertIn("출처 번호가 바뀌면 HTML도 수동으로 갱신", self.visible_text)
+        self.assertNotIn("source-number changes require a manual html update", self.visible_text.lower())
 
     def test_evidence_legend_uses_required_meanings(self):
         match = re.search(
-            r"<dt>Evidence legend</dt>\s*<dd>(.*?)</dd>",
+            r"<dt>검증 등급</dt>\s*<dd>(.*?)</dd>",
             self.html,
             re.DOTALL,
         )
@@ -360,7 +382,7 @@ class ReportContractTests(unittest.TestCase):
         marker = re.search(r'data-run="real-E8"[^>]*cx="([0-9.]+)"', row)
         self.assertIsNotNone(marker)
         self.assertGreater(float(marker.group(1)), 430.0)
-        self.assertIn("off-scale · 정확한 드롭률 미확정", row)
+        self.assertIn("축 범위 밖 · 정확한 드롭률 미확정", row)
 
     def test_uses_all_evidence_labels(self):
         for label in REQUIRED_EVIDENCE_LABELS:
@@ -375,10 +397,10 @@ class ReportContractTests(unittest.TestCase):
             "64KB",
             "100~500 RPS",
             "3회 반복",
-            "metadata-only",
+            "메타데이터만",
             "1,000 RPS",
-            "warmup",
-            "request ID",
+            "워밍업",
+            "요청 ID",
         ]
         for phrase in required:
             self.assertIn(phrase, self.html)
@@ -394,9 +416,9 @@ class ReportContractTests(unittest.TestCase):
             "auto-inflate OFF",
             "Standard_D8as_v5",
             "Python asyncio/aiohttp",
-            "concurrency 20",
-            "retry disabled",
-            "warmup",
+            "동시성 20",
+            "재시도 비활성화",
+            "워밍업",
         ]
         for phrase in required:
             self.assertIn(phrase, conditions)
@@ -415,9 +437,9 @@ class ReportContractTests(unittest.TestCase):
         summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
         required_actions = [
             "API SLO와 로깅 SLO를 분리",
-            "APIM EH drop/success와 EH ingress/throttling을 함께 모니터링",
+            "APIM EH 드롭/성공과 EH 유입/스로틀링을 함께 모니터링",
             "피크 RPS × 기록 페이로드 크기",
-            "v1은 classic Capacity, v2는 gateway CPU/memory",
+            "v1은 클래식 티어 Capacity, v2는 게이트웨이 CPU/메모리",
         ]
         for action in required_actions:
             self.assertIn(action, summary)
@@ -428,10 +450,54 @@ class ReportContractTests(unittest.TestCase):
         hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
         self.assertIn("큐 한도 메커니즘은 조건부/추정", hero)
 
+    def test_visible_customer_copy_rejects_unnecessary_english_phrases(self):
+        visible = self.visible_text.lower()
+        banned_phrases = [
+            "evidence report",
+            "tested scope",
+            "evidence legend",
+            "maintenance model",
+            "manual-maintenance notice",
+            "mostly one run per cell",
+            "one run per cell",
+            "customer action",
+            "diagnostics disabled",
+            "source doc",
+            "client result json",
+            "working-tree",
+            "backend latency",
+            "logging cost",
+            "source:",
+            "off-scale",
+        ]
+        for phrase in banned_phrases:
+            self.assertNotIn(phrase, visible)
+
+        required_phrases = [
+            "근거 기반 보고서",
+            "검증 범위",
+            "검증 등급",
+            "유지보수 방식",
+            "첫 화면 고객 실행 항목",
+            "조건별 대부분 1회 실행",
+            "요청 id/해시 대조",
+            "메타데이터만 기준선",
+            "진단 기능 비활성화",
+            "원문 문서",
+            "클라이언트 결과 json",
+            "작업 트리",
+            "백엔드 지연",
+            "로깅 비용",
+            "출처:",
+            "축 범위 밖",
+        ]
+        for phrase in required_phrases:
+            self.assertIn(phrase, visible)
+
     def test_hypothesis_cards_include_safe_reuse_payload_sku_and_corrections(self):
         hypotheses = re.search(r'id="panel-hypotheses"[\s\S]*?</section>', self.html).group(0)
         self.assertGreaterEqual(hypotheses.count("안전 재사용 문장:"), 5)
-        for heading in ("payload 운영 범위", "SKU 비교", "교정된 문장:"):
+        for heading in ("페이로드 운영 범위", "SKU 비교", "교정된 문장:"):
             self.assertIn(heading, hypotheses)
         self.assertIn("Event Hub가 항상 App Insights보다 빠르다고 말하지 않는다", hypotheses)
         self.assertIn("Developer v1의 최대 처리량을 500 RPS로 확정하지 않는다", hypotheses)
@@ -471,7 +537,7 @@ class ReportContractTests(unittest.TestCase):
         ]
         for phrase in banned:
             self.assertNotIn(phrase, checked)
-        for phrase in ("반복 실행 부족", "요청 ID·해시 대조 누락", "메타데이터만 기록한 기준선", "v2 CPU/memory 미수집"):
+        for phrase in ("반복 실행 부족", "요청 ID·해시 대조 누락", "메타데이터만 기록한 기준선", "v2 CPU/메모리 미수집"):
             self.assertIn(phrase, checked)
 
     def test_confidence_matrix_source_line_is_not_mislabeled_as_confirmed(self):
@@ -483,7 +549,7 @@ class ReportContractTests(unittest.TestCase):
     def test_latency_rows_match_all_json_results_with_sensible_precision(self):
         self.assertEqual(len(self.results), 19)
         table = re.search(
-            r"<caption>Client latency values from all 19 result\.json files \(rounded to 2 decimals\)</caption>[\s\S]*?<tbody>(?P<body>[\s\S]*?)</tbody>",
+            r"<caption>19개 result\.json 파일의 클라이언트 지연 값 \(소수 둘째 자리 반올림\)</caption>[\s\S]*?<tbody>(?P<body>[\s\S]*?)</tbody>",
             self.html,
         )
         self.assertIsNotNone(table)
@@ -519,6 +585,24 @@ class ReportContractTests(unittest.TestCase):
             if color_pattern.search(line) and "--cp-" not in line
         ]
         self.assertEqual(offenders, [])
+
+    def test_customer_facing_tables_and_captions_use_korean_labels(self):
+        self.assertIn(
+            "<caption>19개 result.json 파일의 클라이언트 지연 값 (소수 둘째 자리 반올림)</caption>",
+            self.html,
+        )
+        self.assertIn(
+            "<tr><th>출처</th><th>조건</th><th>payloadBytes</th><th>요청률</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>p50Ms</th><th>p95Ms</th><th>p99Ms</th></tr>",
+            self.html,
+        )
+        self.assertIn(
+            "<caption>19개 result.json 파일의 목표 요청 대비 성공 요청</caption>",
+            self.html,
+        )
+        self.assertIn(
+            "<thead><tr><th>출처</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>클라이언트 성공률</th></tr></thead>",
+            self.html,
+        )
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lab 13 Logging Perf Benchmark Report</title>
+    <title>Lab 13 로깅 성능 벤치마크 보고서</title>
     <script>
       (() => {
         const param = new URLSearchParams(window.location.search).get("scoutTheme");
@@ -587,35 +587,35 @@
   <body>
     <main class="page">
       <header class="hero">
-        <span class="eyebrow">Lab 13 · Evidence report</span>
+        <span class="eyebrow">Lab 13 · 근거 기반 보고서</span>
         <h1>APIM 로깅 성능·무손실 벤치마크</h1>
         <p class="lede">
           고객 관점의 결론은 단순합니다. API가 200으로 성공해도 감사 로그가 전달됐다는 뜻은 아니며,
           본 관측에서는 APIM Event Hub 로거가 로그를 조용히 드롭할 수 있었습니다. 큐 한도 메커니즘은 조건부/추정이며,
           공식 EventHubDroppedEvents 정의와 Capacity·RPS 상관관계로 해석했습니다.
         </p>
-        <dl class="hero-meta" aria-label="report scope">
+        <dl class="hero-meta" aria-label="보고서 범위">
           <div class="meta-card">
-            <dt>Tested scope</dt>
-            <dd>Korea Central · Developer v1 + Basic v2 comparison · 8KB/64KB · 100~500 RPS · mostly one run per cell</dd>
+            <dt>검증 범위</dt>
+            <dd>Korea Central · Developer v1 + Basic v2 비교 · 8KB/64KB · 100~500 RPS · 조건별 대부분 1회 실행</dd>
           </div>
           <div class="meta-card">
-            <dt>Evidence legend</dt>
+            <dt>검증 등급</dt>
             <dd>초록=확정 · 노랑=조건부 · 빨강=드롭/위험 · 회색=미검증 · 교정=별도 텍스트 상태</dd>
           </div>
           <div class="meta-card">
-            <dt>Maintenance model</dt>
-            <dd>Manual updates only; source-number changes require a manual HTML update and there are no external fetches or live dependencies.</dd>
+            <dt>유지보수 방식</dt>
+            <dd>수동 갱신 전용입니다. 출처 번호가 바뀌면 HTML도 수동으로 갱신해야 하며, 외부 fetch나 실시간 의존성은 없습니다.</dd>
           </div>
         </dl>
         <p class="notice">
-          Manual-maintenance notice: this report stays offline and self-contained. Every chart is static,
-          uses the current working-tree evidence files, and must be manually updated when source numbers change.
+          수동 유지보수 안내: 이 보고서는 오프라인에서 자체 완결적으로 유지됩니다. 모든 차트는 정적이며,
+          현재 작업 트리의 근거 파일을 사용하므로 출처 번호가 바뀌면 수동으로 갱신해야 합니다.
         </p>
       </header>
 
-      <section class="tabs" aria-label="Lab 13 report tabs">
-        <div role="tablist" aria-label="Report sections">
+      <section class="tabs" aria-label="Lab 13 보고서 탭">
+        <div role="tablist" aria-label="보고서 섹션">
           <button type="button" role="tab" id="tab-summary" data-tab="summary" aria-controls="panel-summary" aria-selected="true" tabindex="0">요약</button>
           <button type="button" role="tab" id="tab-hypotheses" data-tab="hypotheses" aria-controls="panel-hypotheses" aria-selected="false" tabindex="-1">가설</button>
           <button type="button" role="tab" id="tab-conditions" data-tab="conditions" aria-controls="panel-conditions" aria-selected="false" tabindex="-1">조건</button>
@@ -630,41 +630,41 @@
           <div class="summary-grid">
             <article class="panel-card summary-card">
               <h3>API 성공 ≠ 로그 전달</h3>
-              <p>19개 클라이언트 JSON은 모두 offered == successful, errors 0이지만, E8/E64에서는 APIM EventHubDroppedEvents가 관측됐습니다.</p>
+              <p>19개 클라이언트 결과 JSON은 모두 목표 요청 == 성공 요청, 오류 0이지만, E8/E64에서는 APIM EventHubDroppedEvents가 관측됐습니다.</p>
               <span class="evidence confirmed">확정 · RESULTS.md + result.json</span>
             </article>
             <article class="panel-card summary-card">
-              <h3>EH namespace는 병목 아님</h3>
-              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%이며, 관측 run에서 EH throttling 0이었습니다. 드롭은 APIM 쪽에서 보고됐습니다.</p>
+              <h3>EH 네임스페이스는 병목 아님</h3>
+              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%이며, 관측 실행에서 EH throttling 0이었습니다. 드롭은 APIM 쪽에서 보고됐습니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
             </article>
             <article class="panel-card summary-card">
-              <h3>payload가 운영 범위를 좁힘</h3>
+              <h3>페이로드가 운영 범위를 좁힘</h3>
               <p>8KB E8은 300 RPS에서 드롭 0, 400 RPS에서 2,933 드롭이었고 64KB E64는 300 RPS에서도 41,435 드롭이었습니다.</p>
               <span class="evidence conditional">조건부 · RESULTS.md</span>
             </article>
             <article class="panel-card summary-card">
-              <h3>body 로깅은 Duration 증가</h3>
-              <p>A8은 metadata-only N8 대비 APIM Duration을 높였습니다. 500 RPS에서는 N8 0.10~0.35 ms, A8 0.90~2.50 ms입니다.</p>
+              <h3>본문 로깅은 Duration 증가</h3>
+              <p>A8은 메타데이터만 기록한 N8 대비 APIM Duration을 높였습니다. 500 RPS에서는 N8 0.10~0.35 ms, A8 0.90~2.50 ms입니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
             </article>
             <article class="panel-card summary-card">
               <h3>Basic v2 차이는 조건부</h3>
-              <p>Basic v2는 관측 창에서 약 30,000/min EH 도달과 클라이언트 전부 200을 보였지만, v2 CPU/memory와 드롭 메커니즘은 미수집입니다.</p>
+              <p>Basic v2는 관측 창에서 분당 약 30,000 EH 도달과 클라이언트 전부 200을 보였지만, v2 CPU/메모리와 드롭 메커니즘은 미수집입니다.</p>
               <span class="evidence conditional">조건부 · RESULTS.md</span>
             </article>
           </div>
           <article class="panel-card full-span">
-            <h3>첫 화면 고객 action</h3>
+            <h3>첫 화면 고객 실행 항목</h3>
             <ol>
               <li>API SLO와 로깅 SLO를 분리하십시오.</li>
-              <li>APIM EH drop/success와 EH ingress/throttling을 함께 모니터링하십시오.</li>
+              <li>APIM EH 드롭/성공과 EH 유입/스로틀링을 함께 모니터링하십시오.</li>
               <li>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오.</li>
-              <li>v1은 classic Capacity, v2는 gateway CPU/memory를 권위 부하 지표로 사용하십시오.</li>
+              <li>v1은 클래식 티어 Capacity, v2는 게이트웨이 CPU/메모리를 권위 부하 지표로 사용하십시오.</li>
             </ol>
           </article>
           <p class="warning">
-            범위 주의: 원래 계획은 조건별 3회 반복과 request ID/hash reconciliation이었으나 실행 데이터는 대부분 one run per cell이며 서버 카운터 중심입니다. N은 metadata-only 기준선이지 diagnostics disabled가 아닙니다.
+            범위 주의: 원래 계획은 조건별 3회 반복과 요청 ID/해시 대조였으나 실행 데이터는 조건별 대부분 1회 실행이며 서버 카운터 중심입니다. N은 메타데이터만 기준선이지 진단 기능 비활성화가 아닙니다.
           </p>
         </section>
 
@@ -672,18 +672,18 @@
           <h2>가설 판정</h2>
           <div class="panel-grid">
             <article class="panel-card">
-              <h3>H1 · App Insights 8KB body 비용</h3>
-              <p><strong>의도 기준:</strong> A8 평균 gateway CPU 또는 p99가 N8보다 의미 있게 높고 세 반복이 같은 방향.</p>
+              <h3>H1 · App Insights 8KB 본문 비용</h3>
+              <p><strong>의도 기준:</strong> A8 평균 게이트웨이 CPU 또는 p99가 N8보다 의미 있게 높고 세 반복이 같은 방향.</p>
               <p><strong>실제 증거:</strong> 3회 반복은 없었지만 APIM Duration은 기록된 모든 RPS에서 N8보다 A8이 높았고 500 RPS는 0.10~0.35 ms에서 0.90~2.50 ms로 증가했습니다.</p>
-              <p><strong>판정:</strong> 기록된 포인트에서는 body 로깅 비용 방향이 확인됩니다. 1,000 RPS 공식 경고 구간은 미검증입니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 본 Developer v1·Korea Central·8KB 관측에서는 App Insights body 로깅이 APIM Duration을 늘렸습니다.</p>
+              <p><strong>판정:</strong> 기록된 포인트에서는 본문 로깅 비용 방향이 확인됩니다. 1,000 RPS 공식 경고 구간은 미검증입니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 본 Developer v1·Korea Central·8KB 관측에서는 App Insights 본문 로깅이 APIM Duration을 늘렸습니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md / RESULTS.md</span>
             </article>
             <article class="panel-card">
               <h3>H2 · Event Hub 8KB 500 RPS 무손실</h3>
-              <p><strong>의도 기준:</strong> generated/offered ≥ 99%, 성공 RPS ≥ 495, 오류율 ≤ 1%, p99 ≤ N8의 120%, request ID와 payload hash 대조.</p>
+              <p><strong>의도 기준:</strong> 생성/목표 요청 ≥ 99%, 성공 RPS ≥ 495, 오류율 ≤ 1%, p99 ≤ N8의 120%, 요청 ID와 페이로드 해시 대조.</p>
               <p><strong>실제 증거:</strong> 클라이언트는 150,000/150,000 성공했지만 APIM EventHubDroppedEvents가 대량 관측됐습니다. 300 RPS 이하는 드롭 0, 400 RPS는 2,933 드롭입니다.</p>
-              <p><strong>판정:</strong> 500 RPS 무손실은 반박. 정확한 드롭률은 미확정이며 off-scale 질적 표시만 사용합니다.</p>
+              <p><strong>판정:</strong> 500 RPS 무손실은 반박. 정확한 드롭률은 미확정이며 축 범위 밖 질적 표시만 사용합니다.</p>
               <p><strong>안전 재사용 문장:</strong> API 200 성공은 Event Hub 감사 로그 전달 성공을 보장하지 않습니다.</p>
               <span class="evidence risk">드롭/위험 · RESULTS.md</span>
             </article>
@@ -692,11 +692,11 @@
               <p><strong>의도 기준:</strong> H2와 동일하되 64KB 전체 메시지와 N64 대비 p99를 확인.</p>
               <p><strong>실제 증거:</strong> E64는 300 RPS에서 41,435, 500 RPS에서 76,434 EventHubDroppedEvents가 관측됐고 EH throttling은 0입니다.</p>
               <p><strong>판정:</strong> 64KB에서는 관측 운영 범위가 8KB보다 더 좁습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> payload가 커지면 같은 RPS에서도 로그 전달 가능 범위가 급격히 줄 수 있습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 페이로드가 커지면 같은 RPS에서도 로그 전달 가능 범위가 급격히 줄 수 있습니다.</p>
               <span class="evidence risk">드롭/위험 · EXPERIMENT-LOG.md</span>
             </article>
             <article class="panel-card">
-              <h3>H4 · payload 운영 범위</h3>
+              <h3>H4 · 페이로드 운영 범위</h3>
               <p><strong>실제 증거:</strong> 8KB E8은 300 RPS에서 드롭 0, 400 RPS에서 2,933 드롭이었고 64KB E64는 300 RPS에서도 41,435 드롭이었습니다.</p>
               <p><strong>판정:</strong> 병목 판단은 RPS만이 아니라 초당 기록 bytes를 함께 봐야 합니다.</p>
               <p><strong>안전 재사용 문장:</strong> 피크 RPS × 기록 페이로드 크기로 APIM 로깅 용량을 계획해야 합니다.</p>
@@ -704,8 +704,8 @@
             </article>
             <article class="panel-card">
               <h3>H5 · SKU 비교</h3>
-              <p><strong>실제 증거:</strong> 동일한 EH 40 TU와 load VM에서 Developer v1은 8KB 500 RPS E8 대량 드롭, Basic v2는 분당 약 30,000 EH 도달과 클라이언트 150,000 전부 200을 보였습니다.</p>
-              <p><strong>판정:</strong> SKU에 따른 결과 차이는 관측됐지만 v2 CPU/memory가 없어 메커니즘은 조건부입니다.</p>
+              <p><strong>실제 증거:</strong> 동일한 EH 40 TU와 부하 VM에서 Developer v1은 8KB 500 RPS E8 대량 드롭, Basic v2는 분당 약 30,000 EH 도달과 클라이언트 150,000 전부 200을 보였습니다.</p>
+              <p><strong>판정:</strong> SKU에 따른 결과 차이는 관측됐지만 v2 CPU/메모리가 없어 메커니즘은 조건부입니다.</p>
               <p><strong>안전 재사용 문장:</strong> 모든 로그 감사가 필요하면 목표 부하에서 게이트웨이 SKU와 권위 지표를 직접 검증해야 합니다.</p>
               <span class="evidence conditional">조건부 · EXPERIMENT-LOG.md</span>
             </article>
@@ -719,9 +719,9 @@
             </article>
             <article class="panel-card">
               <h3>계획 대비 실행</h3>
-              <p><strong>계획:</strong> 조건별 3회 반복, request ID 대조, payload hash, 메시지 크기 검증.</p>
+              <p><strong>계획:</strong> 조건별 3회 반복, 요청 ID 대조, 페이로드 해시, 메시지 크기 검증.</p>
               <p><strong>실행:</strong> 대부분 한 번씩 실행했고, 결과 판정은 APIM/EH 서버 카운터와 19개 result.json의 클라이언트 성공값에 의존했습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 결론은 방향성과 관측 사실 중심이며, 반복 분산과 end-to-end reconciliation은 별도 검증해야 합니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 결론은 방향성과 관측 사실 중심이며, 반복 분산과 종단 간 대조는 별도 검증해야 합니다.</p>
               <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md 대비 실행 로그</span>
             </article>
           </div>
@@ -730,29 +730,29 @@
         <section role="tabpanel" id="panel-conditions" aria-labelledby="tab-conditions" class="panel-stack">
           <h2>조건과 실행 범위</h2>
           <div class="panel-card">
-            <p>모든 조건은 Korea Central에서 실행됐습니다. 공통 인프라는 Event Hubs Standard 40 TU, 32 partitions, auto-inflate OFF, Standard_D8as_v5 Linux load VM입니다. 부하 도구는 Python asyncio/aiohttp, concurrency 20, retry disabled, warmup 후 steady-state 측정이었습니다.</p>
-            <p>모든 조건(N/A/E)에서 App Insights diagnostic은 sampling 100%로 켜져 있었고, N/E는 body 0B 메타데이터만 기록했습니다. 따라서 N은 diagnostics disabled가 아니라 metadata-only 기준선입니다.</p>
-            <div class="table-wrap" aria-label="condition matrix">
+            <p>모든 조건은 Korea Central에서 실행됐습니다. 공통 인프라는 Event Hubs Standard 40 TU, 32 partitions, auto-inflate OFF, Standard_D8as_v5 Linux 부하 VM입니다. 부하 도구는 Python asyncio/aiohttp, 동시성 20, 재시도 비활성화, 워밍업 후 정상 구간 측정이었습니다.</p>
+            <p>모든 조건(N/A/E)에서 App Insights 진단은 샘플링 100%로 켜져 있었고, N/E는 본문 0B 메타데이터만 기록했습니다. 따라서 N은 진단 기능 비활성화가 아니라 메타데이터만 기준선입니다.</p>
+            <div class="table-wrap" aria-label="조건 매트릭스">
               <table>
                 <thead>
                   <tr>
                     <th>조건</th>
-                    <th>요청 body</th>
+                    <th>요청 본문</th>
                     <th>App Insights</th>
                     <th>Event Hub</th>
                     <th>관측 부하</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td>N8</td><td>8KB</td><td>metadata-only, body 0B</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
-                  <tr><td>A8</td><td>8KB</td><td>sampling 100%, body 8KB</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
-                  <tr><td>E8</td><td>8KB</td><td>metadata-only, body 0B</td><td>8KB 전체 메시지</td><td>100/200/300/400/500 RPS</td></tr>
-                  <tr><td>N64</td><td>64KB</td><td>metadata-only, body 0B</td><td>없음</td><td>300/500 RPS</td></tr>
-                  <tr><td>E64</td><td>64KB</td><td>metadata-only, body 0B</td><td>64KB 전체 메시지</td><td>300/500 RPS</td></tr>
+                  <tr><td>N8</td><td>8KB</td><td>메타데이터만, 본문 0B</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
+                  <tr><td>A8</td><td>8KB</td><td>샘플링 100%, 본문 8KB</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
+                  <tr><td>E8</td><td>8KB</td><td>메타데이터만, 본문 0B</td><td>8KB 전체 메시지</td><td>100/200/300/400/500 RPS</td></tr>
+                  <tr><td>N64</td><td>64KB</td><td>메타데이터만, 본문 0B</td><td>없음</td><td>300/500 RPS</td></tr>
+                  <tr><td>E64</td><td>64KB</td><td>메타데이터만, 본문 0B</td><td>64KB 전체 메시지</td><td>300/500 RPS</td></tr>
                 </tbody>
               </table>
             </div>
-            <p class="chart-source">Source: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md. 조건 정의에는 색상 등급을 붙이지 않고, 판정은 별도 가설·차트에서만 표시합니다.</p>
+            <p class="chart-source">출처: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md. 조건 정의에는 색상 등급을 붙이지 않고, 판정은 별도 가설·차트에서만 표시합니다.</p>
           </div>
         </section>
 
@@ -831,7 +831,7 @@
     <rect class="bar series-e" x="130" y="383" width="261.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="395">~87%</text>
   </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-LOG.md and RESULTS.md. Capacity는 Developer v1 APIM 서버측 평균입니다.</p>
+  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. Capacity는 Developer v1 APIM 서버측 평균입니다.</p>
 </figure>
             <figure class="chart-card" id="chart-duration-8k" aria-labelledby="chart-duration-8k-title">
   <h3 id="chart-duration-8k-title">8KB APIM Duration 평균</h3>
@@ -905,14 +905,14 @@
     <rect class="bar series-e" x="178.0" y="383" width="156.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="395">0.40~1.70 ms</text>
   </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-LOG.md and RESULTS.md. 500 RPS는 range mark로 표시하고 단일 점으로 환산하지 않았습니다.</p>
+  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 500 RPS는 구간 막대로 표시하고 단일 점으로 환산하지 않았습니다.</p>
 </figure>
             <figure class="chart-card" id="chart-drops-8k" aria-labelledby="chart-drops-8k-title">
   <h3 id="chart-drops-8k-title">8KB EventHubDroppedEvents</h3>
   <svg class="metric-chart" viewBox="0 0 760 204" role="img" aria-label="8KB EventHubDroppedEvents">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0 drops</text>
-    <text class="axis-label" x="410" y="14">3000 drops</text>
+    <text class="axis-label" x="130" y="14">0 드롭</text>
+    <text class="axis-label" x="410" y="14">3000 드롭</text>
     <text class="group-label" x="8" y="34">100 RPS</text>
     <text class="series-label" x="42" y="59">E8</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
@@ -937,9 +937,9 @@
     <text class="series-label" x="42" y="195">E8</text>
     <rect class="offscale-band" x="444" y="178" width="260" height="18" rx="9"></rect>
     <circle class="offscale-marker" data-run="real-E8" cx="460" cy="187" r="6"></circle>
-    <text class="qualitative-label" x="474" y="192">off-scale · 정확한 드롭률 미확정</text>
+    <text class="qualitative-label" x="474" y="192">축 범위 밖 · 정확한 드롭률 미확정</text>
   </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-LOG.md and RESULTS.md. real-E8 500 RPS는 source의 대량/약 절반 진술만 반영하고 숫자 drop-count 없이 off-scale 질적 경고로 표시합니다.</p>
+  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. real-E8 500 RPS는 원문 진술의 대량/약 절반 표현만 반영하고 숫자 드롭 수치 없이 축 범위 밖 질적 경고로 표시합니다.</p>
 </figure>
             <figure class="chart-card" id="chart-duration-64k" aria-labelledby="chart-duration-64k-title">
   <h3 id="chart-duration-64k-title">64KB APIM Duration 평균</h3>
@@ -967,14 +967,14 @@
     <text class="value-label" x="448" y="133">7.58 ms</text>
   </svg>
   <p class="chart-note">주의: APIM Duration은 전달 완전성 지표가 아닙니다. E64 300 RPS는 41,435개 드롭이 있어 E/N 차이는 순수한 로깅 비용 측정치가 아닙니다.</p>
-  <p class="chart-source"><span class="evidence conditional">조건부</span> Source: EXPERIMENT-LOG.md and RESULTS.md. 64KB는 300/500 RPS 각 1회 관측입니다.</p>
+  <p class="chart-source"><span class="evidence conditional">조건부</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 64KB는 300/500 RPS 각 1회 관측입니다.</p>
 </figure>
             <figure class="chart-card" id="chart-drops-64k" aria-labelledby="chart-drops-64k-title">
   <h3 id="chart-drops-64k-title">64KB EventHubDroppedEvents</h3>
   <svg class="metric-chart" viewBox="0 0 760 120" role="img" aria-label="64KB EventHubDroppedEvents">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0 drops</text>
-    <text class="axis-label" x="410" y="14">80000 drops</text>
+    <text class="axis-label" x="130" y="14">0 드롭</text>
+    <text class="axis-label" x="410" y="14">80000 드롭</text>
     <text class="group-label" x="8" y="34">300 RPS</text>
     <text class="series-label" x="42" y="59">E64</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
@@ -986,7 +986,7 @@
     <rect class="bar series-danger" x="130" y="81" width="286.6" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="93">76,434</text>
   </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-LOG.md and RESULTS.md. E64 drops는 APIM EventHubDroppedEvents입니다.</p>
+  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. E64 드롭은 APIM EventHubDroppedEvents입니다.</p>
 </figure>
             <figure class="chart-card" id="chart-sku-comparison" aria-labelledby="chart-sku-comparison-title">
               <h3 id="chart-sku-comparison-title">SKU 비교: 8KB 500 RPS E8</h3>
@@ -995,13 +995,13 @@
                   <thead><tr><th>항목</th><th>Developer v1</th><th>Basic v2</th></tr></thead>
                   <tbody>
                     <tr><td>EH 도달</td><td>APIM 보고 기준 대량 드롭/약 절반 · 정확한 드롭률 미확정</td><td>분당 약 30,000개로 500 RPS×60과 일치</td></tr>
-                    <tr><td>EH throttled</td><td>0</td><td>0</td></tr>
+                    <tr><td>EH 스로틀링</td><td>0</td><td>0</td></tr>
                     <tr><td>클라이언트 요청</td><td>150,000 전부 200</td><td>150,000 전부 200</td></tr>
-                    <tr><td>메커니즘</td><td>v1 Capacity 포화 관측</td><td>v2 CPU/memory 미수집, Capacity 미지원</td></tr>
+                    <tr><td>메커니즘</td><td>v1 Capacity 포화 관측</td><td>v2 CPU/메모리 미수집, Capacity 미지원</td></tr>
                   </tbody>
                 </table>
               </div>
-              <p class="chart-source"><span class="evidence conditional">조건부</span> Source: EXPERIMENT-LOG.md and RESULTS.md. 운영 차이는 관측됐지만 v2 CPU/memory 미수집으로 세부 메커니즘은 조건부입니다. v2 classic Capacity는 미지원이므로 공통 Capacity 차트는 표시하지 않습니다.</p>
+              <p class="chart-source"><span class="evidence conditional">조건부</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 운영 차이는 관측됐지만 v2 CPU/메모리 미수집으로 세부 메커니즘은 조건부입니다. v2 클래식 티어 Capacity는 미지원이므로 공통 Capacity 차트는 표시하지 않습니다.</p>
             </figure>
             <figure class="chart-card chart-wide" id="chart-client-latency" aria-labelledby="chart-client-latency-title">
   <h3 id="chart-client-latency-title">클라이언트 p99 지연 — APIM 권위 지표 아님 · 보조 증거</h3>
@@ -1086,89 +1086,89 @@
     <rect class="bar series-neutral" x="170" y="483" width="177.7" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="495">506.87 ms</text>
   </svg>
-  <p class="chart-source"><span class="evidence conditional">조건부</span> APIM 권위 지표 아님 · 보조 증거. Source: all 19 result.json files. 클라이언트 p95/p99에는 load-generator/TLS artifacts가 포함됩니다.</p>
+  <p class="chart-source"><span class="evidence conditional">조건부</span> APIM 권위 지표 아님 · 보조 증거. 출처: 19개 result.json 파일 전체. 클라이언트 p95/p99에는 부하 생성기/TLS 영향이 포함됩니다.</p>
 </figure>
             <figure class="chart-card chart-wide" id="chart-request-success" aria-labelledby="chart-request-success-title">
-  <h3 id="chart-request-success-title">요청 성공률: offered == successful, errors 0</h3>
+  <h3 id="chart-request-success-title">요청 성공률: 목표 요청 == 성공 요청, 오류 0</h3>
   <svg class="metric-chart success-chart" viewBox="0 0 860 460" role="img" aria-label="19개 JSON 모두 요청 성공률 100%">
     <text class="series-label mono" x="8" y="49">r100-A8</text>
     <rect class="range-track" x="170" y="37" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="37" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="49">18000 / 18000 · errors 0</text>
+    <text class="value-label" x="575" y="49">18000 / 18000 · 오류 0</text>
     <text class="series-label mono" x="8" y="71">r100-E8</text>
     <rect class="range-track" x="170" y="59" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="59" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="71">18000 / 18000 · errors 0</text>
+    <text class="value-label" x="575" y="71">18000 / 18000 · 오류 0</text>
     <text class="series-label mono" x="8" y="93">r100-N8</text>
     <rect class="range-track" x="170" y="81" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="81" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="93">18000 / 18000 · errors 0</text>
+    <text class="value-label" x="575" y="93">18000 / 18000 · 오류 0</text>
     <text class="series-label mono" x="8" y="115">r200-A8</text>
     <rect class="range-track" x="170" y="103" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="103" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="115">36000 / 36000 · errors 0</text>
+    <text class="value-label" x="575" y="115">36000 / 36000 · 오류 0</text>
     <text class="series-label mono" x="8" y="137">r200-E8</text>
     <rect class="range-track" x="170" y="125" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="125" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="137">36000 / 36000 · errors 0</text>
+    <text class="value-label" x="575" y="137">36000 / 36000 · 오류 0</text>
     <text class="series-label mono" x="8" y="159">r200-N8</text>
     <rect class="range-track" x="170" y="147" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="147" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="159">36000 / 36000 · errors 0</text>
+    <text class="value-label" x="575" y="159">36000 / 36000 · 오류 0</text>
     <text class="series-label mono" x="8" y="181">r300-A8</text>
     <rect class="range-track" x="170" y="169" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="169" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="181">54000 / 54000 · errors 0</text>
+    <text class="value-label" x="575" y="181">54000 / 54000 · 오류 0</text>
     <text class="series-label mono" x="8" y="203">r300-E64</text>
     <rect class="range-track" x="170" y="191" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="191" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="203">54000 / 54000 · errors 0</text>
+    <text class="value-label" x="575" y="203">54000 / 54000 · 오류 0</text>
     <text class="series-label mono" x="8" y="225">r300-E8</text>
     <rect class="range-track" x="170" y="213" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="213" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="225">54000 / 54000 · errors 0</text>
+    <text class="value-label" x="575" y="225">54000 / 54000 · 오류 0</text>
     <text class="series-label mono" x="8" y="247">r300-N64</text>
     <rect class="range-track" x="170" y="235" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="235" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="247">54000 / 54000 · errors 0</text>
+    <text class="value-label" x="575" y="247">54000 / 54000 · 오류 0</text>
     <text class="series-label mono" x="8" y="269">r300-N8</text>
     <rect class="range-track" x="170" y="257" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="257" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="269">54000 / 54000 · errors 0</text>
+    <text class="value-label" x="575" y="269">54000 / 54000 · 오류 0</text>
     <text class="series-label mono" x="8" y="291">r400-A8</text>
     <rect class="range-track" x="170" y="279" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="279" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="291">72000 / 72000 · errors 0</text>
+    <text class="value-label" x="575" y="291">72000 / 72000 · 오류 0</text>
     <text class="series-label mono" x="8" y="313">r400-E8</text>
     <rect class="range-track" x="170" y="301" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="301" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="313">72000 / 72000 · errors 0</text>
+    <text class="value-label" x="575" y="313">72000 / 72000 · 오류 0</text>
     <text class="series-label mono" x="8" y="335">r400-N8</text>
     <rect class="range-track" x="170" y="323" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="323" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="335">72000 / 72000 · errors 0</text>
+    <text class="value-label" x="575" y="335">72000 / 72000 · 오류 0</text>
     <text class="series-label mono" x="8" y="357">r500-E64</text>
     <rect class="range-track" x="170" y="345" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="345" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="357">90000 / 90000 · errors 0</text>
+    <text class="value-label" x="575" y="357">90000 / 90000 · 오류 0</text>
     <text class="series-label mono" x="8" y="379">r500-N64</text>
     <rect class="range-track" x="170" y="367" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="367" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="379">90000 / 90000 · errors 0</text>
+    <text class="value-label" x="575" y="379">90000 / 90000 · 오류 0</text>
     <text class="series-label mono" x="8" y="401">real-A8</text>
     <rect class="range-track" x="170" y="389" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="389" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="401">150000 / 150000 · errors 0</text>
+    <text class="value-label" x="575" y="401">150000 / 150000 · 오류 0</text>
     <text class="series-label mono" x="8" y="423">real-E8</text>
     <rect class="range-track" x="170" y="411" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="411" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="423">150000 / 150000 · errors 0</text>
+    <text class="value-label" x="575" y="423">150000 / 150000 · 오류 0</text>
     <text class="series-label mono" x="8" y="445">real-N8</text>
     <rect class="range-track" x="170" y="433" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="433" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="445">150000 / 150000 · errors 0</text>
+    <text class="value-label" x="575" y="445">150000 / 150000 · 오류 0</text>
   </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: all 19 result.json files. 각 파일은 offered == successful, errors 0입니다.</p>
+  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: 19개 result.json 파일 전체. 각 파일은 목표 요청 == 성공 요청, 오류 0입니다.</p>
 </figure>
             <figure class="chart-card chart-wide" id="chart-confidence" aria-labelledby="chart-confidence-title">
               <h3 id="chart-confidence-title">신뢰도 매트릭스</h3>
@@ -1177,21 +1177,21 @@
                   <thead><tr><th>라벨</th><th>주장</th><th>근거</th></tr></thead>
                   <tbody>
                     <tr><td>확정</td><td>HTTP 200 요청 성공과 APIM Event Hub 드롭은 동시에 발생할 수 있습니다. EH throttling은 0이었고 8KB RPS를 낮추면 APIM 드롭이 사라졌습니다.</td><td>RESULTS.md, EXPERIMENT-LOG.md</td></tr>
-                    <tr><td>조건부</td><td>App Insights 집계상 누락 없음, payload 크기에 따른 운영 범위 축소, SKU 변경 효과는 관측됐지만 반복과 대칭 지표가 부족합니다.</td><td>RESULTS.md, 서버 카운터</td></tr>
+                    <tr><td>조건부</td><td>App Insights 집계상 누락 없음, 페이로드 크기에 따른 운영 범위 축소, SKU 변경 효과는 관측됐지만 반복과 대칭 지표가 부족합니다.</td><td>RESULTS.md, 서버 카운터</td></tr>
                     <tr><td>미검증</td><td>안정적인 300 RPS 무손실 임계값, Basic v2의 일반적 무손실성, 정확한 큐 메커니즘은 추가 검증이 필요합니다.</td><td>EXPERIMENT-SPEC.md 대비 누락 항목</td></tr>
                     <tr><td>교정</td><td>Event Hub가 항상 더 빠르다거나 Developer v1 최대가 500 RPS라고 표현하면 안 됩니다.</td><td>RESULTS.md 교정 해석</td></tr>
                   </tbody>
                 </table>
               </div>
-              <p class="chart-source">Source: RESULTS.md, DECISION-TREE.md. 확정/조건부/미검증/교정 해석은 위 표를 따릅니다.</p>
+              <p class="chart-source">출처: RESULTS.md, DECISION-TREE.md. 확정/조건부/미검증/교정 해석은 위 표를 따릅니다.</p>
             </figure>
           </div>
-          <p class="chart-source"><span class="evidence confirmed">확정</span> 8KB/64KB 서버 차트 Source: EXPERIMENT-LOG.md and RESULTS.md. 500 RPS E8은 data-drop-count 숫자를 두지 않고 “정확한 드롭률 미확정”으로 표시했습니다.</p>
-          <div class="table-wrap" aria-label="client latency exact values">
+          <p class="chart-source"><span class="evidence confirmed">확정</span> 8KB/64KB 서버 차트 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 500 RPS E8은 드롭 수치 숫자를 두지 않고 “정확한 드롭률 미확정”으로 표시했습니다.</p>
+          <div class="table-wrap" aria-label="클라이언트 지연 상세 값">
             <table>
-              <caption>Client latency values from all 19 result.json files (rounded to 2 decimals)</caption>
+              <caption>19개 result.json 파일의 클라이언트 지연 값 (소수 둘째 자리 반올림)</caption>
               <thead>
-                <tr><th>source</th><th>condition</th><th>payloadBytes</th><th>rate</th><th>offered</th><th>successful</th><th>errors</th><th>p50Ms</th><th>p95Ms</th><th>p99Ms</th></tr>
+                <tr><th>출처</th><th>조건</th><th>payloadBytes</th><th>요청률</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>p50Ms</th><th>p95Ms</th><th>p99Ms</th></tr>
               </thead>
               <tbody>
                     <tr>
@@ -1425,11 +1425,11 @@
               </tbody>
             </table>
           </div>
-          <p class="warning">클라이언트 p95/p99에는 load-generator/TLS 영향이 포함되므로 APIM 권위 지표 아님 · 보조 증거입니다. APIM 서버측 Duration/Capacity와 EventHubDroppedEvents가 판정의 우선 근거입니다.</p>
-          <div class="table-wrap" aria-label="request success exact values">
+          <p class="warning">클라이언트 p95/p99에는 부하 생성기/TLS 영향이 포함되므로 APIM 권위 지표 아님 · 보조 증거입니다. APIM 서버측 Duration/Capacity와 EventHubDroppedEvents가 판정의 우선 근거입니다.</p>
+          <div class="table-wrap" aria-label="요청 성공 상세 값">
             <table>
-              <caption>Offered versus successful requests from all 19 result.json files</caption>
-              <thead><tr><th>source</th><th>offered</th><th>successful</th><th>errors</th><th>client success rate</th></tr></thead>
+              <caption>19개 result.json 파일의 목표 요청 대비 성공 요청</caption>
+              <thead><tr><th>출처</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>클라이언트 성공률</th></tr></thead>
               <tbody>
                     <tr>
                       <td><code>results/r100-A8/result.json</code></td>
@@ -1567,19 +1567,19 @@
               </tbody>
             </table>
           </div>
-          <p class="chart-source"><span class="evidence confirmed">확정</span> Source: all 19 result.json files. API success does not establish audit-log success.</p>
+          <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: 19개 result.json 파일 전체. API 성공이 감사 로그 성공을 뜻하지는 않습니다.</p>
         </section>
 
         <section role="tabpanel" id="panel-limitations" aria-labelledby="tab-limitations" class="panel-stack">
           <h2>한계와 주의</h2>
           <div class="panel-grid">
             <article class="panel-card"><h3>반복 실행 부족</h3><p>명세는 조건별 3회 반복이었지만 실행 데이터는 대부분 한 번씩 측정했습니다. 분산과 오차막대는 없습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>요청 ID·해시 대조 누락</h3><p>request ID 집합, payload hash, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>메타데이터만 기록한 기준선</h3><p>N8/N64는 App Insights body 0B일 뿐이며 diagnostics disabled가 아닙니다.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
-            <article class="panel-card"><h3>집계 창 경계</h3><p>A8 150,178은 측정창 경계와 warmup 잔여가 섞였을 수 있어 요청 단위 완전성 증명으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>드롭 0의 의미</h3><p>APIM/EH drop 0만으로 최종 감사 무손실을 증명하지 않습니다. end-to-end reconciliation이 필요합니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>요청 ID·해시 대조 누락</h3><p>요청 ID 집합, 페이로드 해시, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>메타데이터만 기록한 기준선</h3><p>N8/N64는 App Insights 본문 0B일 뿐이며 진단 기능 비활성화가 아닙니다.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
+            <article class="panel-card"><h3>집계 창 경계</h3><p>A8 150,178은 측정창 경계와 워밍업 잔여가 섞였을 수 있어 요청 단위 완전성 증명으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>드롭 0의 의미</h3><p>APIM/EH 드롭 0만으로 최종 감사 무손실을 증명하지 않습니다. 종단 간 대조가 필요합니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
             <article class="panel-card"><h3>임계값 표현</h3><p>8KB는 300 RPS 드롭 0과 400 RPS 드롭으로 전환만 관측했으며 안정 임계값은 아닙니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>SKU 지표 비대칭</h3><p>v1은 Capacity/Duration/드롭, v2는 EH arrival 중심입니다. v2 CPU/memory 미수집으로 메커니즘은 조건부입니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>SKU 지표 비대칭</h3><p>v1은 Capacity/Duration/드롭, v2는 EH 도달 중심입니다. v2 CPU/메모리 미수집으로 메커니즘은 조건부입니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
             <article class="panel-card"><h3>클라이언트 지연</h3><p>단일 asyncio 부하 생성기와 TLS 영향으로 p95/p99 꼬리가 섞였습니다. APIM 판정은 서버측 지표를 우선합니다.</p><span class="evidence conditional">조건부 · EXPERIMENT-SPEC.md</span></article>
             <article class="panel-card"><h3>공식 고부하 경고</h3><p>본 실험은 1,000 RPS 초과 App Insights throughput 40~50% 감소 경고를 검증하지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
           </div>
@@ -1591,113 +1591,113 @@
             <article class="panel-card"><h3>API와 로깅 SLO 분리</h3><p>API 200 성공률과 감사 로그 전달률을 별도 SLO로 정의하십시오. Event Hub 드롭은 API 오류로 나타나지 않습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
             <article class="panel-card"><h3>드롭·싱크 동시 모니터링</h3><p>APIM EventHubSuccessfulEvents/EventHubDroppedEvents와 EH IncomingMessages/ThrottledRequests를 함께 감시해 APIM 큐 문제와 EH 용량 문제를 분리하십시오.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
             <article class="panel-card"><h3>부하 모델은 bytes/sec로</h3><p>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오. 64KB는 300 RPS에서도 드롭이 발생했습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>SKU별 권위 지표 선택</h3><p>v1은 classic Capacity를 사용하고, v2는 Capacity 대신 CPU/memory metrics를 수집하도록 테스트 계획을 바꾸십시오.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>body 크기 축소</h3><p>전체 body 대신 필요한 필드, 요약, 해시, 샘플, 또는 크기 제한을 적용해 gateway logging cost를 낮추십시오.</p><span class="evidence confirmed">확정 · DECISION-TREE.md</span></article>
-            <article class="panel-card"><h3>고객 환경 재시험</h3><p>리전, SKU, 정책 조합, backend latency, payload 분포가 바뀌면 결과가 달라질 수 있으므로 고객 환경에서 재측정하십시오.</p><span class="evidence conditional">조건부 · DECISION-TREE.md</span></article>
+            <article class="panel-card"><h3>SKU별 권위 지표 선택</h3><p>v1은 클래식 티어 Capacity를 사용하고, v2는 Capacity 대신 CPU/메모리 지표를 수집하도록 테스트 계획을 바꾸십시오.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>본문 크기 축소</h3><p>전체 본문 대신 필요한 필드, 요약, 해시, 샘플, 또는 크기 제한을 적용해 게이트웨이 로깅 비용을 낮추십시오.</p><span class="evidence confirmed">확정 · DECISION-TREE.md</span></article>
+            <article class="panel-card"><h3>고객 환경 재시험</h3><p>리전, SKU, 정책 조합, 백엔드 지연, 페이로드 분포가 바뀌면 결과가 달라질 수 있으므로 고객 환경에서 재측정하십시오.</p><span class="evidence conditional">조건부 · DECISION-TREE.md</span></article>
           </div>
         </section>
 
         <section role="tabpanel" id="panel-sources" aria-labelledby="tab-sources" class="panel-stack">
           <h2>출처</h2>
           <div class="source-list">
-            <article class="source-item"><h3><a href="EXPERIMENT-SPEC.md"><code>EXPERIMENT-SPEC.md</code></a></h3><p>가설, 성공 기준, 3회 반복 계획, request ID/hash/message-size reconciliation 요구.</p><span class="pill">Source doc</span></article>
-            <article class="source-item"><h3><a href="EXPERIMENT-LOG.md"><code>EXPERIMENT-LOG.md</code></a></h3><p>실행 조건, 시간창, 8KB/64KB 서버 메트릭, metadata-only 기준선 설명.</p><span class="pill">Source doc</span></article>
-            <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>현재 working-tree 최종 결과, 한계, SKU 비교, 교정된 해석.</p><span class="pill">Source doc</span></article>
-            <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델.</p><span class="pill">Source doc</span></article>
+            <article class="source-item"><h3><a href="EXPERIMENT-SPEC.md"><code>EXPERIMENT-SPEC.md</code></a></h3><p>가설, 성공 기준, 3회 반복 계획, 요청 ID/해시/메시지 크기 대조 요구.</p><span class="pill">원문 문서</span></article>
+            <article class="source-item"><h3><a href="EXPERIMENT-LOG.md"><code>EXPERIMENT-LOG.md</code></a></h3><p>실행 조건, 시간창, 8KB/64KB 서버 메트릭, 메타데이터만 기준선 설명.</p><span class="pill">원문 문서</span></article>
+            <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>현재 작업 트리 최종 결과, 한계, SKU 비교, 교정된 해석.</p><span class="pill">원문 문서</span></article>
+            <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델.</p><span class="pill">원문 문서</span></article>
               <article class="source-item">
                 <h3><a href="results/r100-A8/result.json"><code>results/r100-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 100 RPS · offered=18000, successful=18000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>A8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r100-E8/result.json"><code>results/r100-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 100 RPS · offered=18000, successful=18000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r100-N8/result.json"><code>results/r100-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 100 RPS · offered=18000, successful=18000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r200-A8/result.json"><code>results/r200-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 200 RPS · offered=36000, successful=36000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>A8 · 8192 bytes · 200 RPS · 목표 요청=36000, 성공 요청=36000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r200-E8/result.json"><code>results/r200-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 200 RPS · offered=36000, successful=36000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E8 · 8192 bytes · 200 RPS · 목표 요청=36000, 성공 요청=36000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r200-N8/result.json"><code>results/r200-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 200 RPS · offered=36000, successful=36000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N8 · 8192 bytes · 200 RPS · 목표 요청=36000, 성공 요청=36000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r300-A8/result.json"><code>results/r300-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>A8 · 8192 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r300-E64/result.json"><code>results/r300-E64/result.json</code></a></h3>
-                <p>E64 · 65536 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E64 · 65536 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r300-E8/result.json"><code>results/r300-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E8 · 8192 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r300-N64/result.json"><code>results/r300-N64/result.json</code></a></h3>
-                <p>N64 · 65536 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N64 · 65536 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r300-N8/result.json"><code>results/r300-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N8 · 8192 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r400-A8/result.json"><code>results/r400-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 400 RPS · offered=72000, successful=72000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>A8 · 8192 bytes · 400 RPS · 목표 요청=72000, 성공 요청=72000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r400-E8/result.json"><code>results/r400-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 400 RPS · offered=72000, successful=72000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E8 · 8192 bytes · 400 RPS · 목표 요청=72000, 성공 요청=72000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r400-N8/result.json"><code>results/r400-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 400 RPS · offered=72000, successful=72000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N8 · 8192 bytes · 400 RPS · 목표 요청=72000, 성공 요청=72000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r500-E64/result.json"><code>results/r500-E64/result.json</code></a></h3>
-                <p>E64 · 65536 bytes · 500 RPS · offered=90000, successful=90000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E64 · 65536 bytes · 500 RPS · 목표 요청=90000, 성공 요청=90000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/r500-N64/result.json"><code>results/r500-N64/result.json</code></a></h3>
-                <p>N64 · 65536 bytes · 500 RPS · offered=90000, successful=90000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N64 · 65536 bytes · 500 RPS · 목표 요청=90000, 성공 요청=90000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/real-A8/result.json"><code>results/real-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 500 RPS · offered=150000, successful=150000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>A8 · 8192 bytes · 500 RPS · 목표 요청=150000, 성공 요청=150000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/real-E8/result.json"><code>results/real-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 500 RPS · offered=150000, successful=150000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>E8 · 8192 bytes · 500 RPS · 목표 요청=150000, 성공 요청=150000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
               <article class="source-item">
                 <h3><a href="results/real-N8/result.json"><code>results/real-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 500 RPS · offered=150000, successful=150000, errors=0</p>
-                <span class="pill">Client result JSON</span>
+                <p>N8 · 8192 bytes · 500 RPS · 목표 요청=150000, 성공 요청=150000, 오류=0</p>
+                <span class="pill">클라이언트 결과 JSON</span>
               </article>
           </div>
         </section>
