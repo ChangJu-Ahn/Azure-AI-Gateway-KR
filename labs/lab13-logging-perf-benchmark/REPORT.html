@@ -346,13 +346,20 @@
         color: var(--cp-success);
       }
 
-      .evidence.conditional,
-      .evidence.corrected {
+      .evidence.conditional {
         color: var(--cp-warning);
       }
 
-      .evidence.unverified {
+      .evidence.risk {
         color: var(--cp-danger);
+      }
+
+      .evidence.unverified {
+        color: var(--cp-text-muted);
+      }
+
+      .evidence.corrected {
+        color: var(--cp-accent);
       }
 
       .metric-chart {
@@ -377,8 +384,15 @@
         stroke-width: 1;
       }
 
-      .warning-marker {
+      .warning-marker,
+      .offscale-marker {
         fill: var(--cp-warning);
+      }
+
+      .offscale-band {
+        fill: var(--cp-accent-soft);
+        stroke: var(--cp-warning);
+        stroke-width: 1;
       }
 
       .series-n {
@@ -402,9 +416,14 @@
         fill: var(--cp-success);
       }
 
+      .series-neutral {
+        fill: var(--cp-text-muted);
+      }
+
       .group-label,
       .series-label,
       .value-label,
+      .qualitative-label,
       .axis-label {
         fill: var(--cp-text-muted);
         font-size: 12px;
@@ -417,7 +436,13 @@
 
       .value-label {
         fill: var(--cp-text);
-        text-anchor: end;
+        text-anchor: start;
+      }
+
+      .qualitative-label {
+        fill: var(--cp-text);
+        font-weight: 700;
+        text-anchor: start;
       }
 
       .chart-source {
@@ -444,8 +469,37 @@
       }
 
       @media print {
+        :root,
+        html[data-theme="dark"] {
+          color-scheme: light;
+          --cp-bg: #f7f4ef;
+          --cp-bg-elevated: #fcfbf8;
+          --cp-surface: #ffffff;
+          --cp-surface-soft: #f5f5f5;
+          --cp-border: #dedede;
+          --cp-border-strong: #919191;
+          --cp-text: #242424;
+          --cp-text-muted: #5c5c5c;
+          --cp-text-soft: #6f6f6f;
+          --cp-accent: #b11f4b;
+          --cp-accent-hover: #9a1a41;
+          --cp-accent-soft: rgba(177, 31, 75, 0.08);
+          --cp-accent-fg: #ffffff;
+          --cp-success: #16a34a;
+          --cp-danger: #dc2626;
+          --cp-warning: #f59e0b;
+          --cp-link: #0078d4;
+          --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+          --cp-overlay: rgba(255, 255, 255, 0.8);
+          --cp-panel: rgba(255, 255, 255, 0.86);
+          --cp-panel-strong: rgba(255, 255, 255, 0.96);
+          --cp-sheen: rgba(255, 255, 255, 0.55);
+          --cp-highlight: rgba(177, 31, 75, 0.12);
+        }
+
         body {
           background: var(--cp-surface);
+          color: var(--cp-text);
         }
 
         .page {
@@ -465,11 +519,14 @@
         }
 
         .hero,
+        [role="tabpanel"],
         .panel-card,
         .source-item,
         .meta-card,
         .chart-card,
         noscript {
+          break-inside: avoid;
+          page-break-inside: avoid;
           box-shadow: none;
         }
       }
@@ -515,7 +572,8 @@
         <h1>APIM 로깅 성능·무손실 벤치마크</h1>
         <p class="lede">
           고객 관점의 결론은 단순합니다. API가 200으로 성공해도 감사 로그가 전달됐다는 뜻은 아니며,
-          본 관측에서는 APIM Event Hub 로거가 큐 한도에서 조용히 드롭할 수 있었습니다.
+          본 관측에서는 APIM Event Hub 로거가 로그를 조용히 드롭할 수 있었습니다. 큐 한도 메커니즘은 조건부/추정이며,
+          공식 EventHubDroppedEvents 정의와 Capacity·RPS 상관관계로 해석했습니다.
         </p>
         <dl class="hero-meta" aria-label="report scope">
           <div class="meta-card">
@@ -524,7 +582,7 @@
           </div>
           <div class="meta-card">
             <dt>Evidence legend</dt>
-            <dd>Confirmed(확정) · Conditional(조건부) · Drops/risks(교정) · Unverified(미검증)</dd>
+            <dd>초록=확정 · 노랑=조건부 · 빨강=드롭/위험 · 회색=미검증 · 교정=별도 텍스트 상태</dd>
           </div>
           <div class="meta-card">
             <dt>Maintenance model</dt>
@@ -558,7 +616,7 @@
             </article>
             <article class="panel-card summary-card">
               <h3>EH namespace는 병목 아님</h3>
-              <p>APIM-reported drops 중에도 Event Hubs ThrottledRequests는 0으로 기록됐습니다.</p>
+              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%이며, 관측 run에서 EH throttling 0이었습니다. 드롭은 APIM 쪽에서 보고됐습니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
             </article>
             <article class="panel-card summary-card">
@@ -577,6 +635,15 @@
               <span class="evidence conditional">조건부 · RESULTS.md</span>
             </article>
           </div>
+          <article class="panel-card full-span">
+            <h3>첫 화면 고객 action</h3>
+            <ol>
+              <li>API SLO와 로깅 SLO를 분리하십시오.</li>
+              <li>APIM EH drop/success와 EH ingress/throttling을 함께 모니터링하십시오.</li>
+              <li>peak RPS × logged payload size로 용량을 계획하십시오.</li>
+              <li>v1은 classic Capacity, v2는 gateway CPU/memory를 권위 부하 지표로 사용하십시오.</li>
+            </ol>
+          </article>
           <p class="warning">
             범위 주의: 원래 계획은 조건별 3회 반복과 request ID/hash reconciliation이었으나 실행 데이터는 대부분 one run per cell이며 서버 카운터 중심입니다. N은 metadata-only 기준선이지 diagnostics disabled가 아닙니다.
           </p>
@@ -588,28 +655,54 @@
             <article class="panel-card">
               <h3>H1 · App Insights 8KB body 비용</h3>
               <p><strong>의도 기준:</strong> A8 평균 gateway CPU 또는 p99가 N8보다 의미 있게 높고 세 반복이 같은 방향.</p>
-              <p><strong>실제 증거:</strong> 3회 반복은 없었지만 APIM Duration은 모든 RPS에서 N8보다 A8이 높았고 500 RPS는 0.10~0.35 ms에서 0.90~2.50 ms로 증가했습니다.</p>
-              <p><strong>판정:</strong> 방향 지지. 처리량 저하 수치는 1,000 RPS 미검증.</p>
+              <p><strong>실제 증거:</strong> 3회 반복은 없었지만 APIM Duration은 기록된 모든 RPS에서 N8보다 A8이 높았고 500 RPS는 0.10~0.35 ms에서 0.90~2.50 ms로 증가했습니다.</p>
+              <p><strong>판정:</strong> 기록된 포인트에서는 body 로깅 비용 방향이 확인됩니다. 1,000 RPS 공식 경고 구간은 미검증입니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 본 Developer v1·Korea Central·8KB 관측에서는 App Insights body 로깅이 APIM Duration을 늘렸습니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md / RESULTS.md</span>
             </article>
             <article class="panel-card">
               <h3>H2 · Event Hub 8KB 500 RPS 무손실</h3>
-              <p><strong>의도 기준:</strong> generated/offered ≥ 99%, 성공 RPS ≥ 495, 오류율 ≤ 1%, p99 ≤ N8의 120%, 모든 request ID가 EH consumer에서 확인, payload hash 일치.</p>
+              <p><strong>의도 기준:</strong> generated/offered ≥ 99%, 성공 RPS ≥ 495, 오류율 ≤ 1%, p99 ≤ N8의 120%, request ID와 payload hash 대조.</p>
               <p><strong>실제 증거:</strong> 클라이언트는 150,000/150,000 성공했지만 APIM EventHubDroppedEvents가 대량 관측됐습니다. 300 RPS 이하는 드롭 0, 400 RPS는 2,933 드롭입니다.</p>
-              <p><strong>판정:</strong> 500 RPS 무손실은 반박. 정확한 드롭률 미확정.</p>
-              <span class="evidence confirmed">확정 · RESULTS.md</span>
+              <p><strong>판정:</strong> 500 RPS 무손실은 반박. 정확한 드롭률은 미확정이며 off-scale 질적 표시만 사용합니다.</p>
+              <p><strong>안전 재사용 문장:</strong> API 200 성공은 Event Hub 감사 로그 전달 성공을 보장하지 않습니다.</p>
+              <span class="evidence risk">드롭/위험 · RESULTS.md</span>
             </article>
             <article class="panel-card">
-              <h3>H3 · Event Hub 64KB 500 RPS 무손실</h3>
+              <h3>H3 · 64KB Event Hub 무손실</h3>
               <p><strong>의도 기준:</strong> H2와 동일하되 64KB 전체 메시지와 N64 대비 p99를 확인.</p>
               <p><strong>실제 증거:</strong> E64는 300 RPS에서 41,435, 500 RPS에서 76,434 EventHubDroppedEvents가 관측됐고 EH throttling은 0입니다.</p>
               <p><strong>판정:</strong> 64KB에서는 관측 운영 범위가 8KB보다 더 좁습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> payload가 커지면 같은 RPS에서도 로그 전달 가능 범위가 급격히 줄 수 있습니다.</p>
+              <span class="evidence risk">드롭/위험 · EXPERIMENT-LOG.md</span>
+            </article>
+            <article class="panel-card">
+              <h3>H4 · payload 운영 범위</h3>
+              <p><strong>실제 증거:</strong> 8KB E8은 300 RPS에서 드롭 0, 400 RPS에서 2,933 드롭이었고 64KB E64는 300 RPS에서도 41,435 드롭이었습니다.</p>
+              <p><strong>판정:</strong> 병목 판단은 RPS만이 아니라 초당 기록 bytes를 함께 봐야 합니다.</p>
+              <p><strong>안전 재사용 문장:</strong> peak RPS × logged payload size로 APIM 로깅 용량을 계획해야 합니다.</p>
               <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
+            </article>
+            <article class="panel-card">
+              <h3>H5 · SKU 비교</h3>
+              <p><strong>실제 증거:</strong> 동일한 EH 40 TU와 load VM에서 Developer v1은 8KB 500 RPS E8 대량 드롭, Basic v2는 분당 약 30,000 EH 도달과 클라이언트 150,000 전부 200을 보였습니다.</p>
+              <p><strong>판정:</strong> SKU에 따른 결과 차이는 관측됐지만 v2 CPU/memory가 없어 메커니즘은 조건부입니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 모든 로그 감사가 필요하면 목표 부하에서 게이트웨이 SKU와 권위 지표를 직접 검증해야 합니다.</p>
+              <span class="evidence conditional">조건부 · EXPERIMENT-LOG.md</span>
+            </article>
+            <article class="panel-card">
+              <h3>교정된 표현</h3>
+              <p><strong>거부할 표현:</strong> Event Hub가 항상 App Insights보다 빠르다. Developer v1의 최대 처리량은 500 RPS다.</p>
+              <p><strong>교정된 문장:</strong> Event Hub가 항상 App Insights보다 빠르다고 말하지 않는다. 정상 전달 구간과 드롭 구간을 분리해 해석해야 합니다.</p>
+              <p><strong>교정된 문장:</strong> Developer v1의 최대 처리량을 500 RPS로 확정하지 않는다. 본 실험은 500 RPS까지만 관측했습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 이번 숫자는 본 환경의 관측값이며 운영 한계나 보장값이 아닙니다.</p>
+              <span class="evidence corrected">교정 · RESULTS.md / DECISION-TREE.md</span>
             </article>
             <article class="panel-card">
               <h3>계획 대비 실행</h3>
               <p><strong>계획:</strong> 조건별 3회 반복, request ID 대조, payload hash, 메시지 크기 검증.</p>
               <p><strong>실행:</strong> 대부분 한 번씩 실행했고, 결과 판정은 APIM/EH 서버 카운터와 19개 result.json의 클라이언트 성공값에 의존했습니다.</p>
+              <p><strong>안전 재사용 문장:</strong> 결론은 방향성과 관측 사실 중심이며, 반복 분산과 end-to-end reconciliation은 별도 검증해야 합니다.</p>
               <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md 대비 실행 로그</span>
             </article>
           </div>
@@ -618,7 +711,8 @@
         <section role="tabpanel" id="panel-conditions" aria-labelledby="tab-conditions" class="panel-stack">
           <h2>조건과 실행 범위</h2>
           <div class="panel-card">
-            <p>모든 조건은 Korea Central에서 실행됐습니다. N은 App Insights diagnostic metadata-only(sampling 100%, body 0B) 기준선이며, diagnostics disabled가 아닙니다.</p>
+            <p>모든 조건은 Korea Central에서 실행됐습니다. 공통 인프라는 Event Hubs Standard 40 TU, 32 partitions, auto-inflate OFF, Standard_D8as_v5 Linux load VM입니다. 부하 도구는 Python asyncio/aiohttp, concurrency 20, retry disabled, warmup 후 steady-state 측정이었습니다.</p>
+            <p>모든 조건(N/A/E)에서 App Insights diagnostic은 sampling 100%로 켜져 있었고, N/E는 body 0B 메타데이터만 기록했습니다. 따라서 N은 diagnostics disabled가 아니라 metadata-only 기준선입니다.</p>
             <div class="table-wrap" aria-label="condition matrix">
               <table>
                 <thead>
@@ -628,19 +722,18 @@
                     <th>App Insights</th>
                     <th>Event Hub</th>
                     <th>관측 부하</th>
-                    <th>증거 등급</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td>N8</td><td>8KB</td><td>metadata-only, body 0B</td><td>없음</td><td>100/200/300/400/500 RPS</td><td>확정</td></tr>
-                  <tr><td>A8</td><td>8KB</td><td>sampling 100%, body 8KB</td><td>없음</td><td>100/200/300/400/500 RPS</td><td>확정</td></tr>
-                  <tr><td>E8</td><td>8KB</td><td>metadata-only, body 0B</td><td>8KB 전체 메시지</td><td>100/200/300/400/500 RPS</td><td>확정 + 500 RPS 드롭률 미확정</td></tr>
-                  <tr><td>N64</td><td>64KB</td><td>metadata-only, body 0B</td><td>없음</td><td>300/500 RPS</td><td>조건부</td></tr>
-                  <tr><td>E64</td><td>64KB</td><td>metadata-only, body 0B</td><td>64KB 전체 메시지</td><td>300/500 RPS</td><td>조건부</td></tr>
+                  <tr><td>N8</td><td>8KB</td><td>metadata-only, body 0B</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
+                  <tr><td>A8</td><td>8KB</td><td>sampling 100%, body 8KB</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
+                  <tr><td>E8</td><td>8KB</td><td>metadata-only, body 0B</td><td>8KB 전체 메시지</td><td>100/200/300/400/500 RPS</td></tr>
+                  <tr><td>N64</td><td>64KB</td><td>metadata-only, body 0B</td><td>없음</td><td>300/500 RPS</td></tr>
+                  <tr><td>E64</td><td>64KB</td><td>metadata-only, body 0B</td><td>64KB 전체 메시지</td><td>300/500 RPS</td></tr>
                 </tbody>
               </table>
             </div>
-            <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md.</p>
+            <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md. 조건 정의에는 색상 등급을 붙이지 않고, 판정은 별도 가설·차트에서만 표시합니다.</p>
           </div>
         </section>
 
@@ -649,11 +742,11 @@
           <div class="chart-grid">
             <figure class="chart-card" id="chart-capacity-8k" aria-labelledby="chart-capacity-8k-title">
   <h3 id="chart-capacity-8k-title">8KB APIM Capacity 평균</h3>
-  <svg class="metric-chart" viewBox="0 0 560 424" role="img" aria-label="8KB APIM Capacity 평균">
+  <svg class="metric-chart" viewBox="0 0 760 424" role="img" aria-label="8KB APIM Capacity 평균">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
     <text class="axis-label" x="130" y="14">0%</text>
     <text class="axis-label" x="410" y="14">100%</text>
-    <text class="group-label" x="0" y="34">100 RPS</text>
+    <text class="group-label" x="8" y="34">100 RPS</text>
     <text class="series-label" x="42" y="59">N8</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="47" width="94.5" height="10" rx="5"></rect>
@@ -666,7 +759,7 @@
     <rect class="range-track" x="130" y="87" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="87" width="114.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="99">38%</text>
-    <text class="group-label" x="0" y="108">200 RPS</text>
+    <text class="group-label" x="8" y="108">200 RPS</text>
     <text class="series-label" x="42" y="133">N8</text>
     <rect class="range-track" x="130" y="121" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="121" width="174.0" height="10" rx="5"></rect>
@@ -679,7 +772,7 @@
     <rect class="range-track" x="130" y="161" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="161" width="255.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="173">85%</text>
-    <text class="group-label" x="0" y="182">300 RPS</text>
+    <text class="group-label" x="8" y="182">300 RPS</text>
     <text class="series-label" x="42" y="207">N8</text>
     <rect class="range-track" x="130" y="195" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="195" width="237.0" height="10" rx="5"></rect>
@@ -692,7 +785,7 @@
     <rect class="range-track" x="130" y="235" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="235" width="259.5" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="247">86.5%</text>
-    <text class="group-label" x="0" y="256">400 RPS</text>
+    <text class="group-label" x="8" y="256">400 RPS</text>
     <text class="series-label" x="42" y="281">N8</text>
     <rect class="range-track" x="130" y="269" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="269" width="256.5" height="10" rx="5"></rect>
@@ -705,7 +798,7 @@
     <rect class="range-track" x="130" y="309" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="309" width="256.5" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="321">85.5%</text>
-    <text class="group-label" x="0" y="330">500 RPS</text>
+    <text class="group-label" x="8" y="330">500 RPS</text>
     <text class="series-label" x="42" y="355">N8</text>
     <rect class="range-track" x="130" y="343" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="343" width="267.0" height="10" rx="5"></rect>
@@ -723,11 +816,11 @@
 </figure>
             <figure class="chart-card" id="chart-duration-8k" aria-labelledby="chart-duration-8k-title">
   <h3 id="chart-duration-8k-title">8KB APIM Duration 평균</h3>
-  <svg class="metric-chart" viewBox="0 0 560 424" role="img" aria-label="8KB APIM Duration 평균">
+  <svg class="metric-chart" viewBox="0 0 760 424" role="img" aria-label="8KB APIM Duration 평균">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
     <text class="axis-label" x="130" y="14">0 ms</text>
     <text class="axis-label" x="410" y="14">2.5 ms</text>
-    <text class="group-label" x="0" y="34">100 RPS</text>
+    <text class="group-label" x="8" y="34">100 RPS</text>
     <text class="series-label" x="42" y="59">N8</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="47" width="1.2" height="10" rx="5"></rect>
@@ -740,7 +833,7 @@
     <rect class="range-track" x="130" y="87" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="87" width="3.6" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="99">0.03 ms</text>
-    <text class="group-label" x="0" y="108">200 RPS</text>
+    <text class="group-label" x="8" y="108">200 RPS</text>
     <text class="series-label" x="42" y="133">N8</text>
     <rect class="range-track" x="130" y="121" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="121" width="2.4" height="10" rx="5"></rect>
@@ -753,7 +846,7 @@
     <rect class="range-track" x="130" y="161" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="161" width="4.8" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="173">0.04 ms</text>
-    <text class="group-label" x="0" y="182">300 RPS</text>
+    <text class="group-label" x="8" y="182">300 RPS</text>
     <text class="series-label" x="42" y="207">N8</text>
     <rect class="range-track" x="130" y="195" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="195" width="7.2" height="10" rx="5"></rect>
@@ -766,7 +859,7 @@
     <rect class="range-track" x="130" y="235" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="235" width="43.2" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="247">0.36 ms</text>
-    <text class="group-label" x="0" y="256">400 RPS</text>
+    <text class="group-label" x="8" y="256">400 RPS</text>
     <text class="series-label" x="42" y="281">N8</text>
     <rect class="range-track" x="130" y="269" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="269" width="3.6" height="10" rx="5"></rect>
@@ -779,7 +872,7 @@
     <rect class="range-track" x="130" y="309" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="309" width="120.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="321">1.00 ms</text>
-    <text class="group-label" x="0" y="330">500 RPS</text>
+    <text class="group-label" x="8" y="330">500 RPS</text>
     <text class="series-label" x="42" y="355">N8</text>
     <rect class="range-track" x="130" y="343" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="142.0" y="343" width="30.0" height="10" rx="5"></rect>
@@ -797,44 +890,45 @@
 </figure>
             <figure class="chart-card" id="chart-drops-8k" aria-labelledby="chart-drops-8k-title">
   <h3 id="chart-drops-8k-title">8KB EventHubDroppedEvents</h3>
-  <svg class="metric-chart" viewBox="0 0 560 204" role="img" aria-label="8KB EventHubDroppedEvents">
+  <svg class="metric-chart" viewBox="0 0 760 204" role="img" aria-label="8KB EventHubDroppedEvents">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
     <text class="axis-label" x="130" y="14">0 drops</text>
     <text class="axis-label" x="410" y="14">3000 drops</text>
-    <text class="group-label" x="0" y="34">100 RPS</text>
+    <text class="group-label" x="8" y="34">100 RPS</text>
     <text class="series-label" x="42" y="59">E8</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
     <rect class="bar series-danger" x="130" y="47" width="0.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="59">0</text>
-    <text class="group-label" x="0" y="68">200 RPS</text>
+    <text class="group-label" x="8" y="68">200 RPS</text>
     <text class="series-label" x="42" y="93">E8</text>
     <rect class="range-track" x="130" y="81" width="300" height="10" rx="5"></rect>
     <rect class="bar series-danger" x="130" y="81" width="0.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="93">0</text>
-    <text class="group-label" x="0" y="102">300 RPS</text>
+    <text class="group-label" x="8" y="102">300 RPS</text>
     <text class="series-label" x="42" y="127">E8</text>
     <rect class="range-track" x="130" y="115" width="300" height="10" rx="5"></rect>
     <rect class="bar series-danger" x="130" y="115" width="0.0" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="127">0</text>
-    <text class="group-label" x="0" y="136">400 RPS</text>
+    <text class="group-label" x="8" y="136">400 RPS</text>
     <text class="series-label" x="42" y="161">E8</text>
     <rect class="range-track" x="130" y="149" width="300" height="10" rx="5"></rect>
     <rect class="bar series-danger" x="130" y="149" width="293.3" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="161">2,933</text>
-    <text class="group-label" x="0" y="170">500 RPS</text>
+    <text class="group-label" x="8" y="170">500 RPS</text>
     <text class="series-label" x="42" y="195">E8</text>
-    <circle class="warning-marker" cx="280" cy="188" r="6"></circle>
-    <text class="value-label" x="448" y="195">대량/약 절반 · 정확한 드롭률 미확정</text>
+    <rect class="offscale-band" x="444" y="178" width="260" height="18" rx="9"></rect>
+    <circle class="offscale-marker" data-run="real-E8" cx="460" cy="187" r="6"></circle>
+    <text class="qualitative-label" x="474" y="192">off-scale · 정확한 드롭률 미확정</text>
   </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-LOG.md and RESULTS.md. real-E8 500 RPS는 숫자 drop-count 없이 질적 경고만 표시합니다.</p>
+  <p class="chart-source"><span class="evidence confirmed">확정</span> Source: EXPERIMENT-LOG.md and RESULTS.md. real-E8 500 RPS는 source의 대량/약 절반 진술만 반영하고 숫자 drop-count 없이 off-scale 질적 경고로 표시합니다.</p>
 </figure>
             <figure class="chart-card" id="chart-duration-64k" aria-labelledby="chart-duration-64k-title">
   <h3 id="chart-duration-64k-title">64KB APIM Duration 평균</h3>
-  <svg class="metric-chart" viewBox="0 0 560 146" role="img" aria-label="64KB APIM Duration 평균">
+  <svg class="metric-chart" viewBox="0 0 760 146" role="img" aria-label="64KB APIM Duration 평균">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
     <text class="axis-label" x="130" y="14">0 ms</text>
     <text class="axis-label" x="410" y="14">8 ms</text>
-    <text class="group-label" x="0" y="34">300 RPS</text>
+    <text class="group-label" x="8" y="34">300 RPS</text>
     <text class="series-label" x="42" y="59">N64</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="47" width="226.5" height="10" rx="5"></rect>
@@ -843,7 +937,7 @@
     <rect class="range-track" x="130" y="67" width="300" height="10" rx="5"></rect>
     <rect class="bar series-e" x="130" y="67" width="196.5" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="79">5.24 ms</text>
-    <text class="group-label" x="0" y="88">500 RPS</text>
+    <text class="group-label" x="8" y="88">500 RPS</text>
     <text class="series-label" x="42" y="113">N64</text>
     <rect class="range-track" x="130" y="101" width="300" height="10" rx="5"></rect>
     <rect class="bar series-n" x="130" y="101" width="274.5" height="10" rx="5"></rect>
@@ -853,20 +947,21 @@
     <rect class="bar series-e" x="130" y="121" width="284.2" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="133">7.58 ms</text>
   </svg>
+  <p class="chart-note">주의: Duration은 delivery completeness metric이 아닙니다. E64 300 RPS는 41,435개 드롭이 있어 E/N 차이는 clean logging-cost measurement가 아닙니다.</p>
   <p class="chart-source"><span class="evidence conditional">조건부</span> Source: EXPERIMENT-LOG.md and RESULTS.md. 64KB는 300/500 RPS 각 1회 관측입니다.</p>
 </figure>
             <figure class="chart-card" id="chart-drops-64k" aria-labelledby="chart-drops-64k-title">
   <h3 id="chart-drops-64k-title">64KB EventHubDroppedEvents</h3>
-  <svg class="metric-chart" viewBox="0 0 560 120" role="img" aria-label="64KB EventHubDroppedEvents">
+  <svg class="metric-chart" viewBox="0 0 760 120" role="img" aria-label="64KB EventHubDroppedEvents">
     <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
     <text class="axis-label" x="130" y="14">0 drops</text>
     <text class="axis-label" x="410" y="14">80000 drops</text>
-    <text class="group-label" x="0" y="34">300 RPS</text>
+    <text class="group-label" x="8" y="34">300 RPS</text>
     <text class="series-label" x="42" y="59">E64</text>
     <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
     <rect class="bar series-danger" x="130" y="47" width="155.4" height="10" rx="5"></rect>
     <text class="value-label" x="448" y="59">41,435</text>
-    <text class="group-label" x="0" y="68">500 RPS</text>
+    <text class="group-label" x="8" y="68">500 RPS</text>
     <text class="series-label" x="42" y="93">E64</text>
     <rect class="range-track" x="130" y="81" width="300" height="10" rx="5"></rect>
     <rect class="bar series-danger" x="130" y="81" width="286.6" height="10" rx="5"></rect>
@@ -880,176 +975,176 @@
                 <table>
                   <thead><tr><th>항목</th><th>Developer v1</th><th>Basic v2</th></tr></thead>
                   <tbody>
-                    <tr><td>EH 도달</td><td>APIM-reported large drops/about half · 정확한 드롭률 미확정</td><td>관측 EH arrival approximately 30,000/minute</td></tr>
+                    <tr><td>EH 도달</td><td>APIM 보고 기준 대량 드롭/약 절반 · 정확한 드롭률 미확정</td><td>분당 약 30,000개로 500 RPS×60과 일치</td></tr>
                     <tr><td>EH throttled</td><td>0</td><td>0</td></tr>
                     <tr><td>클라이언트 요청</td><td>150,000 전부 200</td><td>150,000 전부 200</td></tr>
                     <tr><td>메커니즘</td><td>v1 Capacity 포화 관측</td><td>v2 CPU/memory 미수집, Capacity 미지원</td></tr>
                   </tbody>
                 </table>
               </div>
-              <p class="chart-source"><span class="evidence conditional">조건부</span> Source: RESULTS.md. 운영 차이는 관측됐지만 mechanism and SKU-only causality unproven. v2 classic Capacity는 unsupported이고 v2 CPU/memory was not collected라 common Capacity chart는 표시하지 않습니다.</p>
+              <p class="chart-source"><span class="evidence conditional">조건부</span> Source: EXPERIMENT-LOG.md and RESULTS.md. 운영 차이는 관측됐지만 v2 CPU/memory 미수집으로 세부 메커니즘은 조건부입니다. v2 classic Capacity는 미지원이므로 공통 Capacity 차트는 표시하지 않습니다.</p>
             </figure>
             <figure class="chart-card chart-wide" id="chart-client-latency" aria-labelledby="chart-client-latency-title">
-  <h3 id="chart-client-latency-title">클라이언트 p99 지연(19개 result.json)</h3>
-  <svg class="metric-chart latency-chart" viewBox="0 0 680 498" role="img" aria-label="19개 JSON의 클라이언트 p99 지연">
+  <h3 id="chart-client-latency-title">클라이언트 p99 지연 — APIM 권위 지표 아님 · 보조 증거</h3>
+  <svg class="metric-chart latency-chart" viewBox="0 0 860 510" role="img" aria-label="19개 JSON의 클라이언트 p99 지연, APIM 권위 지표 아님, 보조 증거">
     <line class="axis" x1="170" y1="18" x2="560" y2="18"></line>
     <text class="axis-label" x="170" y="14">0 ms</text>
     <text class="axis-label" x="515" y="14">1112.23 ms</text>
-    <text class="series-label mono" x="0" y="63">r100-A8</text>
+    <text class="series-label mono" x="8" y="63">r100-A8</text>
     <rect class="range-track" x="170" y="51" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="51" width="2.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="63">6.469234119904208 ms</text>
-    <text class="series-label mono" x="0" y="87">r100-E8</text>
+    <rect class="bar series-neutral" x="170" y="51" width="2.3" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="63">6.47 ms</text>
+    <text class="series-label mono" x="8" y="87">r100-E8</text>
     <rect class="range-track" x="170" y="75" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="75" width="3.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="87">10.414136440194763 ms</text>
-    <text class="series-label mono" x="0" y="111">r100-N8</text>
+    <rect class="bar series-neutral" x="170" y="75" width="3.7" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="87">10.41 ms</text>
+    <text class="series-label mono" x="8" y="111">r100-N8</text>
     <rect class="range-track" x="170" y="99" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="99" width="2.1" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="111">5.861849028915402 ms</text>
-    <text class="series-label mono" x="0" y="135">r200-A8</text>
+    <rect class="bar series-neutral" x="170" y="99" width="2.1" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="111">5.86 ms</text>
+    <text class="series-label mono" x="8" y="135">r200-A8</text>
     <rect class="range-track" x="170" y="123" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="123" width="25.9" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="135">73.81419804300094 ms</text>
-    <text class="series-label mono" x="0" y="159">r200-E8</text>
+    <rect class="bar series-neutral" x="170" y="123" width="25.9" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="135">73.81 ms</text>
+    <text class="series-label mono" x="8" y="159">r200-E8</text>
     <rect class="range-track" x="170" y="147" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="147" width="36.9" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="159">105.23808251808104 ms</text>
-    <text class="series-label mono" x="0" y="183">r200-N8</text>
+    <rect class="bar series-neutral" x="170" y="147" width="36.9" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="159">105.24 ms</text>
+    <text class="series-label mono" x="8" y="183">r200-N8</text>
     <rect class="range-track" x="170" y="171" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="171" width="2.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="183">6.669099136852324 ms</text>
-    <text class="series-label mono" x="0" y="207">r300-A8</text>
+    <rect class="bar series-neutral" x="170" y="171" width="2.3" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="183">6.67 ms</text>
+    <text class="series-label mono" x="8" y="207">r300-A8</text>
     <rect class="range-track" x="170" y="195" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="195" width="99.6" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="207">284.06633394111884 ms</text>
-    <text class="series-label mono" x="0" y="231">r300-E64</text>
+    <rect class="bar series-neutral" x="170" y="195" width="99.6" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="207">284.07 ms</text>
+    <text class="series-label mono" x="8" y="231">r300-E64</text>
     <rect class="range-track" x="170" y="219" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="219" width="390.0" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="231">1112.2273382476126 ms</text>
-    <text class="series-label mono" x="0" y="255">r300-E8</text>
+    <rect class="bar series-neutral" x="170" y="219" width="390.0" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="231">1112.23 ms</text>
+    <text class="series-label mono" x="8" y="255">r300-E8</text>
     <rect class="range-track" x="170" y="243" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="243" width="147.2" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="255">419.760054899162 ms</text>
-    <text class="series-label mono" x="0" y="279">r300-N64</text>
+    <rect class="bar series-neutral" x="170" y="243" width="147.2" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="255">419.76 ms</text>
+    <text class="series-label mono" x="8" y="279">r300-N64</text>
     <rect class="range-track" x="170" y="267" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="267" width="203.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="279">580.9999897615489 ms</text>
-    <text class="series-label mono" x="0" y="303">r300-N8</text>
+    <rect class="bar series-neutral" x="170" y="267" width="203.7" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="279">581.00 ms</text>
+    <text class="series-label mono" x="8" y="303">r300-N8</text>
     <rect class="range-track" x="170" y="291" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="170" y="291" width="35.1" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="303">100.04384832194827 ms</text>
-    <text class="series-label mono" x="0" y="327">r400-A8</text>
+    <rect class="bar series-neutral" x="170" y="291" width="35.1" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="303">100.04 ms</text>
+    <text class="series-label mono" x="8" y="327">r400-A8</text>
     <rect class="range-track" x="170" y="315" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="315" width="189.8" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="327">541.3154585697338 ms</text>
-    <text class="series-label mono" x="0" y="351">r400-E8</text>
+    <rect class="bar series-neutral" x="170" y="315" width="189.8" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="327">541.32 ms</text>
+    <text class="series-label mono" x="8" y="351">r400-E8</text>
     <rect class="range-track" x="170" y="339" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="339" width="180.8" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="351">515.5072277807992 ms</text>
-    <text class="series-label mono" x="0" y="375">r400-N8</text>
+    <rect class="bar series-neutral" x="170" y="339" width="180.8" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="351">515.51 ms</text>
+    <text class="series-label mono" x="8" y="375">r400-N8</text>
     <rect class="range-track" x="170" y="363" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="363" width="154.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="375">440.1813846903678 ms</text>
-    <text class="series-label mono" x="0" y="399">r500-E64</text>
+    <rect class="bar series-neutral" x="170" y="363" width="154.3" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="375">440.18 ms</text>
+    <text class="series-label mono" x="8" y="399">r500-E64</text>
     <rect class="range-track" x="170" y="387" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="387" width="215.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="399">613.8967747484276 ms</text>
-    <text class="series-label mono" x="0" y="423">r500-N64</text>
+    <rect class="bar series-neutral" x="170" y="387" width="215.3" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="399">613.90 ms</text>
+    <text class="series-label mono" x="8" y="423">r500-N64</text>
     <rect class="range-track" x="170" y="411" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="411" width="201.5" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="423">574.7917278807289 ms</text>
-    <text class="series-label mono" x="0" y="447">real-A8</text>
+    <rect class="bar series-neutral" x="170" y="411" width="201.5" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="423">574.79 ms</text>
+    <text class="series-label mono" x="8" y="447">real-A8</text>
     <rect class="range-track" x="170" y="435" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="435" width="191.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="447">546.8322869591434 ms</text>
-    <text class="series-label mono" x="0" y="471">real-E8</text>
+    <rect class="bar series-neutral" x="170" y="435" width="191.7" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="447">546.83 ms</text>
+    <text class="series-label mono" x="8" y="471">real-E8</text>
     <rect class="range-track" x="170" y="459" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="459" width="197.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="471">563.7940979296037 ms</text>
-    <text class="series-label mono" x="0" y="495">real-N8</text>
+    <rect class="bar series-neutral" x="170" y="459" width="197.7" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="471">563.79 ms</text>
+    <text class="series-label mono" x="8" y="495">real-N8</text>
     <rect class="range-track" x="170" y="483" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-warning" x="170" y="483" width="177.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="495">506.8668895824523 ms</text>
+    <rect class="bar series-neutral" x="170" y="483" width="177.7" height="10" rx="5"></rect>
+    <text class="value-label" x="575" y="495">506.87 ms</text>
   </svg>
-  <p class="chart-source"><span class="evidence conditional">조건부</span> Source: all 19 result.json files. 클라이언트 p95/p99에는 load-generator/TLS artifacts가 포함됩니다.</p>
+  <p class="chart-source"><span class="evidence conditional">조건부</span> APIM 권위 지표 아님 · 보조 증거. Source: all 19 result.json files. 클라이언트 p95/p99에는 load-generator/TLS artifacts가 포함됩니다.</p>
 </figure>
             <figure class="chart-card chart-wide" id="chart-request-success" aria-labelledby="chart-request-success-title">
   <h3 id="chart-request-success-title">요청 성공률: offered == successful, errors 0</h3>
-  <svg class="metric-chart success-chart" viewBox="0 0 680 460" role="img" aria-label="19개 JSON 모두 요청 성공률 100%">
-    <text class="series-label mono" x="0" y="49">r100-A8</text>
+  <svg class="metric-chart success-chart" viewBox="0 0 860 460" role="img" aria-label="19개 JSON 모두 요청 성공률 100%">
+    <text class="series-label mono" x="8" y="49">r100-A8</text>
     <rect class="range-track" x="170" y="37" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="37" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="49">18000 / 18000 · errors 0</text>
-    <text class="series-label mono" x="0" y="71">r100-E8</text>
+    <text class="series-label mono" x="8" y="71">r100-E8</text>
     <rect class="range-track" x="170" y="59" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="59" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="71">18000 / 18000 · errors 0</text>
-    <text class="series-label mono" x="0" y="93">r100-N8</text>
+    <text class="series-label mono" x="8" y="93">r100-N8</text>
     <rect class="range-track" x="170" y="81" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="81" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="93">18000 / 18000 · errors 0</text>
-    <text class="series-label mono" x="0" y="115">r200-A8</text>
+    <text class="series-label mono" x="8" y="115">r200-A8</text>
     <rect class="range-track" x="170" y="103" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="103" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="115">36000 / 36000 · errors 0</text>
-    <text class="series-label mono" x="0" y="137">r200-E8</text>
+    <text class="series-label mono" x="8" y="137">r200-E8</text>
     <rect class="range-track" x="170" y="125" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="125" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="137">36000 / 36000 · errors 0</text>
-    <text class="series-label mono" x="0" y="159">r200-N8</text>
+    <text class="series-label mono" x="8" y="159">r200-N8</text>
     <rect class="range-track" x="170" y="147" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="147" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="159">36000 / 36000 · errors 0</text>
-    <text class="series-label mono" x="0" y="181">r300-A8</text>
+    <text class="series-label mono" x="8" y="181">r300-A8</text>
     <rect class="range-track" x="170" y="169" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="169" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="181">54000 / 54000 · errors 0</text>
-    <text class="series-label mono" x="0" y="203">r300-E64</text>
+    <text class="series-label mono" x="8" y="203">r300-E64</text>
     <rect class="range-track" x="170" y="191" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="191" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="203">54000 / 54000 · errors 0</text>
-    <text class="series-label mono" x="0" y="225">r300-E8</text>
+    <text class="series-label mono" x="8" y="225">r300-E8</text>
     <rect class="range-track" x="170" y="213" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="213" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="225">54000 / 54000 · errors 0</text>
-    <text class="series-label mono" x="0" y="247">r300-N64</text>
+    <text class="series-label mono" x="8" y="247">r300-N64</text>
     <rect class="range-track" x="170" y="235" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="235" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="247">54000 / 54000 · errors 0</text>
-    <text class="series-label mono" x="0" y="269">r300-N8</text>
+    <text class="series-label mono" x="8" y="269">r300-N8</text>
     <rect class="range-track" x="170" y="257" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="257" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="269">54000 / 54000 · errors 0</text>
-    <text class="series-label mono" x="0" y="291">r400-A8</text>
+    <text class="series-label mono" x="8" y="291">r400-A8</text>
     <rect class="range-track" x="170" y="279" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="279" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="291">72000 / 72000 · errors 0</text>
-    <text class="series-label mono" x="0" y="313">r400-E8</text>
+    <text class="series-label mono" x="8" y="313">r400-E8</text>
     <rect class="range-track" x="170" y="301" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="301" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="313">72000 / 72000 · errors 0</text>
-    <text class="series-label mono" x="0" y="335">r400-N8</text>
+    <text class="series-label mono" x="8" y="335">r400-N8</text>
     <rect class="range-track" x="170" y="323" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="323" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="335">72000 / 72000 · errors 0</text>
-    <text class="series-label mono" x="0" y="357">r500-E64</text>
+    <text class="series-label mono" x="8" y="357">r500-E64</text>
     <rect class="range-track" x="170" y="345" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="345" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="357">90000 / 90000 · errors 0</text>
-    <text class="series-label mono" x="0" y="379">r500-N64</text>
+    <text class="series-label mono" x="8" y="379">r500-N64</text>
     <rect class="range-track" x="170" y="367" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="367" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="379">90000 / 90000 · errors 0</text>
-    <text class="series-label mono" x="0" y="401">real-A8</text>
+    <text class="series-label mono" x="8" y="401">real-A8</text>
     <rect class="range-track" x="170" y="389" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="389" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="401">150000 / 150000 · errors 0</text>
-    <text class="series-label mono" x="0" y="423">real-E8</text>
+    <text class="series-label mono" x="8" y="423">real-E8</text>
     <rect class="range-track" x="170" y="411" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="411" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="423">150000 / 150000 · errors 0</text>
-    <text class="series-label mono" x="0" y="445">real-N8</text>
+    <text class="series-label mono" x="8" y="445">real-N8</text>
     <rect class="range-track" x="170" y="433" width="390" height="10" rx="5"></rect>
     <rect class="bar series-success" x="170" y="433" width="390" height="10" rx="5"></rect>
     <text class="value-label" x="575" y="445">150000 / 150000 · errors 0</text>
@@ -1062,10 +1157,10 @@
                 <table>
                   <thead><tr><th>라벨</th><th>주장</th><th>근거</th></tr></thead>
                   <tbody>
-                    <tr><td>확정</td><td>HTTP 200 can coexist with APIM EH drops; EH throttling was zero; observed APIM drops decreased with lower 8KB RPS.</td><td>RESULTS.md, EXPERIMENT-LOG.md</td></tr>
-                    <tr><td>조건부</td><td>App Insights aggregate losslessness; payload operating-envelope effect; deployment-profile effect.</td><td>RESULTS.md, server counters</td></tr>
-                    <tr><td>미검증</td><td>stable 300 RPS lossless threshold; Basic v2 inherent losslessness; exact queue mechanism.</td><td>EXPERIMENT-SPEC.md 대비 누락 항목</td></tr>
-                    <tr><td>교정</td><td>Event Hub always faster; Developer v1 maximum is 500 RPS.</td><td>RESULTS.md corrected interpretation</td></tr>
+                    <tr><td>확정</td><td>HTTP 200 요청 성공과 APIM Event Hub 드롭은 동시에 발생할 수 있습니다. EH throttling은 0이었고 8KB RPS를 낮추면 APIM 드롭이 사라졌습니다.</td><td>RESULTS.md, EXPERIMENT-LOG.md</td></tr>
+                    <tr><td>조건부</td><td>App Insights 집계상 누락 없음, payload 크기에 따른 운영 범위 축소, SKU 변경 효과는 관측됐지만 반복과 대칭 지표가 부족합니다.</td><td>RESULTS.md, 서버 카운터</td></tr>
+                    <tr><td>미검증</td><td>안정적인 300 RPS 무손실 임계값, Basic v2의 일반적 무손실성, 정확한 큐 메커니즘은 추가 검증이 필요합니다.</td><td>EXPERIMENT-SPEC.md 대비 누락 항목</td></tr>
+                    <tr><td>교정</td><td>Event Hub가 항상 더 빠르다거나 Developer v1 최대가 500 RPS라고 표현하면 안 됩니다.</td><td>RESULTS.md 교정 해석</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1075,7 +1170,7 @@
           <p class="chart-source"><span class="evidence confirmed">확정</span> 8KB/64KB 서버 차트 Source: EXPERIMENT-LOG.md and RESULTS.md. 500 RPS E8은 data-drop-count 숫자를 두지 않고 “정확한 드롭률 미확정”으로 표시했습니다.</p>
           <div class="table-wrap" aria-label="client latency exact values">
             <table>
-              <caption>Client latency exact p50/p95/p99 values from all 19 result.json files</caption>
+              <caption>Client latency values from all 19 result.json files (rounded to 2 decimals)</caption>
               <thead>
                 <tr><th>source</th><th>condition</th><th>payloadBytes</th><th>rate</th><th>offered</th><th>successful</th><th>errors</th><th>p50Ms</th><th>p95Ms</th><th>p99Ms</th></tr>
               </thead>
@@ -1088,9 +1183,9 @@
                       <td>18000</td>
                       <td>18000</td>
                       <td>0</td>
-                      <td>1.417245999618899</td>
-                      <td>2.166309300446299</td>
-                      <td>6.469234119904208</td>
+                      <td>1.42</td>
+                      <td>2.17</td>
+                      <td>6.47</td>
                     </tr>
                     <tr>
                       <td><code>results/r100-E8/result.json</code></td>
@@ -1100,9 +1195,9 @@
                       <td>18000</td>
                       <td>18000</td>
                       <td>0</td>
-                      <td>1.4201930007402552</td>
-                      <td>2.6795382005730053</td>
-                      <td>10.414136440194763</td>
+                      <td>1.42</td>
+                      <td>2.68</td>
+                      <td>10.41</td>
                     </tr>
                     <tr>
                       <td><code>results/r100-N8/result.json</code></td>
@@ -1112,9 +1207,9 @@
                       <td>18000</td>
                       <td>18000</td>
                       <td>0</td>
-                      <td>1.5112265009520343</td>
-                      <td>2.0451390011658073</td>
-                      <td>5.861849028915402</td>
+                      <td>1.51</td>
+                      <td>2.05</td>
+                      <td>5.86</td>
                     </tr>
                     <tr>
                       <td><code>results/r200-A8/result.json</code></td>
@@ -1124,9 +1219,9 @@
                       <td>36000</td>
                       <td>36000</td>
                       <td>0</td>
-                      <td>1.348152500213473</td>
-                      <td>3.599543698510392</td>
-                      <td>73.81419804300094</td>
+                      <td>1.35</td>
+                      <td>3.60</td>
+                      <td>73.81</td>
                     </tr>
                     <tr>
                       <td><code>results/r200-E8/result.json</code></td>
@@ -1136,9 +1231,9 @@
                       <td>36000</td>
                       <td>36000</td>
                       <td>0</td>
-                      <td>1.496581498940941</td>
-                      <td>5.061844352167113</td>
-                      <td>105.23808251808104</td>
+                      <td>1.50</td>
+                      <td>5.06</td>
+                      <td>105.24</td>
                     </tr>
                     <tr>
                       <td><code>results/r200-N8/result.json</code></td>
@@ -1148,9 +1243,9 @@
                       <td>36000</td>
                       <td>36000</td>
                       <td>0</td>
-                      <td>1.2945869984832825</td>
-                      <td>1.90654920043017</td>
-                      <td>6.669099136852324</td>
+                      <td>1.29</td>
+                      <td>1.91</td>
+                      <td>6.67</td>
                     </tr>
                     <tr>
                       <td><code>results/r300-A8/result.json</code></td>
@@ -1160,9 +1255,9 @@
                       <td>54000</td>
                       <td>54000</td>
                       <td>0</td>
-                      <td>1.5284510009223595</td>
-                      <td>28.879500796938384</td>
-                      <td>284.06633394111884</td>
+                      <td>1.53</td>
+                      <td>28.88</td>
+                      <td>284.07</td>
                     </tr>
                     <tr>
                       <td><code>results/r300-E64/result.json</code></td>
@@ -1172,9 +1267,9 @@
                       <td>54000</td>
                       <td>54000</td>
                       <td>0</td>
-                      <td>15.32473550105351</td>
-                      <td>552.0823946995735</td>
-                      <td>1112.2273382476126</td>
+                      <td>15.32</td>
+                      <td>552.08</td>
+                      <td>1112.23</td>
                     </tr>
                     <tr>
                       <td><code>results/r300-E8/result.json</code></td>
@@ -1184,9 +1279,9 @@
                       <td>54000</td>
                       <td>54000</td>
                       <td>0</td>
-                      <td>1.4032610015419777</td>
-                      <td>52.78627230090936</td>
-                      <td>419.760054899162</td>
+                      <td>1.40</td>
+                      <td>52.79</td>
+                      <td>419.76</td>
                     </tr>
                     <tr>
                       <td><code>results/r300-N64/result.json</code></td>
@@ -1196,9 +1291,9 @@
                       <td>54000</td>
                       <td>54000</td>
                       <td>0</td>
-                      <td>9.17536049928458</td>
-                      <td>529.648965396882</td>
-                      <td>580.9999897615489</td>
+                      <td>9.18</td>
+                      <td>529.65</td>
+                      <td>581.00</td>
                     </tr>
                     <tr>
                       <td><code>results/r300-N8/result.json</code></td>
@@ -1208,9 +1303,9 @@
                       <td>54000</td>
                       <td>54000</td>
                       <td>0</td>
-                      <td>1.352766501440783</td>
-                      <td>4.166638500828413</td>
-                      <td>100.04384832194827</td>
+                      <td>1.35</td>
+                      <td>4.17</td>
+                      <td>100.04</td>
                     </tr>
                     <tr>
                       <td><code>results/r400-A8/result.json</code></td>
@@ -1220,9 +1315,9 @@
                       <td>72000</td>
                       <td>72000</td>
                       <td>0</td>
-                      <td>4.578301999572432</td>
-                      <td>424.61583499971323</td>
-                      <td>541.3154585697338</td>
+                      <td>4.58</td>
+                      <td>424.62</td>
+                      <td>541.32</td>
                     </tr>
                     <tr>
                       <td><code>results/r400-E8/result.json</code></td>
@@ -1232,9 +1327,9 @@
                       <td>72000</td>
                       <td>72000</td>
                       <td>0</td>
-                      <td>3.471693498795503</td>
-                      <td>169.55575304982693</td>
-                      <td>515.5072277807992</td>
+                      <td>3.47</td>
+                      <td>169.56</td>
+                      <td>515.51</td>
                     </tr>
                     <tr>
                       <td><code>results/r400-N8/result.json</code></td>
@@ -1244,9 +1339,9 @@
                       <td>72000</td>
                       <td>72000</td>
                       <td>0</td>
-                      <td>1.5347430016845465</td>
-                      <td>112.1768075474395</td>
-                      <td>440.1813846903678</td>
+                      <td>1.53</td>
+                      <td>112.18</td>
+                      <td>440.18</td>
                     </tr>
                     <tr>
                       <td><code>results/r500-E64/result.json</code></td>
@@ -1256,9 +1351,9 @@
                       <td>90000</td>
                       <td>90000</td>
                       <td>0</td>
-                      <td>12.162078999608639</td>
-                      <td>542.6210575982623</td>
-                      <td>613.8967747484276</td>
+                      <td>12.16</td>
+                      <td>542.62</td>
+                      <td>613.90</td>
                     </tr>
                     <tr>
                       <td><code>results/r500-N64/result.json</code></td>
@@ -1268,9 +1363,9 @@
                       <td>90000</td>
                       <td>90000</td>
                       <td>0</td>
-                      <td>9.398421500009135</td>
-                      <td>531.681923801807</td>
-                      <td>574.7917278807289</td>
+                      <td>9.40</td>
+                      <td>531.68</td>
+                      <td>574.79</td>
                     </tr>
                     <tr>
                       <td><code>results/real-A8/result.json</code></td>
@@ -1280,9 +1375,9 @@
                       <td>150000</td>
                       <td>150000</td>
                       <td>0</td>
-                      <td>5.031444499763893</td>
-                      <td>516.0432329000287</td>
-                      <td>546.8322869591434</td>
+                      <td>5.03</td>
+                      <td>516.04</td>
+                      <td>546.83</td>
                     </tr>
                     <tr>
                       <td><code>results/real-E8/result.json</code></td>
@@ -1292,9 +1387,9 @@
                       <td>150000</td>
                       <td>150000</td>
                       <td>0</td>
-                      <td>6.309322999186406</td>
-                      <td>483.890943749974</td>
-                      <td>563.7940979296037</td>
+                      <td>6.31</td>
+                      <td>483.89</td>
+                      <td>563.79</td>
                     </tr>
                     <tr>
                       <td><code>results/real-N8/result.json</code></td>
@@ -1304,14 +1399,14 @@
                       <td>150000</td>
                       <td>150000</td>
                       <td>0</td>
-                      <td>3.717445999427582</td>
-                      <td>202.1407657994132</td>
-                      <td>506.8668895824523</td>
+                      <td>3.72</td>
+                      <td>202.14</td>
+                      <td>506.87</td>
                     </tr>
               </tbody>
             </table>
           </div>
-          <p class="warning">Client p95/p99 contains load-generator/TLS artifacts and is not the authoritative APIM latency measure. APIM 서버측 Duration/Capacity와 EventHubDroppedEvents가 판정의 우선 근거입니다.</p>
+          <p class="warning">클라이언트 p95/p99에는 load-generator/TLS 영향이 포함되므로 APIM 권위 지표 아님 · 보조 증거입니다. APIM 서버측 Duration/Capacity와 EventHubDroppedEvents가 판정의 우선 근거입니다.</p>
           <div class="table-wrap" aria-label="request success exact values">
             <table>
               <caption>Offered versus successful requests from all 19 result.json files</caption>
@@ -1459,15 +1554,15 @@
         <section role="tabpanel" id="panel-limitations" aria-labelledby="tab-limitations" class="panel-stack">
           <h2>한계와 주의</h2>
           <div class="panel-grid">
-            <article class="panel-card"><h3>반복 수</h3><p>planned three repeats versus mostly one run. 3회 반복은 명세였지만 실행은 대부분 one run per cell입니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>대조 누락</h3><p>missing request-ID/hash/message-size reconciliation. request ID 집합, payload hash, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>기준선 의미</h3><p>metadata-only baseline: N8/N64는 App Insights body 0B일 뿐이며 diagnostics disabled가 아닙니다.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
-            <article class="panel-card"><h3>집계 창</h3><p>warmup contamination in App Insights counts. A8 150,178은 측정창 경계와 warmup 잔여가 섞였을 수 있습니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>드롭 0의 의미</h3><p>drop=0 versus end-to-end losslessness: APIM/EH drop 0만으로 최종 감사 무손실을 증명하지 않습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>임계값 표현</h3><p>300-to-400 RPS transition versus stable threshold. 8KB는 300 RPS 드롭 0과 400 RPS 드롭으로 전환만 관측했으며 stable threshold는 아닙니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>SKU 지표 비대칭</h3><p>asymmetric v1/v2 metrics and missing v2 CPU/memory. v1은 Capacity/Duration/드롭, v2는 EH arrival 중심입니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>클라이언트 지연</h3><p>client p99 artifacts: 단일 asyncio 부하 생성기와 TLS 영향으로 p95/p99 꼬리가 섞였습니다.</p><span class="evidence conditional">조건부 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>공식 고부하 경고</h3><p>untested 1,000 RPS official warning. 본 실험은 1,000 RPS 초과 App Insights throughput 40~50% 감소 경고를 검증하지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>반복 실행 부족</h3><p>명세는 조건별 3회 반복이었지만 실행 데이터는 대부분 한 번씩 측정했습니다. 분산과 오차막대는 없습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>요청 ID·해시 대조 누락</h3><p>request ID 집합, payload hash, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>메타데이터만 기록한 기준선</h3><p>N8/N64는 App Insights body 0B일 뿐이며 diagnostics disabled가 아닙니다.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
+            <article class="panel-card"><h3>집계 창 경계</h3><p>A8 150,178은 측정창 경계와 warmup 잔여가 섞였을 수 있어 요청 단위 완전성 증명으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>드롭 0의 의미</h3><p>APIM/EH drop 0만으로 최종 감사 무손실을 증명하지 않습니다. end-to-end reconciliation이 필요합니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>임계값 표현</h3><p>8KB는 300 RPS 드롭 0과 400 RPS 드롭으로 전환만 관측했으며 안정 임계값은 아닙니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>SKU 지표 비대칭</h3><p>v1은 Capacity/Duration/드롭, v2는 EH arrival 중심입니다. v2 CPU/memory 미수집으로 메커니즘은 조건부입니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
+            <article class="panel-card"><h3>클라이언트 지연</h3><p>단일 asyncio 부하 생성기와 TLS 영향으로 p95/p99 꼬리가 섞였습니다. APIM 판정은 서버측 지표를 우선합니다.</p><span class="evidence conditional">조건부 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>공식 고부하 경고</h3><p>본 실험은 1,000 RPS 초과 App Insights throughput 40~50% 감소 경고를 검증하지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
           </div>
         </section>
 
@@ -1486,102 +1581,102 @@
         <section role="tabpanel" id="panel-sources" aria-labelledby="tab-sources" class="panel-stack">
           <h2>출처</h2>
           <div class="source-list">
-            <article class="source-item"><h3><code>EXPERIMENT-SPEC.md</code></h3><p>가설, 성공 기준, 3회 반복 계획, request ID/hash/message-size reconciliation 요구.</p><span class="pill">Source doc</span></article>
-            <article class="source-item"><h3><code>EXPERIMENT-LOG.md</code></h3><p>실행 조건, 시간창, 8KB/64KB 서버 메트릭, metadata-only 기준선 설명.</p><span class="pill">Source doc</span></article>
-            <article class="source-item"><h3><code>RESULTS.md</code></h3><p>현재 working-tree 최종 결과, 한계, SKU 비교, 교정된 해석.</p><span class="pill">Source doc</span></article>
-            <article class="source-item"><h3><code>DECISION-TREE.md</code></h3><p>고객 의사결정 가드레일과 권장 운영 모델.</p><span class="pill">Source doc</span></article>
+            <article class="source-item"><h3><a href="EXPERIMENT-SPEC.md"><code>EXPERIMENT-SPEC.md</code></a></h3><p>가설, 성공 기준, 3회 반복 계획, request ID/hash/message-size reconciliation 요구.</p><span class="pill">Source doc</span></article>
+            <article class="source-item"><h3><a href="EXPERIMENT-LOG.md"><code>EXPERIMENT-LOG.md</code></a></h3><p>실행 조건, 시간창, 8KB/64KB 서버 메트릭, metadata-only 기준선 설명.</p><span class="pill">Source doc</span></article>
+            <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>현재 working-tree 최종 결과, 한계, SKU 비교, 교정된 해석.</p><span class="pill">Source doc</span></article>
+            <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델.</p><span class="pill">Source doc</span></article>
               <article class="source-item">
-                <h3><code>results/r100-A8/result.json</code></h3>
+                <h3><a href="results/r100-A8/result.json"><code>results/r100-A8/result.json</code></a></h3>
                 <p>A8 · 8192 bytes · 100 RPS · offered=18000, successful=18000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r100-E8/result.json</code></h3>
+                <h3><a href="results/r100-E8/result.json"><code>results/r100-E8/result.json</code></a></h3>
                 <p>E8 · 8192 bytes · 100 RPS · offered=18000, successful=18000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r100-N8/result.json</code></h3>
+                <h3><a href="results/r100-N8/result.json"><code>results/r100-N8/result.json</code></a></h3>
                 <p>N8 · 8192 bytes · 100 RPS · offered=18000, successful=18000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r200-A8/result.json</code></h3>
+                <h3><a href="results/r200-A8/result.json"><code>results/r200-A8/result.json</code></a></h3>
                 <p>A8 · 8192 bytes · 200 RPS · offered=36000, successful=36000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r200-E8/result.json</code></h3>
+                <h3><a href="results/r200-E8/result.json"><code>results/r200-E8/result.json</code></a></h3>
                 <p>E8 · 8192 bytes · 200 RPS · offered=36000, successful=36000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r200-N8/result.json</code></h3>
+                <h3><a href="results/r200-N8/result.json"><code>results/r200-N8/result.json</code></a></h3>
                 <p>N8 · 8192 bytes · 200 RPS · offered=36000, successful=36000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r300-A8/result.json</code></h3>
+                <h3><a href="results/r300-A8/result.json"><code>results/r300-A8/result.json</code></a></h3>
                 <p>A8 · 8192 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r300-E64/result.json</code></h3>
+                <h3><a href="results/r300-E64/result.json"><code>results/r300-E64/result.json</code></a></h3>
                 <p>E64 · 65536 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r300-E8/result.json</code></h3>
+                <h3><a href="results/r300-E8/result.json"><code>results/r300-E8/result.json</code></a></h3>
                 <p>E8 · 8192 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r300-N64/result.json</code></h3>
+                <h3><a href="results/r300-N64/result.json"><code>results/r300-N64/result.json</code></a></h3>
                 <p>N64 · 65536 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r300-N8/result.json</code></h3>
+                <h3><a href="results/r300-N8/result.json"><code>results/r300-N8/result.json</code></a></h3>
                 <p>N8 · 8192 bytes · 300 RPS · offered=54000, successful=54000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r400-A8/result.json</code></h3>
+                <h3><a href="results/r400-A8/result.json"><code>results/r400-A8/result.json</code></a></h3>
                 <p>A8 · 8192 bytes · 400 RPS · offered=72000, successful=72000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r400-E8/result.json</code></h3>
+                <h3><a href="results/r400-E8/result.json"><code>results/r400-E8/result.json</code></a></h3>
                 <p>E8 · 8192 bytes · 400 RPS · offered=72000, successful=72000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r400-N8/result.json</code></h3>
+                <h3><a href="results/r400-N8/result.json"><code>results/r400-N8/result.json</code></a></h3>
                 <p>N8 · 8192 bytes · 400 RPS · offered=72000, successful=72000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r500-E64/result.json</code></h3>
+                <h3><a href="results/r500-E64/result.json"><code>results/r500-E64/result.json</code></a></h3>
                 <p>E64 · 65536 bytes · 500 RPS · offered=90000, successful=90000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/r500-N64/result.json</code></h3>
+                <h3><a href="results/r500-N64/result.json"><code>results/r500-N64/result.json</code></a></h3>
                 <p>N64 · 65536 bytes · 500 RPS · offered=90000, successful=90000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/real-A8/result.json</code></h3>
+                <h3><a href="results/real-A8/result.json"><code>results/real-A8/result.json</code></a></h3>
                 <p>A8 · 8192 bytes · 500 RPS · offered=150000, successful=150000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/real-E8/result.json</code></h3>
+                <h3><a href="results/real-E8/result.json"><code>results/real-E8/result.json</code></a></h3>
                 <p>E8 · 8192 bytes · 500 RPS · offered=150000, successful=150000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
               <article class="source-item">
-                <h3><code>results/real-N8/result.json</code></h3>
+                <h3><a href="results/real-N8/result.json"><code>results/real-N8/result.json</code></a></h3>
                 <p>N8 · 8192 bytes · 500 RPS · offered=150000, successful=150000, errors=0</p>
                 <span class="pill">Client result JSON</span>
               </article>
