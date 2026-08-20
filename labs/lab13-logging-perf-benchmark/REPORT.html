@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lab 13 Logging Perf Benchmark Report</title>
+    <script>
+      (() => {
+        const param = new URLSearchParams(window.location.search).get("scoutTheme");
+        const theme =
+          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --cp-bg: #f7f4ef;
+        --cp-bg-elevated: #fcfbf8;
+        --cp-surface: #ffffff;
+        --cp-surface-soft: #f5f5f5;
+        --cp-border: #dedede;
+        --cp-border-strong: #919191;
+        --cp-text: #242424;
+        --cp-text-muted: #5c5c5c;
+        --cp-text-soft: #6f6f6f;
+        --cp-accent: #b11f4b;
+        --cp-accent-hover: #9a1a41;
+        --cp-accent-soft: rgba(177, 31, 75, 0.08);
+        --cp-accent-fg: #ffffff;
+        --cp-success: #16a34a;
+        --cp-danger: #dc2626;
+        --cp-warning: #f59e0b;
+        --cp-link: #0078d4;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+        --cp-overlay: rgba(255, 255, 255, 0.8);
+        --cp-panel: rgba(255, 255, 255, 0.86);
+        --cp-panel-strong: rgba(255, 255, 255, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.55);
+        --cp-highlight: rgba(177, 31, 75, 0.12);
+      }
+      html[data-theme="dark"] {
+        color-scheme: dark;
+        --cp-bg: #3d3b3a;
+        --cp-bg-elevated: #343231;
+        --cp-surface: #292929;
+        --cp-surface-soft: #2e2e2e;
+        --cp-border: #474747;
+        --cp-border-strong: #5f5f5f;
+        --cp-text: #dedede;
+        --cp-text-muted: #919191;
+        --cp-text-soft: #b0b0b0;
+        --cp-accent: #fd8ea1;
+        --cp-accent-hover: #fb7b91;
+        --cp-accent-soft: rgba(253, 142, 161, 0.14);
+        --cp-accent-fg: #1a1a1a;
+        --cp-success: #4ade80;
+        --cp-danger: #f87171;
+        --cp-warning: #fbbf24;
+        --cp-link: #4da6ff;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+        --cp-overlay: rgba(41, 41, 41, 0.88);
+        --cp-panel: rgba(41, 41, 41, 0.72);
+        --cp-panel-strong: rgba(41, 41, 41, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.04);
+        --cp-highlight: rgba(253, 142, 161, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        background: var(--cp-bg);
+        color: var(--cp-text);
+        font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: var(--cp-link);
+      }
+
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 20px 40px;
+      }
+
+      .hero {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        padding: 24px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--cp-accent-soft);
+        color: var(--cp-accent);
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 16px;
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1.08;
+      }
+
+      .lede {
+        margin-top: 12px;
+        max-width: 72ch;
+        color: var(--cp-text-muted);
+        font-size: 1rem;
+      }
+
+      .hero-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .meta-card {
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid var(--cp-border);
+        background: var(--cp-surface-soft);
+      }
+
+      .meta-card dt {
+        color: var(--cp-text-muted);
+        font-size: 0.875rem;
+        font-weight: 700;
+      }
+
+      .meta-card dd {
+        margin: 6px 0 0;
+        color: var(--cp-text);
+        font-size: 0.98rem;
+        font-weight: 600;
+      }
+
+      .notice {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-left: 4px solid var(--cp-accent);
+        border-radius: 0.625rem;
+        background: var(--cp-accent-soft);
+        color: var(--cp-text);
+      }
+
+      .tabs {
+        margin-top: 20px;
+      }
+
+      [role="tablist"] {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0;
+        margin: 0;
+        border-bottom: 1px solid var(--cp-border);
+      }
+
+      [role="tab"] {
+        appearance: none;
+        border: 1px solid var(--cp-border);
+        border-bottom: 0;
+        border-radius: 0.625rem 0.625rem 0 0;
+        background: var(--cp-surface-soft);
+        color: var(--cp-text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        padding: 12px 16px;
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      }
+
+      [role="tab"]:hover {
+        color: var(--cp-text);
+        background: var(--cp-bg-elevated);
+      }
+
+      [role="tab"][aria-selected="true"] {
+        background: var(--cp-surface);
+        color: var(--cp-accent);
+        border-color: var(--cp-border-strong);
+        position: relative;
+        top: 1px;
+      }
+
+      [role="tab"]:focus-visible {
+        outline: 2px solid var(--cp-accent);
+        outline-offset: 2px;
+      }
+
+      .panel-stack {
+        margin-top: 0;
+      }
+
+      [role="tabpanel"] {
+        display: block;
+        padding: 20px;
+        border: 1px solid var(--cp-border);
+        border-top: 0;
+        background: var(--cp-surface);
+        border-radius: 0 0 16px 16px;
+      }
+
+      .js [role="tabpanel"]:not(.is-active) {
+        display: none;
+      }
+
+      .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .panel-card {
+        padding: 16px;
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        background: var(--cp-surface-soft);
+      }
+
+      .panel-card h3 {
+        font-size: 1rem;
+      }
+
+      .panel-card p,
+      .panel-card li {
+        color: var(--cp-text-muted);
+      }
+
+      .panel-card ul {
+        margin: 12px 0 0;
+        padding-left: 18px;
+      }
+
+      .table-wrap {
+        margin-top: 16px;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 640px;
+        background: var(--cp-surface);
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border: 1px solid var(--cp-border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--cp-surface-soft);
+        color: var(--cp-text);
+      }
+
+      td {
+        color: var(--cp-text-muted);
+      }
+
+      .source-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .source-item {
+        padding: 16px;
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        background: var(--cp-surface-soft);
+      }
+
+      .source-item code {
+        font-family: Consolas, "Courier New", Courier, monospace;
+        font-size: 0.95em;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--cp-highlight);
+        color: var(--cp-accent);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      noscript {
+        display: block;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        background: var(--cp-surface-soft);
+        color: var(--cp-text-muted);
+      }
+
+      @media print {
+        body {
+          background: var(--cp-surface);
+        }
+
+        .page {
+          max-width: none;
+          padding: 0;
+        }
+
+        .tabs {
+          display: none;
+        }
+
+        [role="tabpanel"] {
+          display: block !important;
+          border: 1px solid var(--cp-border);
+          border-radius: 16px;
+          margin-top: 16px;
+        }
+
+        .hero,
+        .panel-card,
+        .source-item,
+        .meta-card,
+        noscript {
+          box-shadow: none;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          padding-inline: 12px;
+        }
+
+        .hero-meta,
+        .panel-grid,
+        .source-list {
+          grid-template-columns: 1fr;
+        }
+
+        [role="tablist"] {
+          gap: 6px;
+        }
+
+        [role="tab"] {
+          flex: 1 1 auto;
+        }
+
+        .table-wrap {
+          margin-inline: -20px;
+          padding-inline: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <span class="eyebrow">Lab 13 · Offline report shell</span>
+        <h1>Logging performance benchmark report</h1>
+        <p class="lede">
+          이 문서는 Task 1 전용의 자급형 7탭 셸입니다. 이후 작업에서 실측 증거와 차트가
+          채워지며, 현재 상태에서는 구조 계약과 탐색 경험만 제공합니다.
+        </p>
+        <dl class="hero-meta" aria-label="report scope">
+          <div class="meta-card">
+            <dt>Tested scope</dt>
+            <dd>Summary, hypotheses, conditions, results, limitations, guidance, sources</dd>
+          </div>
+          <div class="meta-card">
+            <dt>Evidence legend</dt>
+            <dd>Planned · Confirmed · Reconciled · Pending</dd>
+          </div>
+          <div class="meta-card">
+            <dt>Maintenance model</dt>
+            <dd>Manual updates only; no external fetches or live dependencies</dd>
+          </div>
+        </dl>
+        <p class="notice">
+          Manual-maintenance notice: this shell stays offline and self-contained. Evidence content,
+          charts, and narrative synthesis are added in later lab tasks.
+        </p>
+      </header>
+
+      <section class="tabs" aria-label="Lab 13 report tabs">
+        <div role="tablist" aria-label="Report sections">
+          <button
+            type="button"
+            role="tab"
+            id="tab-summary"
+            data-tab="summary"
+            aria-controls="panel-summary"
+            aria-selected="true"
+            tabindex="0"
+          >
+            요약
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-hypotheses"
+            data-tab="hypotheses"
+            aria-controls="panel-hypotheses"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            가설
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-conditions"
+            data-tab="conditions"
+            aria-controls="panel-conditions"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            조건
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-results"
+            data-tab="results"
+            aria-controls="panel-results"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            결과
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-limitations"
+            data-tab="limitations"
+            aria-controls="panel-limitations"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            한계
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-guidance"
+            data-tab="guidance"
+            aria-controls="panel-guidance"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            안내
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-sources"
+            data-tab="sources"
+            aria-controls="panel-sources"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            출처
+          </button>
+        </div>
+
+        <section
+          role="tabpanel"
+          id="panel-summary"
+          aria-labelledby="tab-summary"
+          class="panel-stack is-active"
+        >
+          <h2>Summary</h2>
+          <div class="panel-grid">
+            <article class="panel-card">
+              <h3>What this shell contains</h3>
+              <p>
+                A seven-tab contract for the Lab 13 report, with accessible tab behavior, print
+                support, and mobile-friendly layout scaffolding.
+              </p>
+            </article>
+            <article class="panel-card">
+              <h3>What this shell does not contain</h3>
+              <p>
+                No measured evidence, no charts, no external data loading, and no live API calls.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section role="tabpanel" id="panel-hypotheses" aria-labelledby="tab-hypotheses" class="panel-stack">
+          <h2>Hypotheses</h2>
+          <div class="panel-grid">
+            <article class="panel-card">
+              <h3>Benchmark claims</h3>
+              <ul>
+                <li>App Insights logging may introduce observable overhead.</li>
+                <li>Event Hub logging may preserve throughput under the tested workload.</li>
+              </ul>
+            </article>
+            <article class="panel-card">
+              <h3>Planned outcomes</h3>
+              <p>
+                This tab will later hold the lab's formal hypothesis text and pass/fail criteria.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section role="tabpanel" id="panel-conditions" aria-labelledby="tab-conditions" class="panel-stack">
+          <h2>Conditions</h2>
+          <div class="panel-card">
+            <p>Placeholder shell for the fixed run matrix, payload sizes, and environment notes.</p>
+            <div class="table-wrap" aria-label="condition matrix placeholder">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Condition</th>
+                    <th>Logging path</th>
+                    <th>Payload size</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>N8</td>
+                    <td>App Insights</td>
+                    <td>8 KB</td>
+                    <td>Pending</td>
+                  </tr>
+                  <tr>
+                    <td>E8</td>
+                    <td>Event Hub</td>
+                    <td>8 KB</td>
+                    <td>Pending</td>
+                  </tr>
+                  <tr>
+                    <td>E64</td>
+                    <td>Event Hub</td>
+                    <td>64 KB</td>
+                    <td>Pending</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section role="tabpanel" id="panel-results" aria-labelledby="tab-results" class="panel-stack">
+          <h2>Results</h2>
+          <div class="panel-grid">
+            <article class="panel-card">
+              <h3>Current state</h3>
+              <p>No evidence inserted yet; this tab is reserved for later measured summaries.</p>
+            </article>
+            <article class="panel-card">
+              <h3>Expected additions</h3>
+              <p>
+                Charts, reconciled counts, and short interpretation notes will land here in later
+                tasks.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section
+          role="tabpanel"
+          id="panel-limitations"
+          aria-labelledby="tab-limitations"
+          class="panel-stack"
+        >
+          <h2>Limitations</h2>
+          <div class="panel-grid">
+            <article class="panel-card">
+              <h3>Shell-only boundaries</h3>
+              <p>The first task establishes structure only; it intentionally stops before evidence.</p>
+            </article>
+            <article class="panel-card">
+              <h3>Operational constraints</h3>
+              <p>The page remains offline, and the contract forbids external asset dependencies.</p>
+            </article>
+          </div>
+        </section>
+
+        <section role="tabpanel" id="panel-guidance" aria-labelledby="tab-guidance" class="panel-stack">
+          <h2>Guidance</h2>
+          <div class="panel-grid">
+            <article class="panel-card">
+              <h3>How to use this shell</h3>
+              <ul>
+                <li>Open the report locally in a browser.</li>
+                <li>Use tabs for quick navigation.</li>
+                <li>Print mode exposes every panel.</li>
+              </ul>
+            </article>
+            <article class="panel-card">
+              <h3>Next-task contract</h3>
+              <p>
+                Later tasks can replace placeholders without changing the tab IDs or accessibility
+                wiring.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section role="tabpanel" id="panel-sources" aria-labelledby="tab-sources" class="panel-stack">
+          <h2>Sources</h2>
+          <div class="source-list">
+            <article class="source-item">
+              <h3><code>EXPERIMENT-SPEC.md</code></h3>
+              <p>Primary experiment framing and approval criteria.</p>
+              <span class="pill">Source doc</span>
+            </article>
+            <article class="source-item">
+              <h3><code>EXPERIMENT-LOG.md</code></h3>
+              <p>Run-by-run execution notes and operational observations.</p>
+              <span class="pill">Source doc</span>
+            </article>
+            <article class="source-item">
+              <h3><code>RESULTS.md</code></h3>
+              <p>Canonical result summaries that later tasks will cite.</p>
+              <span class="pill">Source doc</span>
+            </article>
+            <article class="source-item">
+              <h3><code>DECISION-TREE.md</code></h3>
+              <p>Interpretation flow for outcomes, limitations, and follow-up guidance.</p>
+              <span class="pill">Source doc</span>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <noscript>
+        JavaScript가 꺼져 있어도 모든 패널은 계속 표시됩니다. 이 보고서는 탐색용 셸만
+        제공하며 외부 스크립트나 네트워크 호출 없이 동작합니다.
+      </noscript>
+    </main>
+
+    <script>
+      (() => {
+        document.documentElement.classList.add("js");
+
+        const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+        const panels = tabs
+          .map((tab) => document.getElementById(tab.getAttribute("aria-controls")))
+          .filter(Boolean);
+
+        const activate = (tab, focus = false) => {
+          const targetId = tab.getAttribute("aria-controls");
+
+          tabs.forEach((item) => {
+            const selected = item === tab;
+            item.setAttribute("aria-selected", String(selected));
+            item.tabIndex = selected ? 0 : -1;
+          });
+
+          panels.forEach((panel) => {
+            panel.classList.toggle("is-active", panel.id === targetId);
+          });
+
+          if (focus) {
+            tab.focus();
+          }
+        };
+
+        tabs.forEach((tab, index) => {
+          tab.addEventListener("click", () => activate(tab));
+          tab.addEventListener("keydown", (event) => {
+            const currentIndex = tabs.indexOf(tab);
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+              event.preventDefault();
+              activate(tabs[(currentIndex + 1) % tabs.length], true);
+            } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+              event.preventDefault();
+              activate(tabs[(currentIndex - 1 + tabs.length) % tabs.length], true);
+            } else if (event.key === "Home") {
+              event.preventDefault();
+              activate(tabs[0], true);
+            } else if (event.key === "End") {
+              event.preventDefault();
+              activate(tabs[tabs.length - 1], true);
+            }
+          });
+          if (index !== 0) {
+            tab.tabIndex = -1;
+          }
+        });
+
+        activate(tabs.find((tab) => tab.getAttribute("aria-selected") === "true") || tabs[0]);
+      })();
+    </script>
+  </body>
+</html>
