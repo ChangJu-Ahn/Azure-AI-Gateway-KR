@@ -314,9 +314,16 @@ class ReportContractTests(unittest.TestCase):
         self.assertIn("break-inside: avoid;", media)
         self.assertIn("page-break-inside: avoid;", media)
 
-    def test_maintenance_notice_mentions_manual_html_update_for_source_numbers(self):
-        self.assertIn("출처 번호가 바뀌면 HTML도 수동으로 갱신", self.visible_text)
-        self.assertNotIn("source-number changes require a manual html update", self.visible_text.lower())
+    def test_customer_report_omits_internal_maintenance_copy(self):
+        for phrase in (
+            "유지보수 방식",
+            "수동 갱신 전용",
+            "수동 유지보수 안내",
+            "출처 번호가 바뀌면",
+            "외부 fetch",
+            "실시간 의존성",
+        ):
+            self.assertNotIn(phrase, self.visible_text)
 
     def test_evidence_legend_uses_required_meanings(self):
         match = re.search(
@@ -696,7 +703,6 @@ class ReportContractTests(unittest.TestCase):
             "근거 기반 보고서",
             "검증 범위",
             "검증 등급",
-            "유지보수 방식",
             "첫 화면 고객 실행 항목",
             "조건별 대부분 한 번 실행",
             "요청 id/해시 대조",
