@@ -1,259 +1,131 @@
-# Lab 13 최종 결과 리포트 — APIM 로깅 성능·무손실 벤치마크
+# Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크
 
-> **📖 용어 풀이 (먼저 읽으세요)**
-> - **로그 저장소(sink)**: 로그를 어디에 남길지. 여기선 **App Insights**(애저 모니터링 도구) vs **Event Hub**(대용량 데이터 수집 도구).
-> - **무손실**: 들어온 요청을 **하나도 안 빼고 전부** 기록하는 것.
-> - **드롭(drop)**: 로그가 **버려져 사라지는** 것 (=유실).
-> - **RPS**: 초당 요청 수 (부하의 세기).
-> - **payload**: 요청 하나에 담긴 **데이터 크기** (여기선 8KB / 64KB).
-> - **SKU**: APIM의 **등급(성능 티어)**. Developer < Basic < Standard < Premium, v1/v2 세대.
-> - **게이트웨이**: 요청을 실제로 처리하는 APIM 본체.
-> - **sampling(샘플링)**: 전부가 아니라 **일부만 골라** 기록하는 것. 100%면 전부 기록.
-> - **Capacity(부하%)** / **Duration(처리시간)**: APIM이 얼마나 바쁜지 / 요청 하나 처리에 걸린 시간.
+## 용어와 검증 범위
 
----
+이 보고서는 Azure API Management(APIM)에서 App Insights body 로깅과 `log-to-eventhub` 기반 Event Hub 전달을 비교한 고객용 최종 결과다. 판정은 `EXPERIMENT-SPEC.md`, `EXPERIMENT-LOG.md`, 그리고 보관된 검토 근거 `old/REVIEW.md`에 맞춰 증거 범위를 제한했다.
 
-> **⚠️ 검증 범위 한계 (먼저 짚고 갑니다)**
->
-> - 이 실험은 **최대 500 RPS까지만** 부하를 올렸다.
-> - Microsoft 공식 가이드는 "**App Insights 로깅 시 1,000 RPS를 초과하면 게이트웨이 처리량(throughput)이 40~50% 감소할 수 있다**"고 경고한다. 하지만 **우리는 1,000 RPS 구간에 도달하지 않았으므로 이 현상은 확인할 수 없었다.**
-> - 따라서 아래 결론들은 **~500 RPS 범위에 한정**된다. 500 RPS에서 이미 Developer v1 게이트웨이가 포화(~89%)돼 그 위로는 올리지 못했다.
-> - **더 높은 부하에서는 공식 가이드대로 App Insights의 처리량 저하가 별도로 나타날 수 있으며, 이는 본 실험의 미검증 영역이다.**
+- **metadata-only 기준선**: N8/N64 조건은 App Insights diagnostic을 완전히 끈 상태가 아니라, 모든 조건에 공통으로 켜진 App Insights 메타데이터만 기록한 기준선이다.
+- **body 로깅**: A8은 8KB request body를 App Insights에 기록한 조건이다.
+- **Event Hub 전달**: E8/E64는 요청 body를 `log-to-eventhub`로 Event Hub에 보낸 조건이다.
+- **drop**: 이 보고서의 Event Hub drop은 APIM `EventHubDroppedEvents`가 보고한 값이다. API 응답 실패와 같은 의미가 아니다.
+- **범위**: Korea Central의 기록된 APIM 배포, 8KB·64KB 요청, 100~500 RPS 관측 창에 한정한다. 제품 일반 보증이나 다른 SKU·region·backend 구성의 보증으로 확장하지 않는다.
 
----
+## 요약
 
-## 요약 (TL;DR)
-
-1. **App Insights 로깅은 게이트웨이 처리시간(Duration)을 늘리지만, sampling 100%에서도 모든 요청을 기록한다(무손실).**
-2. **log-to-eventhub는 고부하에서 APIM 큐 한도로 이벤트를 드롭한다.** 즉 "모든 요청 로깅"이 항상 보장되지 않는다.
-3. 이번 실험에서 **드롭의 근본 원인은 APIM 게이트웨이 처리 능력(SKU)이지 Event Hub 용량(TU)이 아니다.** RPS를 낮추거나 SKU를 올리면 드롭이 사라진다(이중 인과 확정). 물론 Event Hub의 처리용량도 있어, EventDrop이 발생한다면 양쪽을 모두 봐야한다. (이번 실험에서는 EH Throttling 없음)
-4. **payload가 커질수록 무손실 임계 RPS가 급락한다.** 8KB는 300 RPS까지 무손실, 64KB는 300 RPS에서도 드롭.
-5. 원래 통념(**App Insights는 샘플링 유실, EH는 무손실**)과 **정반대 방향**의 결과가 이 환경에서 관측됐다.
-6. **APIM SKU가 결정적 변수다.** 동일 조건에서 Developer v1은 로그 절반을 잃지만 Basic v2는 무손실이고, 응답 꼬리(p99)도 ~16배 개선된다. **무손실 로깅 = 로그 저장소(어디에 저장할지) 선택이 아니라 게이트웨이 SKU 문제.**
+1. **App Insights 본문 로깅은 처리시간을 늘렸다.** 기록된 8KB RPS 포인트에서 A8 Duration은 App Insights 메타데이터만 기록한 기준선보다 높았다. 다만 사전 명세의 CPU/p99/3회 반복 기준은 그대로 수행되지 않았다.
+2. **App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다.** A8 500 RPS 관측 창의 AppRequests 수는 발신 요청 수 이상이었지만, warmup 혼입과 요청 ID 대조 부재 때문에 전건 단위 증명으로 보지는 않는다.
+3. **API 성공과 Event Hub 로그 전달 성공은 별개다.** E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, 동시에 APIM은 Event Hub drop을 보고했다.
+4. **관측된 드롭은 EH 스로틀링으로 설명되지 않았다.** 기록된 드롭 창에서 Event Hubs throttling은 0으로 보고됐다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않는다.
+5. **8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다.** E8에서 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐다.
+6. **큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다.** 64KB 요청은 metadata-only 기준선에서도 8KB보다 Duration이 크게 높았고, E64는 300·500 RPS 모두에서 APIM-reported drop이 있었다.
+7. **Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다.** 동일한 8KB 500 RPS E8 비교에서 Developer v1은 대량 drop을 보였고 Basic v2 관측 창은 EH 도달 수가 발신량과 대체로 맞았다. 단, 지표 수집은 비대칭이었다.
 
 ---
 
-## 질문 1 — APIM에 App Insights 로깅을 연결하면 성능이 저하되는가
+## 질문 1 — App Insights 본문 로깅은 APIM 처리에 영향을 주는가
 
-**가설 H1**: App Insights body 로깅(sampling 100%)은 무로깅 대비 게이트웨이 처리시간·부하를 증가시킨다.
+**판정: 조건부 지지.** 기록된 8KB 조건에서 App Insights body 로깅(A8)의 APIM Duration은 App Insights 메타데이터만 기록한 기준선보다 높았다. 이는 본문 로깅이 게이트웨이 처리시간을 늘렸다는 방향을 지지한다.
 
-**근거 데이터** (8KB, APIM Duration 평균):
-| RPS | N8 무로깅 | A8 App Insights |
-|---|---|---|
+| RPS | N8 — App Insights 메타데이터만 기록한 기준선 Duration | A8 — App Insights body 8KB Duration |
+|---:|---:|---:|
 | 100 | 0.01 ms | 0.03 ms |
 | 300 | 0.06 ms | 0.13 ms |
 | 400 | 0.03 ms | 0.64 ms |
 | 500 | 0.1~0.35 ms | 0.9~2.5 ms |
 
-**판정: ✅ 지지.**  
-**이유:** App Insights 로깅은 게이트웨이 처리시간을 무로깅 대비 수 배 증가시킨다(500 RPS에서 약 7~10배).  
-단 절대값은 여전히 ms 단위로 작다. 공식 문서의 "1,000 RPS 초과 시 throughput 40~50%↓" 경고와 방향 일치(수치 크기는 본 환경 미재현 — 게이트웨이가 다른 병목에 먼저 도달).
+고객 해석은 다음 범위가 안전하다. 본 실험의 8KB 관측 포인트에서는 body 로깅이 Duration을 늘렸다. 그러나 원래 H1은 CPU, p99, 성공 처리율, 조건별 3회 반복을 기준으로 삼았고 실제 실행은 Duration/Capacity 중심의 대부분 1회 측정이었으므로, 공식 문서의 1,000 RPS 초과 처리량 저하 수치를 재현했다고 말하지 않는다.
 
----
+## 질문 2 — 성능 저하 없이 모든 요청을 로깅할 수 있는가
 
-## 질문 2 — 모든 요청을 로깅하면서 성능 저하를 피할 방법이 있는가
+**판정: 미검증.** 본 실험은 “모든 요청”과 “성능 저하 없음”을 end-to-end로 동시에 증명하지 못했다.
 
-**가설 H2**: log-to-eventhub는 App Insights sampling과 무관하게 모든 요청을 로깅하므로, 무손실 감사의 대안이 된다.
+- A8 500 RPS 관측 창에서는 클라이언트 150,000 요청에 대해 AppRequests 150,178건이 조회됐다. 이 집계는 누락 없음과 양립하지만, warmup 잔여가 섞였다고 기록돼 있고 요청 ID별 대조가 없었다.
+- E8 500 RPS에서는 클라이언트 요청이 150,000건 모두 200으로 성공했지만 APIM은 Event Hub drop을 대량 보고했다.
+- 원래 통과 조건에 있던 성공 요청 ID 집합, EH 수신 ID 집합, 페이로드 해시, 메시지 크기 대조가 최종 판정의 주된 근거로 수집되지 않았다.
 
-**근거 데이터**:
-- A8 (App Insights, 8KB, 500 RPS): 클라이언트 150,000 요청 → AppRequests **150,178 기록 (무손실)**.
-- E8 (Event Hub, 8KB, 500 RPS): 클라이언트 150,000 요청 → **약 절반 드롭** (EventHubDroppedEvents).
+따라서 고객에게는 “이번 환경에서는 로깅 방식 선택만으로 무손실과 무저하를 함께 입증하지 못했다”고 말하는 것이 안전하다.
 
-**판정: ⚠️ 조건부 반박.**   
-**이유:** "정책이 모든 invocation에 실행된다"는 공식 서술은 맞지만, **APIM이 EH로 실제 전송하는 단계에서 큐 한도로 드롭**하므로 고부하에서 무손실이 보장되지 않는다.  
-오히려 이 환경에선 **App Insights(100%)가 EH보다 기록 완전성이 높았다.** → "모든 요청 로깅 + 성능"을 동시에 얻으려면 로그 저장소(어디에 저장할지) 선택이 아니라 **게이트웨이 처리 능력(SKU)**이 관건(질문 3으로 이어짐).
+## 질문 3 — Event Hub 연결은 무손실 로그 전송을 보장하는가
 
----
+**판정: 반박(본 Developer v1 고부하 조건).** 본 Developer v1의 8KB·64KB 고부하 관측에서는 API 요청이 성공해도 APIM이 Event Hub 로그 drop을 보고했다. 이 결과는 “Event Hub 연결 자체가 무손실 전달을 보장한다”는 주장을 본 조건에서 반박한다.
 
-## 질문 3 — APIM에 Event Hub를 연결하면 무손실 로그 전송을 보장할 수 있는가?
+| 조건 | RPS | 클라이언트 성공 | APIM-reported EH drop | EH throttling | 해석 |
+|---|---:|---:|---:|---:|---|
+| E8 | 300 | 54,000 / 54,000 | 0 | 0 | 이 관측 창에서는 APIM drop이 보고되지 않음 |
+| E8 | 400 | 72,000 / 72,000 | 2,933 | 0 | API 성공과 로그 전달 실패가 분리됨 |
+| E8 | 500 | 150,000 / 150,000 | 대량, 약 절반으로 기록됨 | 0 | 정확한 비율은 warmup 경계 때문에 미확정 |
 
-**가설 H3**: `log-to-eventhub`로 EH를 연결하면 정책이 모든 요청에 실행되므로, 모든 로그가 **무손실로 EH에 전송**된다. (통념)
+중요한 운영 메시지는 두 가지다. 첫째, HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없다. 둘째, 이번 드롭은 기록상 Event Hubs throttling으로 설명되지 않았으므로 APIM의 Event Hub drop/success 카운터와 Event Hubs ingress/throttling을 함께 모니터링해야 한다. 이 판정은 본 Developer v1 고부하 조건에 한정하며 모든 SKU·부하로 일반화하지 않는다.
 
-**판정: ❌ 보장 못 함 (조건부).**  
-**이유:** 고부하에서 APIM 측 버퍼가 넘쳐 로그를 드롭한다. 무손실 여부는 EH 연결 자체가 아니라 **게이트웨이가 그 버퍼를 비울 수 있느냐(SKU × 부하)**에 달렸다.
+## 질문 4 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가
 
-**근거 — 3단계로 분해**
+**판정: 조건부 강함.** 두 payload 크기만 측정했지만, 큰 요청이 처리시간과 Event Hub 전달 운영 범위에 영향을 준다는 방향은 강하게 지지된다.
 
-**① 드롭이 실제로 발생한다 (관측)**
-- APIM `EventHubDroppedEvents > 0`. 8KB 500 RPS에서 약 절반 드롭. 이 카운터는 `EventHubTotalEvents`(=전송 성공)와 **별개**라 드롭 규모를 직접 계량할 수 있다.
+| RPS | N64 — App Insights 메타데이터만 기록한 기준선 Duration | E64 — Event Hub 64KB Duration | E64 APIM-reported EH drop | EH throttling |
+|---:|---:|---:|---:|---:|
+| 300 | 6.04 ms | 5.24 ms | 41,435 | 0 |
+| 500 | 7.32 ms | 7.58 ms | 76,434 | 0 |
 
-**② 버린 주체는 EH가 아니라 APIM이다 (책임 분리)**
-- 공식 정의: `EventHubDroppedEvents` = *"events skipped because of **queue size limit reached**"* (큐 한도 도달로 스킵). 이 큐는 APIM 로거의 **버퍼**다 — 공식 문서상 로거 속성 `is_buffered`가 기본 `true`로, 레코드를 publishing 전 APIM 안에서 버퍼링한다.
-- EH는 무고: `ThrottledRequests=0`, EH `IncomingMessages` = APIM `Successful`, EH 사용률 10%(4MB/s÷40TU). 64KB 80% 부하(32MB/s)에서도 EH Throttled=0.
-- → **APIM이 자기 버퍼 한도를 넘겨 버린 것**이지 EH가 못 받은 게 아니다. `EventHubDroppedEvents` vs EH `Incoming/Throttled` 대조로 "APIM이 버렸나 vs EH가 못 받았나"를 분리할 수 있다.
+64KB 조건은 metadata-only 기준선만으로도 8KB보다 Duration이 materially 높았다. 또한 E64는 300 RPS와 500 RPS 모두에서 APIM-reported drop을 보였다. 다만 8KB와 64KB 두 크기, 제한된 RPS 포인트, 대부분 1회 측정에 기반하므로 정확한 임계 곡선은 후속 측정이 필요하다.
 
-**③ 드롭 원인 = 게이트웨이 처리 능력 (인과, 이중)**
-- **부하 축 (간접 인과)**: RPS↓ → 드롭↓ (500 대량 → 400=2,933 → 300=0). EH Throttled는 항상 0.
-- **SKU 축 (직접 인과)**: 같은 8KB 500 RPS E8에서 Developer v1=약 절반 드롭 → Basic v2=무손실. EH·부하 동일, APIM SKU만 변경.
-  - ⚠️ **측정 비대칭 주의**: v1은 APIM `EventHubDroppedEvents`로 드롭을 직접 셌지만, **v2는 Capacity·드롭 카운터를 측정하지 못했다**(공식: v2 티어는 Capacity 미지원, 값 0). v2 무손실은 **EH 도달 수(`IncomingMessages` 분당 ~30,000 = 500×60, 발신량과 일치)로 간접 판정**했다. 따라서 "v2가 게이트웨이에 여유가 있어서"라는 메커니즘은 v2 CPU%/Memory% 미수집으로 **미검증 추론**이며, 확증된 것은 "SKU를 올리자 드롭이 사라졌다"는 결과뿐이다.
-- **공식 근거 보강**: APIM `Capacity`(클래식 티어)는 *CPU·메모리 + 데이터플레인 정책 실행 + **네트워크 큐 길이***를 반영한다. 즉 EH 로깅의 정책 실행 비용과 버퍼 큐 길이가 게이트웨이 용량에 잡히는 것이 문서로 확인된다. (단, 이 큐의 크기 한도가 SKU별로 다른지는 미문서화 — SKU가 좌우하는 것은 큐를 **비우는 처리력**으로 보는 게 정확.)
+## 질문 5 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가
 
-**결론**: **EH 연결만으로 무손실은 보장되지 않는다.**  
-드롭은 APIM 측 로거 버퍼 오버플로이며, 이를 좌우하는 것은 게이트웨이가 버퍼를 **드레인하는 처리력(SKU) 대비 부하(RPS × payload)**다.  
-→ 관측·감시는 `EventHubDroppedEvents`로, 무손실 확보는 SKU 상향 또는 부하 감소로.
+**판정: 조건부 지지.** 동일한 8KB 500 RPS E8 비교에서 Developer v1과 Basic v2의 관측 전달 결과는 달랐다. 다만 지표가 비대칭이므로 원인을 SKU 하나로 단정하지 않는다.
 
----
-
-## 질문 4 — payload에 따라 APIM 영향이 있을 수 있는가
-
-**가설 H4**: payload가 커지면 게이트웨이 처리시간이 증가하고, 무손실 가능 RPS가 낮아진다.
-
-**근거 데이터**:
-| 지표 | 8KB | 64KB |
-|---|---|---|
-| 무로깅 Duration (500 RPS) | 0.1~0.35 ms | **7.32 ms** (약 20~70배) |
-| EH 무손실 임계 RPS | ~300 | **300에서도 드롭 (41,435)** |
-| EH 로깅 순수 비용 (E−N Duration, 500) | 0.3~1.4 ms | **0.26 ms** |
-
-**판정: ✅ 지지 + 세부 발견.**
-- payload 크기는 게이트웨이 Duration을 지배한다(64KB 무로깅만으로 7.3ms).
-- **대용량 지연의 주범은 "payload를 받아 읽는 비용"이지 EH 로깅 비용이 아니다** (E64−N64 = 0.26ms로 작음).
-- 무손실 임계 RPS는 payload가 커지면 급락한다(8KB 300 → 64KB는 300도 실패).
-
----
-
-## 질문 5 — APIM SKU(v1 vs v2)에 따라 로깅 성능·무손실이 달라지는가 (파생 핵심 질문)
-
-**가설 H5**: 게이트웨이 SKU를 올리면 같은 로깅 부하에서 드롭이 줄고 레이턴시가 안정된다.
-
-**근거 데이터 (동일 8KB 500 RPS E8, EH·부하 동일, APIM SKU만 변경)**:
-| 지표 | Developer v1 | Basic v2 |
-|---|---|---|
-| EH 도달 (분당) | 약 절반만 (대량 드롭) | **~30,000 일정 = 무손실** |
-| EH Throttled | 0 | 0 |
-| 클라이언트 p99 | ~500 ms | **~30 ms (약 16배 개선)** |
-| 감사 완전성 | 심각한 유실 | **모든 로그 보존** |
-
-**판정: ✅ 확정 (핵심).** SKU 상향은 (1) EH 드롭을 제거해 **무손실 달성**, (2) 응답 꼬리(p99)를 **약 16배 안정화**. 이것이 질문 3(무손실 보장 여부·드롭 원인)의 **직접 인과 증거**이자, 질문 2(무손실 방법)의 **실질적 해답**이다. → **무손실 감사 로깅의 관건은 로그 저장소(어디에 저장할지) 선택이 아니라 게이트웨이 SKU 확보.**
-
----
-
-## 기타 가설 검증
-
-### 기타-1: "로깅은 케파(Capacity)에 영향이 사실은 없을 수 있다"
-
-**판정: ⚠️ 정밀화 필요 — "포화 구간에선 안 보이나, 여유 구간에선 뚜렷".**
-- 500·400 RPS: N8도 이미 ~85-89% (천장) → 로깅별 케파 차이 안 보임.
-- **200 RPS: N8=58%, A8=66%, E8=85% → 로깅별 케파 차이 뚜렷.** EH가 무로깅 대비 +27%p로 가장 큼.
-- 100 RPS: N8=31.5%.
-- 결론: "케파 영향이 없다"가 아니라 **500 RPS에선 이미 포화라 케파 지표로 로깅 영향을 분간할 수 없었다**는 것. 부하를 낮추면 로깅(특히 EH)이 케파를 확실히 올린다.
-
-### 기타-2: "로깅은 실제 응답속도(처리시간)에 영향을 준다"
-
-**판정: ✅ 확정.** 모든 RPS·payload에서 무로깅 < 로깅 순서 일관. 게이트웨이 Duration이 로깅으로 증가(질문 1·4 데이터). 단 클라이언트 체감 레이턴시는 절대값이 작아(sub-ms~ms) 지배적이지 않음.
-
-### 기타-3: "처리시간은 동일 8KB 기준으로 EH가 빠르다"
-
-**판정: ❌ 반박.** 500 RPS에서만 EH가 빨라 보였으나(E8 0.4~1.7 < A8 0.9~2.5), **이는 EH가 이벤트를 드롭한 대가(일을 덜 함)**였다. 드롭이 없는 정상 구간에서는 반대:
-| RPS | A8 App Insights | E8 Event Hub | 빠른 쪽 |
+| 지표 | Developer v1 관측 | Basic v2 관측 | 주의점 |
 |---|---|---|---|
-| 500 | 0.9~2.5 ms | 0.4~1.7 ms | E8 (단, 드롭 중) |
-| 400 | 0.64 ms | 1.00 ms | **A8** |
-| 300 | 0.13 ms | 0.36 ms | **A8** |
-→ **정상(무손실) 구간에서는 App Insights가 log-to-eventhub보다 게이트웨이 처리시간이 짧다.**
+| EH 도달 | 약 절반만 도달한 것으로 기록, 대량 drop | 분당 약 30,000건 수준: 30056, 29900, 29926, 30108, 29796, 30186 | Basic v2는 EH 도달 수로 판단 |
+| APIM EventHubDroppedEvents | 대량 drop 보고 | 직접 비교 가능한 drop 카운터 확보 못 함 | v2 메트릭 수집 비대칭 |
+| EH throttling | 0 | 0 | EH가 throttle한 증거는 없음 |
+| 클라이언트 결과 | 요청 200 성공, p99 약 500 ms | 요청 200 성공, p99 약 30 ms | 클라이언트 p99는 참고 지표 |
+| 게이트웨이 리소스 | classic Capacity 관측 | v2 CPU/메모리 미수집 | 메커니즘 확정 불가 |
+
+고객에게 말할 수 있는 것은 “이번 Basic v2 관측 창에서는 EH 도달 수가 발신량과 대체로 맞았고 Developer v1과 다른 운영 결과가 관측됐다”는 점이다. “왜 좋아졌는지”는 v2 CPU/메모리와 drop 카운터를 포함한 대칭 측정이 필요하다.
 
 ---
 
-## 추가 가설 (데이터에서 파생 — 실험자가 명시하지 않았으나 결과가 시사)
+## 직접 확인된 사실
 
-### 추가-1: SKU v1→v2 상향은 드롭뿐 아니라 클라이언트 꼬리 레이턴시(p99)도 극적으로 개선한다
+1. 8KB A8 Duration은 기록된 100/300/400/500 RPS 포인트에서 App Insights 메타데이터만 기록한 기준선보다 높았다.
+2. E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, APIM `EventHubDroppedEvents`는 별도로 증가했다.
+3. 관측된 Event Hub drop 창에서 Event Hubs `ThrottledRequests`는 0으로 기록됐다.
+4. E8 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐다.
+5. 64KB metadata-only 기준선 Duration은 300 RPS 6.04 ms, 500 RPS 7.32 ms로 기록돼 8KB보다 컸다.
+6. Basic v2 비교 관측 창의 EH IncomingMessages는 분당 약 30,000건 수준으로 발신량과 대체로 맞았다.
 
-**근거**: 동일 8KB 500 RPS E8에서 클라이언트 p99가 **Developer v1 ~500ms → Basic v2 ~30ms (약 16배 개선)**. 게이트웨이 포화가 풀리자 요청이 큐에서 밀리지 않아 꼬리가 사라짐.
+## 조건부로 지지되는 해석
 
-**판정: ✅ 지지 (1회).** SKU 상향의 효과는 "무손실 달성"에 그치지 않고 **응답 꼬리 안정화**로도 나타난다. 단 클라이언트 측정은 부하생성기 아티팩트가 섞이므로, 서버측 Duration 기반 재확인이 남음.
+- App Insights body 로깅은 본 환경의 8KB 조건에서 APIM 처리시간을 늘린 것으로 해석할 수 있다.
+- App Insights AppRequests 집계는 A8 500 RPS에서 누락 없음과 양립하지만, 요청 단위 완전성 증명은 아니다.
+- Event Hub drop은 본 관측에서 EH throttling보다 APIM 쪽 처리·버퍼 조건과 더 일치한다. 다만 내부 메커니즘은 직접 계측하지 않았다.
+- payload가 커질수록 로깅 전달 가능 운영 범위가 좁아지는 방향은 강하게 시사된다.
+- Basic v2 관측 결과는 Developer v1과 다르지만, SKU/세대/메트릭 체계 차이가 함께 있으므로 대칭 재측정이 필요하다.
 
-### 추가-2: v2 티어는 Capacity 메트릭 체계가 v1과 다르다 (공식 확인)
+## 고객이 고려할 운영 사항
 
-**근거**: Basic v2에서 `EventHubDroppedEvents`/`Capacity`/`Duration` 메트릭이 비어(0) 나왔고, 무손실 판정을 EH `IncomingMessages`(분당 30,000 일정)로 간접 수행해야 했다. v1은 이 메트릭들이 정상 emit됐다.
+- 감사 로그 성공 SLO를 API 성공 SLO와 분리해 정의한다.
+- APIM `EventHubDroppedEvents`, `EventHubSuccessfulEvents`, Event Hubs `IncomingMessages`, `ThrottledRequests`를 함께 모니터링하고 drop 알림을 둔다.
+- 운영 목표 RPS와 실제 request/log 크기로 사전 부하 테스트를 수행한다.
+- classic tier는 Capacity/Duration을 참고하되, v2 tier는 Capacity 대신 gateway CPU/Memory 계열 지표를 수집한다.
+- App Insights body 로깅은 성능 완화책(sampling 축소, body 생략)과 감사 요구가 충돌할 수 있으므로 감사 범위, 보존, 비용, 개인정보 마스킹을 별도 설계한다.
+- Event Hub 전달을 쓰더라도 downstream consumer, retention, 재처리 절차, 경보 대응 runbook까지 포함해 운영 설계를 검증한다.
 
-**판정: ✅ 부분 확정 (공식) + △ 부분 미확정.**
-- **공식 확인**: v2 티어는 합성 `Capacity` 메트릭을 **지원하지 않고 값이 0으로 표시**되며(포털에는 나타나되 사용 불가), 대신 `CPU Percentage of Gateway`·`Memory Percentage of Gateway`를 쓴다. 즉 v2에서 Capacity가 빈 것은 버그가 아니라 문서화된 동작이다. (출처: [Capacity of an APIM instance](https://learn.microsoft.com/azure/api-management/api-management-capacity))
-- **미확정**: v2에서 `EventHubDroppedEvents`가 emit 자체가 안 되는지, 아니면 실제 드롭이 0이라 안 찍힌 것인지는 확인 필요(우리 데이터는 후자를 시사).
-- **방법론적 함의**: SKU별로 "권위 지표"를 미리 검증해야 한다. v2를 잴 때는 Capacity가 아니라 CPU%/Memory%를 수집해야 한다.
+## 한계와 미검증 영역
 
-### 추가-3: EH 드롭에는 "부하 임계"가 존재하며, 그 임계는 payload 크기의 함수다
+- 사전 명세는 조건별 3회 반복을 요구했지만 실제 기록은 대부분 1회 측정이며, 일부 RPS 스윕으로 방향성을 보강했다.
+- 원래 통과 조건이던 요청 ID 집합 대조, 페이로드 해시 일치, 메시지 크기 검증은 최종 판정의 주된 근거로 완료되지 않았다.
+- App Insights AppRequests 집계에는 warmup 잔여가 섞일 수 있어 요청 단위 완전성 증명으로 사용하지 않는다.
+- Azure Monitor 분 단위 집계와 측정창 경계 때문에 E8 500 RPS의 정확한 drop 비율은 확정하지 않았다.
+- v2 CPU/메모리, v2 drop 카운터, v2 Duration 등 대칭 지표가 없어 Basic v2의 메커니즘 해석은 조건부다.
+- 본 실험은 최대 500 RPS까지 관측했다. Microsoft 문서의 1,000 RPS 초과 App Insights throughput 영향은 본 실험에서 재현·검증하지 않았다.
+- 32KB, 128KB, 200KB, Standard/Premium SKU, multiple units, autoscale, multi-region, backend/model latency, streaming/SSE, response-body logging은 측정하지 않았다.
 
-**근거**: 8KB 무손실 임계 ≈ 300 RPS(2.4MB/s), 64KB는 300 RPS(19MB/s)에서도 드롭. 드롭 시작점이 RPS가 아니라 **게이트웨이가 초당 처리·직렬화·enqueue해야 하는 바이트/이벤트량**에 의해 결정되는 것으로 보인다.
+## 실험 조건과 원천 문서
 
-**판정: ✅ 방향 지지.** 무손실 한계를 "RPS"가 아니라 **게이트웨이 로깅 처리량(events/s × payload)**으로 모델링해야 한다. 정확한 임계 곡선은 더 조밀한 스윕 필요(미측정).
+- 원래 실험 명세: `EXPERIMENT-SPEC.md`
+- 실제 실행 로그와 측정창: `EXPERIMENT-LOG.md`
+- 보관된 검토 근거: `old/REVIEW.md`
+- 보관된 이전 결과 원문: `old/RESULTS.md`
+- 본 보고서의 계약 테스트: `test_results_report.py`
 
-### 추가-4: log-to-eventhub는 fire-and-forget이라, 드롭이 나도 API 응답(성공률·상태코드)은 영향받지 않는다
-
-**근거**: E8/E64 모든 런에서 클라이언트 성공률 100%, statusCounts 전부 200. 로그를 절반 버려도 **API 트래픽은 정상 200 응답**. 즉 드롭은 "조용한 감사 유실"이며 API 소비자는 알 수 없다.
-
-**판정: ✅ 지지.** 이것이 위험 포인트 — **드롭은 API 오류로 드러나지 않으므로, EventHubDroppedEvents 모니터링/알림 없이는 감사 유실을 탐지할 수 없다.**
-
-### 추가-5: 무로깅(N) 조건도 500 RPS에서 게이트웨이가 포화(~89%)이므로, Developer v1의 실질 처리 한계는 500 RPS 부근이다
-
-**근거**: N8(무로깅) Capacity가 100→31.5%, 200→58%, 300→79%, 400·500→85~89%. 로깅과 무관하게 500 RPS에서 이미 천장. 즉 **이 게이트웨이의 병목은 로깅이 아니라 기본 요청 처리 용량**.
-
-**판정: ✅ 지지.** 로깅은 이 병목을 "더 빨리" 드러낼 뿐. 근본 용량은 SKU가 결정. (질문 3과 정합)
-
-### 추가-6: 정상(무손실) 구간에서 App Insights가 EH보다 게이트웨이 처리시간이 짧은 이유는 "동기 직렬화 비용 차이"일 수 있다
-
-**근거**: 400·300 RPS에서 A8 Duration < E8 Duration. App Insights는 SDK 최적화된 비동기 배치, log-to-eventhub는 정책 실행 중 body를 변수로 읽어(`preserveContent:true`) enqueue하는 인라인 비용이 더 클 수 있음.
-
-**판정: △ 추론 (미계측).** APIM 내부 처리를 직접 계측하지 못해 인과는 추론. 방향(A8 < E8, 정상 구간)은 2개 RPS에서 일관.
-
-## 심화 인사이트 (실험 과정에서 파생된 재사용 가능한 교훈)
-
-앞의 질문·가설이 "무엇을 발견했나"라면, 이 섹션은 **그래서 실무에서 어떻게 생각·측정·진단해야 하나**를 정리한다.
-
-### 인사이트 A — 같은 포화에서 두 로그 저장소의 실패 모드가 정반대다 (⭐ 설계 프레임, 확정)
-
-동일한 게이트웨이 포화(~89%)에서:
-- **Event Hub 방식 = 못 버티면 버린다** → 게이트웨이가 바쁘면 큐(대기줄)가 꽉 차고, 넘치는 로그는 **그냥 버려진다(유실).**
-- **App Insights 방식 = 못 버티면 느려진다** → 로그를 버리지 않는 대신 요청 **처리시간이 늘어난다(지연).**
-
-같은 근본 원인(게이트웨이 포화)인데 **증상이 반대**다. 따라서 로그 저장소 선택의 진짜 축은 "어느 게 빠른가"가 아니라 **무엇을 못 견디는가 — 감사 유실인가, 응답 지연인가**이다. 유실 불가(컴플라이언스) → 지연을 흡수하는 쪽(또는 SKU 상향), 지연 불가(실시간 SLA) → 부하를 차단하는 쪽을 고려.
-
-### 인사이트 B — 어떤 지표를 보느냐가 문제를 보이게/안 보이게 한다 (⭐ 모니터링 전략, 확정)
-
-- **Capacity%는 포화에서 눈이 먼다**: 500 RPS에서 N8/A8/E8 모두 ~89% → Capacity만 보면 "로깅 영향 없음"으로 **오판**한다. 로깅 영향은 포화에서 내려온 200 RPS에서야 드러난다(N8 58% / A8 66% / E8 85%).
-- **처리시간(Duration) 지표는 EH가 버린 로그를 거의 안 잡아낸다**: Event Hub 방식은 '보내고 확인하지 않는(fire-and-forget)' 구조라, 로그 버림이 요청 처리 경로 바깥(뒤에서 도는 대기줄)에서 발생 → E64−N64=0.26ms로 작게 보이지만 실제론 76,434건 유실. **APIM 대표 지표(Capacity·Duration) 둘 다 오도할 수 있다.** 진실은 `EventHubDroppedEvents` 전용 카운터에만 있다.
-
-### 인사이트 C — 드롭은 이중으로 안 보인다 (확정)
-
-드롭은 (1) API 에러가 아니고(클라이언트 200 유지), (2) Duration도 올리지 않는다 → **트래픽 평면·지연 평면 양쪽에서 투명**하다. `EventHubDroppedEvents` 카운터 + 알림 없이는 원천적으로 탐지 불가. → **모든 로그를 남기는 감사가 목적이면 이 메트릭 알림은 선택이 아니라 필수.**
-
-### 인사이트 D — APIM 부하 테스트는 기술이다 (⭐ 재사용성 최고)
-
-- concurrency=250 → TLS 핸드셰이크 churn으로 **자기 클라이언트를 측정**하게 됨(435 RPS 미달, p99 폭증).
-- concurrency=20 + 커넥션 예열(warmup) → **진짜 500 RPS 달성**(서버 p50 sub-ms).
-- **클라이언트 p99(~500ms) ≠ APIM 지연**이다. 클라이언트 꼬리는 부하생성기 아티팩트이므로, 판정은 **APIM 서버측 메트릭을 권위**로 삼아야 한다.
-
-교훈: 벤치마크 수치가 이상하면 **APIM이 아니라 부하생성기를 먼저 의심**하라. offered load = achieved load가 커넥션 예열 후에만 성립한다.
-
-### 인사이트 E — EH TU 증설은 진단 안티패턴이다 (확정)
-
-40TU가 64KB×500(32MB/s = 80% 부하)에서도 `ThrottledRequests=0`으로 버텼다. 드롭을 보면 본능적으로 EH TU를 늘리려 하지만 **(8KB·64KB 모두) 해결책이 아니다.** 진단 규칙: **`EventHubDroppedEvents`가 보이면 EH가 아니라 APIM 게이트웨이(SKU/부하)를 의심하라.**
-
-### 인사이트 F — 측정 신뢰도의 현실적 함정 (정직성)
-
-- Azure Monitor 분당 집계는 수집 지연이 있어, warmup이 섞인 넓은 시간창으로 조회하면 **정확한 드롭률(%)이 어긋난다** → 측정창(measure 구간)만 정밀 정렬해 재검산해야 한다.
-- 본 실험은 **각 조건 1회 측정**(3회 반복 미실시)이라, 방향·사실은 명확하나 분산은 미확정. 절대 수치보다 **경향과 인과 구조**를 신뢰하라.
-
----
-
-## 종합 결론
-
-원래 질문 "App Insights 성능 저하를 EH로 피하면서 모든 요청을 로깅할 수 있는가?"에 대한 답:
-
-> **이 환경(Developer v1, 500 RPS)에서는 불가능하다.** log-to-eventhub도 게이트웨이 포화로 로그의 약 절반을 드롭한다. **그러나 게이트웨이 SKU를 Basic v2로 올리면 EH가 무손실로 모든 로그를 남긴다.** 즉 무손실 감사 로깅의 관건은 로그 저장소(App Insights냐 Event Hub냐)가 아니라 **게이트웨이 처리 능력(SKU) 확보**다. EH 용량(TU) 증설은 8KB 기준 해결책이 아니다.
-
-## 한계
-
-- 각 조건 1회 측정(반복 없음). 단 5개 RPS(8KB)·2개 RPS(64KB)의 단조로운 추세로 뒷받침. 분산(오차막대)은 없음.
-- **최대 500 RPS까지만 검증.** 공식 가이드가 경고하는 "1,000 RPS 초과 시 App Insights throughput 40~50%↓" 구간은 도달하지 못해 미검증(500 RPS에서 이미 Developer v1이 포화). 고부하에서의 App Insights 처리량 저하는 별도 확인 필요.
-- Developer v1·Basic v2 두 SKU만 비교. Standard/Premium v2는 미측정.
-- 부하 생성기(단일 프로세스 asyncio)의 클라이언트 p99 꼬리(~500ms, TLS 핸드셰이크)는 전 조건 공통이라 상대 비교엔 무해하나, 절대 체감 레이턴시 측정엔 부적합 → 서버측 지표로 판정.
-- **SKU 비교는 측정 지표가 비대칭이다.** v1은 APIM `EventHubDroppedEvents`로 드롭을 직접 계량했으나, **v2는 Capacity·드롭 카운터가 비어(공식: v2 티어는 Capacity 미지원, 값 0)** EH `IncomingMessages`로 무손실을 간접 판정했다. "v2가 게이트웨이 여유 덕에 무손실"이라는 메커니즘은 v2 CPU%/Memory% 미수집으로 미검증 추론이다(결과 자체는 유효).
-
----
-
-## 부록 — 실험 환경·측정 방법
-
-- **환경**: Azure API Management **Developer v1** (Korea Central, capacity 1) + Event Hubs Standard 40 TU + Standard_D8as_v5 부하 VM. 비교군으로 **Basic v2** APIM 신규 배포.
-- **부하**: Python asyncio 고정 도착률(open workload = 초당 일정 수 요청을 계속 보냄), 8KB/64KB 요청, 100~500 RPS, warmup(예열) 후 안정 구간(steady-state) 측정.
-- **권위 지표(판정 근거로 삼은 값)**: APIM 서버측 `Capacity`(게이트웨이 부하%), `Duration`(게이트웨이 처리시간), `EventHubDroppedEvents`(APIM이 버린 로그 수), EH `IncomingMessages`(EH 도달)/`ThrottledRequests`(EH 거절). 클라이언트(부하 VM) 측 지연은 참고용.
-- **원시 데이터·재조회 명령**: `EXPERIMENT-LOG.md` (측정 시간창 보존, Azure 메트릭 90일 재조회 가능).
+본 문서는 active customer result report이며, `old/REVIEW.md`는 감사 성격의 보관 근거로만 참조한다.
