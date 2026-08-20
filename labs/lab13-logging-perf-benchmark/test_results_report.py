@@ -8,7 +8,10 @@ ROOT = Path(__file__).parent
 ACTIVE = ROOT / "RESULTS.md"
 OLD_RESULTS = ROOT / "old" / "RESULTS.md"
 OLD_REVIEW = ROOT / "old" / "REVIEW.md"
+OLD_README = ROOT / "old" / "README.md"
 ACTIVE_REVIEW = ROOT / "REVIEW.md"
+
+EXPECTED_ACTIVE_H1 = "# Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크"
 
 EXPECTED_HASHES = {
     OLD_RESULTS: "123d2e9cac909bbca65e209029e8db02693f0960c07b43fb108b6413413d2e1e",
@@ -59,6 +62,7 @@ QUESTION_VERDICTS = {
 REQUIRED_TABLE_ROWS = [
     # 8 KB Duration table
     "| 100 | 0.01 ms | 0.03 ms |",
+    "| 200 | 0.02 ms | 0.05 ms |",
     "| 300 | 0.06 ms | 0.13 ms |",
     "| 400 | 0.03 ms | 0.64 ms |",
     "| 500 | 0.1~0.35 ms | 0.9~2.5 ms |",
@@ -86,6 +90,17 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def section_body(text, heading, next_heading_level="##"):
+    match = re.search(
+        rf"^{re.escape(heading)}\s*(?P<body>.*?)(?=^{re.escape(next_heading_level)} |\Z)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    if match is None:
+        raise AssertionError(f"Missing section: {heading}")
+    return match.group("body")
+
+
 class ReviewedResultsContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -96,13 +111,71 @@ class ReviewedResultsContractTests(unittest.TestCase):
             self.assertTrue(path.exists(), path)
             self.assertEqual(sha256(path), expected)
 
+    def test_archive_readme_marks_superseded_files_without_changing_archives(self):
+        self.assertTrue(OLD_README.exists())
+        readme = OLD_README.read_text(encoding="utf-8")
+        for phrase in (
+            "old/RESULTS.md",
+            "old/REVIEW.md",
+            "archived/superseded",
+            "2026-08-20",
+            "../RESULTS.md",
+            "byte-for-byte",
+            "traceability",
+        ):
+            self.assertIn(phrase, readme)
+
     def test_review_is_archived_only(self):
         self.assertTrue(OLD_REVIEW.exists())
         self.assertFalse(ACTIVE_REVIEW.exists())
 
+    def test_h1_and_required_separators_are_exact(self):
+        self.assertTrue(self.text.startswith(f"{EXPECTED_ACTIVE_H1}\n\n"))
+        separators = re.findall(r"^---$", self.text, re.MULTILINE)
+        self.assertEqual(len(separators), 2)
+        self.assertIsNotNone(
+            re.search(r"^## 요약[\s\S]*?^---\n\n^## 질문 1", self.text, re.MULTILINE)
+        )
+        self.assertIsNotNone(
+            re.search(
+                r"^## 질문 5[\s\S]*?^---\n\n^## 직접 확인된 사실",
+                self.text,
+                re.MULTILINE,
+            )
+        )
+
     def test_section_headings_have_exact_required_order(self):
         headings = re.findall(r"^## .+$", self.text, re.MULTILINE)
         self.assertEqual(headings, SECTION_HEADINGS)
+
+    def test_terms_and_scope_are_defined_in_terms_section(self):
+        terms = section_body(self.text, "## 용어와 검증 범위")
+        for phrase in (
+            "로그 저장소",
+            "무손실",
+            "요청 단위 증명은 완료되지 않았다",
+            "드롭",
+            "RPS",
+            "payload",
+            "요청 데이터 크기",
+            "SKU",
+            "Capacity",
+            "Duration",
+            "metadata-only 기준선",
+            "Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건",
+            "대부분 한 번만 실행",
+            "1,000 RPS는 테스트하지 않았다",
+        ):
+            self.assertIn(phrase, terms)
+
+    def test_decision_tree_is_explicitly_superseded_for_conflicting_guidance(self):
+        sources = section_body(self.text, "## 실험 조건과 원천 문서")
+        self.assertIn("DECISION-TREE.md", sources)
+        self.assertIn("앞선 의사결정 가이드", sources)
+        self.assertIn(
+            "손실 여부·임계값·지연·인과 표현이 충돌하면 활성 RESULTS.md가 우선한다",
+            sources,
+        )
 
     def test_summary_has_exactly_seven_required_items(self):
         summary = re.search(
@@ -140,6 +213,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
             self.assertIn(header, self.text)
         for row in REQUIRED_TABLE_ROWS:
             self.assertIn(row, self.text)
+        self.assertIn("100/200/300/400/500 RPS 포인트", self.text)
 
     def test_capacity_evidence_is_scoped(self):
         required = [
@@ -179,17 +253,26 @@ class ReviewedResultsContractTests(unittest.TestCase):
             r"Event Hub 연결만으로[^\n]*(무손실|손실 없이)[^\n]*(보장|전달)",
             r"Event Hub가[^\n]*(모든 로그|전건)[^\n]*(보장|전달)",
             r"8KB.*300 RPS까지.*(무손실|손실 없음|lossless)",
-            r"(EH|Event Hub).*로깅.*순수 (비용|cost)",
+            r"(EH|Event Hub).*로깅.*순수 (비용|cost)[^\n.?!]*(이다|측정|확정|작다|낮다|낮았다)",
+            r"순수 (EH|Event Hub) 로깅 (비용|cost)[^\n.?!]*(이다|측정|확정|작다|낮다|낮았다)",
             r"Duration.*(로그 전달 완전성|delivery-completeness).*지표다",
             r"Capacity.*(보편|universal).*(임계값|threshold).*(이다|로 삼|적용|제시한다)",
+            r"(보편|universal).*(Capacity).*(임계값|threshold).*(이다|로 삼|적용|제시한다)",
         ]
         for pattern in banned_patterns:
             self.assertNotRegex(self.text, pattern)
 
+    def test_basic_v2_safe_negations_are_allowed(self):
+        self.assertIn("Basic v2 관측 결과는 Developer v1과 다르지만", self.text)
+        self.assertIn("원인을 SKU 하나로 단정하지 않는다", self.text)
+        self.assertNotRegex(
+            self.text,
+            r"Basic v2[^.\n]*(무손실.*보장|모든 로그|항상)[^.\n]*(?<!않는다)(?<!아니다)",
+        )
+
     def test_event_hub_throttling_and_64kb_duration_cautions_are_scoped(self):
         required = [
-            "기록상 EH 스로틀링 관측 없음",
-            "각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아니다",
+            "EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐다",
             "E64 300 RPS는 N64보다 Duration이 낮지만 APIM-reported drop 41,435건이 함께 발생했다",
             "Duration은 로그 전달 완전성 지표가 아니며",
             "순수 EH 로깅 비용이나 더 나은 성능으로 해석하지 않는다",
@@ -199,6 +282,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
             self.assertIn(phrase, self.text)
 
     def test_limitations_cover_execution_deviations(self):
+        limitations = section_body(self.text, "## 한계와 미검증 영역")
         required = [
             "조건별 3회 반복",
             "요청 ID",
@@ -209,7 +293,15 @@ class ReviewedResultsContractTests(unittest.TestCase):
             "1,000 RPS",
         ]
         for phrase in required:
-            self.assertIn(phrase, self.text)
+            self.assertIn(phrase, limitations)
+
+    def test_customer_guidance_includes_body_minimization_and_retest(self):
+        guidance = section_body(self.text, "## 고객이 고려할 운영 사항")
+        for phrase in (
+            "기록할 본문 크기를 최소화",
+            "고객 환경에서 재시험",
+        ):
+            self.assertIn(phrase, guidance)
 
 
 if __name__ == "__main__":

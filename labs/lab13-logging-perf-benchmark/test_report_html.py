@@ -7,6 +7,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 REPORT = ROOT / "REPORT.html"
+RESULTS = ROOT / "RESULTS.md"
+
+EXPECTED_TITLE = "Lab 13 로깅 성능·로그 전달 벤치마크 보고서"
+EXPECTED_H1 = "APIM 로깅 성능·로그 전달 벤치마크"
 
 TAB_IDS = [
     "summary",
@@ -27,7 +31,7 @@ SOURCE_DOCS = [
     "DECISION-TREE.md",
 ]
 
-RESULT_SUMMARY_HEADINGS = [
+EXPECTED_RESULT_SUMMARY_HEADINGS = [
     "App Insights 본문 로깅은 처리시간을 늘렸다",
     "App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다",
     "API 성공과 Event Hub 로그 전달 성공은 별개다",
@@ -100,6 +104,43 @@ LIGHT_TOKEN_LINES = [
 RESULT_FIELDS = ["offered", "successful", "errors", "p50Ms", "p95Ms", "p99Ms"]
 
 
+def result_markdown():
+    return RESULTS.read_text(encoding="utf-8")
+
+
+def result_section(text, heading):
+    match = re.search(
+        rf"^{re.escape(heading)}\s*(?P<body>.*?)(?=^## |\Z)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    if match is None:
+        raise AssertionError(f"Missing RESULTS.md section: {heading}")
+    return match.group("body")
+
+
+def result_summary_headings():
+    summary = result_section(result_markdown(), "## 요약")
+    return [
+        heading.rstrip(".")
+        for _, heading in re.findall(r"^\s*(\d+)\.\s+\*\*(.*?)\*\*", summary, re.MULTILINE)
+    ]
+
+
+def result_question_verdicts():
+    text = result_markdown()
+    verdicts = {}
+    for index, match in enumerate(
+        re.finditer(r"^## 질문 \d+ [^\n]+\s*(?P<body>.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL),
+        start=1,
+    ):
+        verdict = re.search(r"\*\*판정: (?P<verdict>.*?)\.\*\*", match.group("body"))
+        if verdict is None:
+            raise AssertionError(f"Missing verdict for q{index}")
+        verdicts[f"q{index}"] = verdict.group("verdict")
+    return verdicts
+
+
 class ReportParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -148,6 +189,8 @@ class ReportContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.html = REPORT.read_text(encoding="utf-8")
+        cls.result_summary_headings = result_summary_headings()
+        cls.result_verdicts = result_question_verdicts()
         cls.parser = ReportParser()
         cls.parser.feed(cls.html)
         visible_parser = VisibleTextParser()
@@ -198,6 +241,12 @@ class ReportContractTests(unittest.TestCase):
         for tab_id in TAB_IDS:
             self.assertIn(f"panel-{tab_id}", self.parser.ids)
 
+    def test_title_and_h1_use_log_delivery_wording(self):
+        self.assertIn(f"<title>{EXPECTED_TITLE}</title>", self.html)
+        self.assertIn(f"<h1>{EXPECTED_H1}</h1>", self.html)
+        hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
+        self.assertNotIn("무손실 벤치마크", hero)
+
     def test_is_self_contained(self):
         self.assertEqual(self.parser.external_assets, [])
         banned_runtime_loading = [
@@ -213,6 +262,18 @@ class ReportContractTests(unittest.TestCase):
     def test_references_all_source_documents(self):
         for source in SOURCE_DOCS:
             self.assertIn(source, self.html)
+
+    def test_decision_tree_is_marked_as_supplemental_with_results_precedence(self):
+        sources = re.search(r'id="panel-sources"[\s\S]*?</section>', self.html).group(0)
+        decision_item = re.search(
+            r'<article class="source-item">[\s\S]*?DECISION-TREE\.md[\s\S]*?</article>',
+            sources,
+        ).group(0)
+        self.assertIn("보완 문서(RESULTS.md 우선)", decision_item)
+        self.assertIn("손실 여부·임계값·지연·인과 표현이 충돌하면 RESULTS.md가 우선", decision_item)
+        guidance = re.search(r'id="panel-guidance"[\s\S]*?</section>', self.html).group(0)
+        for card in re.findall(r'<article class="panel-card">[\s\S]*?DECISION-TREE\.md[\s\S]*?</article>', guidance):
+            self.assertIn("RESULTS.md 기준으로 제한", card)
 
     def test_source_references_are_relative_links(self):
         expected = SOURCE_DOCS + RESULT_FILES
@@ -425,6 +486,15 @@ class ReportContractTests(unittest.TestCase):
         for phrase in required:
             self.assertIn(phrase, self.html)
 
+    def test_scope_line_names_one_basic_v2_comparison_and_untested_1000_rps(self):
+        hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
+        for phrase in (
+            "Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건",
+            "조건별 대부분 한 번 실행",
+            "1,000 RPS는 테스트하지 않음",
+        ):
+            self.assertIn(phrase, hero)
+
     def test_experiment_conditions_include_required_infrastructure_without_row_grades(self):
         conditions = re.search(
             r'<section role="tabpanel" id="panel-conditions"[\s\S]*?</section>',
@@ -463,8 +533,12 @@ class ReportContractTests(unittest.TestCase):
         ]
         for action in required_actions:
             self.assertIn(action, summary)
-        for evidence in ("8KB 500 RPS", "약 4 MB/s", "40 TU의 약 10%", "EH throttling 0"):
+        for evidence in ("8KB 500 RPS", "약 4 MB/s", "40 TU의 약 10%", "EH 스로틀링은 측정창 집계에서 0"):
             self.assertIn(evidence, summary)
+        self.assertIn(
+            "EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다.",
+            summary,
+        )
 
     def test_summary_uses_intentional_four_three_layout_instead_of_fixed_five_columns(self):
         body = self.css_body(".summary-grid")
@@ -491,7 +565,8 @@ class ReportContractTests(unittest.TestCase):
         ).group(0)
         positions = [summary.index(f'data-result-key="{index}"') for index in range(1, 8)]
         self.assertEqual(positions, sorted(positions))
-        for heading in RESULT_SUMMARY_HEADINGS:
+        self.assertEqual(self.result_summary_headings, EXPECTED_RESULT_SUMMARY_HEADINGS)
+        for heading in self.result_summary_headings:
             self.assertIn(heading, summary)
 
     def test_summary_has_exactly_seven_cards_bound_to_matching_keys_and_headings(self):
@@ -506,7 +581,8 @@ class ReportContractTests(unittest.TestCase):
             for card_html in all_cards
         ]
         self.assertEqual([key for key, _ in cards], [str(index) for index in range(1, 8)])
-        for index, heading in enumerate(RESULT_SUMMARY_HEADINGS, start=1):
+        self.assertEqual(self.result_summary_headings, EXPECTED_RESULT_SUMMARY_HEADINGS)
+        for index, heading in enumerate(self.result_summary_headings, start=1):
             card_html = next(card for key, card in cards if key == str(index))
             self.assertIn(f"<h3>{heading}</h3>", card_html)
 
@@ -528,7 +604,8 @@ class ReportContractTests(unittest.TestCase):
             r'id="panel-hypotheses"[\s\S]*?</section>',
             self.html,
         ).group(0)
-        for question, verdict in RESULT_VERDICTS.items():
+        self.assertEqual(self.result_verdicts, RESULT_VERDICTS)
+        for question, verdict in self.result_verdicts.items():
             card = re.search(
                 rf'data-question="{question}"[\s\S]*?</article>',
                 hypotheses,
@@ -544,12 +621,23 @@ class ReportContractTests(unittest.TestCase):
             self.assertIn(f'href="{href}"', self.html)
         self.assertNotIn('href="REVIEW.md"', self.html)
 
+    def test_limitations_panel_scopes_cautions_and_links_archived_review_basis(self):
+        limitations = re.search(r'id="panel-limitations"[\s\S]*?</section>', self.html).group(0)
+        for phrase in (
+            "조건별 대부분 한 번 실행",
+            "요청 ID·해시 대조 누락",
+            "메타데이터만 기록한 기준선",
+            "1,000 RPS",
+            "old/REVIEW.md",
+        ):
+            self.assertIn(phrase, limitations)
+
     def test_confidence_matrix_scopes_throttling_and_uses_archived_review_sources(self):
         fragment = self.chart_fragment("chart-confidence")
         self.assertNotIn("8KB RPS를 낮추면 APIM 드롭이 사라졌습니다", fragment)
         self.assertIn("8KB 드롭 전이는 300~400 RPS 사이에서 관측됐습니다", fragment)
-        self.assertIn("기록된 필드는 EH throttling 없음으로 보였지만", fragment)
-        self.assertIn("각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아닙니다", fragment)
+        self.assertIn("EH 스로틀링은 측정창 집계에서 0으로 확인됐고", fragment)
+        self.assertIn("RPS 구간별 개별 확인은 일부만 기록됐습니다", fragment)
         self.assertIn("old/RESULTS.md", fragment)
         self.assertIn("old/REVIEW.md", fragment)
         self.assertNotIn("RESULTS.md 교정 해석", fragment)
@@ -610,7 +698,7 @@ class ReportContractTests(unittest.TestCase):
             "검증 등급",
             "유지보수 방식",
             "첫 화면 고객 실행 항목",
-            "조건별 대부분 1회 실행",
+            "조건별 대부분 한 번 실행",
             "요청 id/해시 대조",
             "메타데이터만 기준선",
             "진단 기능 비활성화",

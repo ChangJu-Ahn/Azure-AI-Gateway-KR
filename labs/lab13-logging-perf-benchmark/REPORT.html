@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lab 13 로깅 성능 벤치마크 보고서</title>
+    <title>Lab 13 로깅 성능·로그 전달 벤치마크 보고서</title>
     <script>
       (() => {
         const param = new URLSearchParams(window.location.search).get("scoutTheme");
@@ -605,7 +605,7 @@
     <main class="page">
       <header class="hero">
         <span class="eyebrow">Lab 13 · 근거 기반 보고서</span>
-        <h1>APIM 로깅 성능·무손실 벤치마크</h1>
+        <h1>APIM 로깅 성능·로그 전달 벤치마크</h1>
         <p class="lede">
           고객 관점의 결론은 단순합니다. API가 200으로 성공해도 감사 로그가 전달됐다는 뜻은 아니며,
           본 관측에서는 APIM Event Hub 로거가 로그를 조용히 드롭할 수 있었습니다. 큐 한도 메커니즘은 조건부/추정이며,
@@ -614,7 +614,7 @@
         <dl class="hero-meta" aria-label="보고서 범위">
           <div class="meta-card">
             <dt>검증 범위</dt>
-            <dd>Korea Central · Developer v1 + Basic v2 비교 · 8KB/64KB · 100~500 RPS · 조건별 대부분 1회 실행</dd>
+            <dd>Korea Central · Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건 · 8KB/64KB · 100~500 RPS · 조건별 대부분 한 번 실행 · 1,000 RPS는 테스트하지 않음</dd>
           </div>
           <div class="meta-card">
             <dt>검증 등급</dt>
@@ -662,7 +662,7 @@
             </article>
             <article class="panel-card summary-card" data-result-key="4">
               <h3>관측된 드롭은 EH 스로틀링으로 설명되지 않았다</h3>
-              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%였고 기록된 필드에서는 EH throttling 0으로 보였습니다. 다만 각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아닙니다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않습니다.</p>
+              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%였습니다. EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않습니다.</p>
               <span class="evidence confirmed">확정 · RESULTS.md + EXPERIMENT-LOG.md(EH throttling 기록)</span>
             </article>
             <article class="panel-card summary-card" data-result-key="5">
@@ -717,7 +717,7 @@
             <article class="panel-card" data-question="q3">
               <h3>질문 3 · Event Hub 연결은 무손실 로그 전송을 보장하는가</h3>
               <p><strong>가설:</strong> Event Hub 연결 자체가 무손실 로그 전송을 보장합니다.</p>
-              <p><strong>실제 증거:</strong> 본 Developer v1의 8KB·64KB 고부하 관측에서는 API 요청이 성공해도 APIM이 Event Hub 로그 drop을 보고했습니다. E8은 300 RPS에서 drop 0, 400 RPS에서 2,933, 500 RPS에서 대량 drop이었고, 기록된 필드는 EH 스로틀링 없음으로 보였지만 각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아닙니다.</p>
+              <p><strong>실제 증거:</strong> 본 Developer v1의 8KB·64KB 고부하 관측에서는 API 요청이 성공해도 APIM이 Event Hub 로그 drop을 보고했습니다. E8은 300 RPS에서 drop 0, 400 RPS에서 2,933, 500 RPS에서 대량 drop이었습니다. EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다.</p>
               <p><strong>판정:</strong> 반박(본 Developer v1 고부하 조건). 이 결과는 Event Hub 연결 자체가 무손실 전달을 보장한다는 주장을 본 조건에서 반박하며, 모든 SKU·부하로 일반화하지 않습니다.</p>
               <p><strong>안전 재사용 문장:</strong> HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없습니다. APIM Event Hub drop/success 카운터와 Event Hubs ingress/throttling을 함께 모니터링해야 합니다.</p>
               <span class="evidence risk">반박(본 Developer v1 고부하 조건) · RESULTS.md + APIM EventHubDroppedEvents</span>
@@ -1190,14 +1190,14 @@
                 <table>
                   <thead><tr><th>라벨</th><th>주장</th><th>근거</th></tr></thead>
                   <tbody>
-                    <tr><td>확정</td><td>HTTP 200 요청 성공과 APIM Event Hub 드롭은 동시에 발생할 수 있습니다. 기록된 필드는 EH throttling 없음으로 보였지만 각 RPS 행마다 독립 필드가 완전하게 채워졌다는 뜻은 아닙니다. 8KB 드롭 전이는 300~400 RPS 사이에서 관측됐습니다.</td><td>RESULTS.md, EXPERIMENT-LOG.md</td></tr>
+                    <tr><td>확정</td><td>HTTP 200 요청 성공과 APIM Event Hub 드롭은 동시에 발생할 수 있습니다. EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다. 8KB 드롭 전이는 300~400 RPS 사이에서 관측됐습니다.</td><td>RESULTS.md, EXPERIMENT-LOG.md</td></tr>
                     <tr><td>조건부</td><td>App Insights 집계상 누락 없음, 페이로드 크기에 따른 운영 범위 축소, SKU 변경 효과는 관측됐지만 반복과 대칭 지표가 부족합니다.</td><td>RESULTS.md, 서버 카운터</td></tr>
                     <tr><td>미검증</td><td>안정적인 300 RPS 무손실 임계값, Basic v2의 일반적 무손실성, 정확한 큐 메커니즘은 추가 검증이 필요합니다.</td><td>EXPERIMENT-SPEC.md 대비 누락 항목</td></tr>
                     <tr><td>교정</td><td>Event Hub가 항상 더 빠르다거나 Developer v1 최대가 500 RPS라고 표현하면 안 됩니다.</td><td>old/RESULTS.md, old/REVIEW.md</td></tr>
                   </tbody>
                 </table>
               </div>
-              <p class="chart-source">출처: RESULTS.md, old/RESULTS.md, old/REVIEW.md, DECISION-TREE.md. 확정/조건부/미검증/교정 해석은 위 표를 따릅니다.</p>
+              <p class="chart-source">출처: RESULTS.md, old/RESULTS.md, old/REVIEW.md, DECISION-TREE.md(보완, RESULTS.md 우선). 확정/조건부/미검증/교정 해석은 위 표를 따릅니다.</p>
             </figure>
           </div>
           <p class="chart-source"><span class="evidence confirmed">확정</span> 8KB/64KB 서버 차트 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 500 RPS E8은 드롭 수치 숫자를 두지 않고 “정확한 드롭률 미확정”으로 표시했습니다.</p>
@@ -1587,7 +1587,7 @@
         <section role="tabpanel" id="panel-limitations" aria-labelledby="tab-limitations" class="panel-stack">
           <h2>한계와 주의</h2>
           <div class="panel-grid">
-            <article class="panel-card"><h3>반복 실행 부족</h3><p>명세는 조건별 3회 반복이었지만 실행 데이터는 대부분 한 번씩 측정했습니다. 분산과 오차막대는 없습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
+            <article class="panel-card"><h3>반복 실행 부족</h3><p>명세는 조건별 3회 반복이었지만 실행 데이터는 조건별 대부분 한 번 실행됐습니다. 분산과 오차막대는 없습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
             <article class="panel-card"><h3>요청 ID·해시 대조 누락</h3><p>요청 ID 집합, 페이로드 해시, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
             <article class="panel-card"><h3>메타데이터만 기록한 기준선</h3><p>N8/N64는 App Insights 본문 0B일 뿐이며 진단 기능 비활성화가 아닙니다.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
             <article class="panel-card"><h3>집계 창 경계</h3><p>A8 150,178은 측정창 경계와 워밍업 잔여가 섞였을 수 있어 요청 단위 완전성 증명으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
@@ -1597,6 +1597,7 @@
             <article class="panel-card"><h3>클라이언트 지연</h3><p>단일 asyncio 부하 생성기와 TLS 영향으로 p95/p99 꼬리가 섞였습니다. APIM 판정은 서버측 지표를 우선합니다.</p><span class="evidence conditional">조건부 · EXPERIMENT-SPEC.md</span></article>
             <article class="panel-card"><h3>공식 고부하 경고</h3><p>본 실험은 1,000 RPS 초과 App Insights throughput 40~50% 감소 경고를 검증하지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
           </div>
+          <p class="chart-source">출처: RESULTS.md와 보관 검토 근거 old/REVIEW.md. 한계 문구는 활성 결과 보고서의 증거 범위 안에서만 해석합니다.</p>
         </section>
 
         <section role="tabpanel" id="panel-guidance" aria-labelledby="tab-guidance" class="panel-stack">
@@ -1606,8 +1607,8 @@
             <article class="panel-card"><h3>드롭·싱크 동시 모니터링</h3><p>APIM EventHubSuccessfulEvents/EventHubDroppedEvents와 EH IncomingMessages/ThrottledRequests를 함께 감시해 APIM 큐 문제와 EH 용량 문제를 분리하십시오.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
             <article class="panel-card"><h3>부하 모델은 bytes/sec로</h3><p>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오. 64KB는 300 RPS에서도 드롭이 발생했습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
             <article class="panel-card"><h3>SKU별 권위 지표 선택</h3><p>v1은 클래식 티어 Capacity를 사용하고, v2는 Capacity 대신 CPU/메모리 지표를 수집하도록 테스트 계획을 바꾸십시오.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>본문 크기 축소</h3><p>전체 본문 대신 필요한 필드, 요약, 해시, 샘플, 또는 크기 제한을 적용해 게이트웨이 로깅 비용을 낮추십시오.</p><span class="evidence confirmed">확정 · DECISION-TREE.md</span></article>
-            <article class="panel-card"><h3>고객 환경 재시험</h3><p>리전, SKU, 정책 조합, 백엔드 지연, 페이로드 분포가 바뀌면 결과가 달라질 수 있으므로 고객 환경에서 재측정하십시오.</p><span class="evidence conditional">조건부 · DECISION-TREE.md</span></article>
+            <article class="panel-card"><h3>본문 크기 축소</h3><p>전체 본문 대신 필요한 필드, 요약, 해시, 샘플, 또는 크기 제한을 적용해 게이트웨이 로깅 비용을 낮추십시오. 이 권고는 RESULTS.md 기준으로 제한해, 무손실 보장이나 보편 임계값으로 확장하지 않습니다.</p><span class="evidence confirmed">확정 · RESULTS.md + DECISION-TREE.md</span></article>
+            <article class="panel-card"><h3>고객 환경 재시험</h3><p>리전, SKU, 정책 조합, 백엔드 지연, 페이로드 분포가 바뀌면 결과가 달라질 수 있으므로 고객 환경에서 재측정하십시오. 이 권고는 RESULTS.md 기준으로 제한해, 본 실험 수치를 다른 환경 보증으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md + DECISION-TREE.md</span></article>
           </div>
         </section>
 
@@ -1619,7 +1620,7 @@
             <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>활성 공식 결과 보고서. HTML 요약과 다섯 질문 판정의 권위 출처입니다.</p><span class="pill">활성 공식 결과</span></article>
             <article class="source-item"><h3><a href="old/RESULTS.md"><code>old/RESULTS.md</code></a></h3><p>보관된 이전 해석입니다. 현재 고객용 판정의 권위 출처가 아니며 비교·변경 이력 확인용입니다.</p><span class="pill">보관 원문</span></article>
             <article class="source-item"><h3><a href="old/REVIEW.md"><code>old/REVIEW.md</code></a></h3><p>반복, 워밍업, 요청 ID/해시, 메타데이터만 기준선, 클라이언트 지연, v1/v2 지표 비대칭 한계를 정리한 보관된 검토 근거입니다.</p><span class="pill">보관 검토 근거</span></article>
-            <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델.</p><span class="pill">원문 문서</span></article>
+            <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델을 담은 보완 문서입니다. 손실 여부·임계값·지연·인과 표현이 충돌하면 RESULTS.md가 우선합니다.</p><span class="pill">보완 문서(RESULTS.md 우선)</span></article>
               <article class="source-item">
                 <h3><a href="results/r100-A8/result.json"><code>results/r100-A8/result.json</code></a></h3>
                 <p>A8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
