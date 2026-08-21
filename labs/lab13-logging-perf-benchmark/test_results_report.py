@@ -6,27 +6,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 ACTIVE = ROOT / "RESULTS.md"
-OLD_RESULTS = ROOT / "old" / "RESULTS.md"
+OLD_RESULTS_CANDIDATES = (ROOT / "old" / "RESULTS-Old.md", ROOT / "old" / "RESULTS.md")
 OLD_REVIEW = ROOT / "old" / "REVIEW.md"
 OLD_README = ROOT / "old" / "README.md"
 ACTIVE_REVIEW = ROOT / "REVIEW.md"
 
 EXPECTED_ACTIVE_H1 = "# Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크"
 
-EXPECTED_HASHES = {
-    OLD_RESULTS: "123d2e9cac909bbca65e209029e8db02693f0960c07b43fb108b6413413d2e1e",
-    OLD_REVIEW: "d63a309f29e31ccd235d4664fa55375cafc39acf2d48e1493eca332040f01ed6",
-}
-
-SUMMARY_HEADINGS = [
-    "App Insights 본문 로깅은 처리시간을 늘렸다.",
-    "App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다.",
-    "API 성공과 Event Hub 로그 전달 성공은 별개다.",
-    "관측된 드롭은 EH 스로틀링으로 설명되지 않았다.",
-    "8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다.",
-    "큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다.",
-    "Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다.",
-]
+EXPECTED_OLD_RESULTS_HASH = "123d2e9cac909bbca65e209029e8db02693f0960c07b43fb108b6413413d2e1e"
+EXPECTED_OLD_REVIEW_HASH = "d63a309f29e31ccd235d4664fa55375cafc39acf2d48e1493eca332040f01ed6"
 
 QUESTION_HEADINGS = [
     "질문 1 — App Insights 본문 로깅은 APIM 처리에 영향을 주는가",
@@ -37,18 +25,16 @@ QUESTION_HEADINGS = [
 ]
 
 SECTION_HEADINGS = [
-    "## 용어와 검증 범위",
-    "## 요약",
+    "## 검증 범위",
+    "## 핵심 결론",
     "## 질문 1 — App Insights 본문 로깅은 APIM 처리에 영향을 주는가",
     "## 질문 2 — 성능 저하 없이 모든 요청을 로깅할 수 있는가",
     "## 질문 3 — Event Hub 연결은 무손실 로그 전송을 보장하는가",
     "## 질문 4 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가",
     "## 질문 5 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가",
-    "## 직접 확인된 사실",
-    "## 조건부로 지지되는 해석",
-    "## 고객이 고려할 운영 사항",
-    "## 한계와 미검증 영역",
-    "## 실험 조건과 원천 문서",
+    "## 고객 운영 권고",
+    "## 한계",
+    "## 원천 문서",
 ]
 
 QUESTION_VERDICTS = {
@@ -107,9 +93,11 @@ class ReviewedResultsContractTests(unittest.TestCase):
         cls.text = ACTIVE.read_text(encoding="utf-8")
 
     def test_archived_files_are_exact(self):
-        for path, expected in EXPECTED_HASHES.items():
-            self.assertTrue(path.exists(), path)
-            self.assertEqual(sha256(path), expected)
+        old_results = next((path for path in OLD_RESULTS_CANDIDATES if path.exists()), None)
+        self.assertIsNotNone(old_results, OLD_RESULTS_CANDIDATES)
+        self.assertEqual(sha256(old_results), EXPECTED_OLD_RESULTS_HASH)
+        self.assertTrue(OLD_REVIEW.exists(), OLD_REVIEW)
+        self.assertEqual(sha256(OLD_REVIEW), EXPECTED_OLD_REVIEW_HASH)
 
     def test_archive_readme_marks_superseded_files_without_changing_archives(self):
         self.assertTrue(OLD_README.exists())
@@ -134,11 +122,11 @@ class ReviewedResultsContractTests(unittest.TestCase):
         separators = re.findall(r"^---$", self.text, re.MULTILINE)
         self.assertEqual(len(separators), 2)
         self.assertIsNotNone(
-            re.search(r"^## 요약[\s\S]*?^---\n\n^## 질문 1", self.text, re.MULTILINE)
+            re.search(r"^## 핵심 결론[\s\S]*?^---\n\n^## 질문 1", self.text, re.MULTILINE)
         )
         self.assertIsNotNone(
             re.search(
-                r"^## 질문 5[\s\S]*?^---\n\n^## 직접 확인된 사실",
+                r"^## 질문 5[\s\S]*?^---\n\n^## 고객 운영 권고",
                 self.text,
                 re.MULTILINE,
             )
@@ -148,8 +136,54 @@ class ReviewedResultsContractTests(unittest.TestCase):
         headings = re.findall(r"^## .+$", self.text, re.MULTILINE)
         self.assertEqual(headings, SECTION_HEADINGS)
 
-    def test_terms_and_scope_are_defined_in_terms_section(self):
-        terms = section_body(self.text, "## 용어와 검증 범위")
+    def test_report_is_concise(self):
+        line_count = len(self.text.splitlines())
+        self.assertGreaterEqual(line_count, 100)
+        self.assertLessEqual(line_count, 120)
+
+    def test_has_five_question_conclusion_table(self):
+        table = re.search(
+            r"^## 핵심 결론\s*(?P<body>.*?)(?=^---$)",
+            self.text,
+            re.MULTILINE | re.DOTALL,
+        ).group("body")
+        self.assertEqual(table.count("| Q"), 5)
+        for verdict in (
+            "조건부 지지",
+            "미검증",
+            "반박(본 Developer v1 고부하 조건)",
+            "조건부 강함",
+        ):
+            self.assertIn(verdict, table)
+
+    def test_removes_duplicate_finding_sections(self):
+        self.assertNotIn("## 직접 확인된 사실", self.text)
+        self.assertNotIn("## 조건부로 지지되는 해석", self.text)
+
+    def test_each_question_is_compact(self):
+        matches = list(re.finditer(r"^## 질문 [1-5] —", self.text, re.MULTILINE))
+        self.assertEqual(len(matches), 5)
+        for index, match in enumerate(matches):
+            end = (
+                matches[index + 1].start()
+                if index + 1 < len(matches)
+                else self.text.index("\n---", match.start())
+            )
+            section_lines = self.text[match.start():end].splitlines()
+            self.assertLessEqual(len(section_lines), 14)
+
+    def test_shared_caveats_are_consolidated(self):
+        limitations = section_body(self.text, "## 한계")
+        for phrase in (
+            "조건별 대부분 1회",
+            "요청 ID",
+            "warmup",
+            "v2 CPU/메모리",
+            "1,000 RPS",
+        ):
+            self.assertIn(phrase, limitations)
+
+    def test_required_terms_and_scope_are_defined(self):
         for phrase in (
             "로그 저장소",
             "무손실",
@@ -166,26 +200,16 @@ class ReviewedResultsContractTests(unittest.TestCase):
             "대부분 한 번만 실행",
             "1,000 RPS는 테스트하지 않았다",
         ):
-            self.assertIn(phrase, terms)
+            self.assertIn(phrase, self.text)
 
     def test_decision_tree_is_explicitly_superseded_for_conflicting_guidance(self):
-        sources = section_body(self.text, "## 실험 조건과 원천 문서")
+        sources = section_body(self.text, "## 원천 문서")
         self.assertIn("DECISION-TREE.md", sources)
         self.assertIn("앞선 의사결정 가이드", sources)
         self.assertIn(
             "손실 여부·임계값·지연·인과 표현이 충돌하면 활성 RESULTS.md가 우선한다",
             sources,
         )
-
-    def test_summary_has_exactly_seven_required_items(self):
-        summary = re.search(
-            r"^## 요약\s*(?P<body>.*?)(?=^---$)",
-            self.text,
-            re.MULTILINE | re.DOTALL,
-        ).group("body")
-        summary_items = re.findall(r"^\s*(\d+)\.\s+\*\*(.*?)\*\*", summary, re.MULTILINE)
-        self.assertEqual([int(number) for number, _ in summary_items], list(range(1, 8)))
-        self.assertEqual([heading for _, heading in summary_items], SUMMARY_HEADINGS)
 
     def test_has_five_reviewed_questions(self):
         for heading in QUESTION_HEADINGS:
@@ -199,7 +223,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
                 re.MULTILINE | re.DOTALL,
             )
             self.assertIsNotNone(question, heading)
-            self.assertIn(f"**판정: {verdict}.**", question.group("body"))
+            self.assertIn(f"**판정:** {verdict}", question.group("body"))
 
     def test_contains_required_measured_tables(self):
         required_headers = [
@@ -282,7 +306,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
             self.assertIn(phrase, self.text)
 
     def test_limitations_cover_execution_deviations(self):
-        limitations = section_body(self.text, "## 한계와 미검증 영역")
+        limitations = section_body(self.text, "## 한계")
         required = [
             "조건별 3회 반복",
             "요청 ID",
@@ -296,12 +320,24 @@ class ReviewedResultsContractTests(unittest.TestCase):
             self.assertIn(phrase, limitations)
 
     def test_customer_guidance_includes_body_minimization_and_retest(self):
-        guidance = section_body(self.text, "## 고객이 고려할 운영 사항")
+        guidance = section_body(self.text, "## 고객 운영 권고")
         for phrase in (
             "기록할 본문 크기를 최소화",
             "고객 환경에서 재시험",
         ):
             self.assertIn(phrase, guidance)
+
+    def test_sources_include_required_documents(self):
+        sources = section_body(self.text, "## 원천 문서")
+        for phrase in (
+            "EXPERIMENT-SPEC.md",
+            "EXPERIMENT-LOG.md",
+            "old/RESULTS-Old.md",
+            "old/REVIEW.md",
+            "DECISION-TREE.md",
+            "REPORT.html",
+        ):
+            self.assertIn(phrase, sources)
 
 
 if __name__ == "__main__":
