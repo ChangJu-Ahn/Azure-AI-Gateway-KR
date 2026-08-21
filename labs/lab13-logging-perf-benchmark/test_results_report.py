@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 ACTIVE = ROOT / "RESULTS.md"
-OLD_RESULTS_CANDIDATES = (ROOT / "old" / "RESULTS-Old.md", ROOT / "old" / "RESULTS.md")
+OLD_RESULTS = ROOT / "old" / "RESULTS-Old.md"
 OLD_REVIEW = ROOT / "old" / "REVIEW.md"
 OLD_README = ROOT / "old" / "README.md"
 ACTIVE_REVIEW = ROOT / "REVIEW.md"
@@ -67,7 +67,7 @@ REQUIRED_TABLE_ROWS = [
     "| 500 | 7.32 ms | 7.58 ms | 76,434 |",
     # Developer v1 versus Basic v2
     "| EH 도달 | 약 절반만 도달한 것으로 기록, 대량 drop | 분당 약 30,000건 수준: 30056, 29900, 29926, 30108, 29796, 30186 | Basic v2는 EH 도달 수로 판단 |",
-    "| APIM EventHubDroppedEvents | 대량 drop 보고 | 직접 비교 가능한 drop 카운터 확보 못 함 | v2 메트릭 수집 비대칭 |",
+    "| APIM EventHubDroppedEvents | 대량 drop 보고 | 직접 비교 가능한 drop 카운터 확보 못 함 | v1과 v2 지표가 달라 직접 비교 제한 |",
     "| 게이트웨이 리소스 | classic Capacity 관측 | v2 CPU/메모리 미수집 | 메커니즘 확정 불가 |",
 ]
 
@@ -87,17 +87,46 @@ def section_body(text, heading, next_heading_level="##"):
     return match.group("body")
 
 
+def markdown_table_ranges(text):
+    lines = text.splitlines()
+    ranges = []
+    index = 0
+    while index < len(lines):
+        if lines[index].startswith("|"):
+            start = index
+            while index + 1 < len(lines) and lines[index + 1].startswith("|"):
+                index += 1
+            ranges.append((start, index))
+        index += 1
+    return lines, ranges
+
+
+def conclusion_question_rows(text):
+    table = re.search(
+        r"^## 핵심 결론\s*(?P<body>.*?)(?=^---$)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    ).group("body")
+    rows = []
+    for line in table.splitlines():
+        if re.match(r"^\|\s*Q\d+\b", line):
+            rows.append([cell.strip() for cell in line.strip().strip("|").split("|")])
+    return rows
+
+
 class ReviewedResultsContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.text = ACTIVE.read_text(encoding="utf-8")
 
     def test_archived_files_are_exact(self):
-        old_results = next((path for path in OLD_RESULTS_CANDIDATES if path.exists()), None)
-        self.assertIsNotNone(old_results, OLD_RESULTS_CANDIDATES)
-        self.assertEqual(sha256(old_results), EXPECTED_OLD_RESULTS_HASH)
+        self.assertTrue(OLD_RESULTS.exists(), OLD_RESULTS)
+        self.assertEqual(sha256(OLD_RESULTS), EXPECTED_OLD_RESULTS_HASH)
         self.assertTrue(OLD_REVIEW.exists(), OLD_REVIEW)
         self.assertEqual(sha256(OLD_REVIEW), EXPECTED_OLD_REVIEW_HASH)
+
+    def test_archive_contract_uses_exact_current_path(self):
+        self.assertEqual(OLD_RESULTS, ROOT / "old" / "RESULTS-Old.md")
 
     def test_archive_readme_marks_superseded_files_without_changing_archives(self):
         self.assertTrue(OLD_README.exists())
@@ -142,19 +171,27 @@ class ReviewedResultsContractTests(unittest.TestCase):
         self.assertLessEqual(line_count, 120)
 
     def test_has_five_question_conclusion_table(self):
-        table = re.search(
-            r"^## 핵심 결론\s*(?P<body>.*?)(?=^---$)",
-            self.text,
-            re.MULTILINE | re.DOTALL,
-        ).group("body")
-        self.assertEqual(table.count("| Q"), 5)
-        for verdict in (
-            "조건부 지지",
-            "미검증",
-            "반박(본 Developer v1 고부하 조건)",
-            "조건부 강함",
-        ):
-            self.assertIn(verdict, table)
+        expected = [
+            ("Q1 App Insights 본문 로깅 영향", "조건부 지지"),
+            ("Q2 성능 저하 없는 모든 요청 로깅", "미검증"),
+            ("Q3 Event Hub 무손실 보장", "반박(본 Developer v1 고부하 조건)"),
+            ("Q4 요청 크기 영향", "조건부 강함"),
+            ("Q5 v1/v2 전달 결과 차이", "조건부 지지"),
+        ]
+        rows = conclusion_question_rows(self.text)
+        self.assertEqual(len(rows), 5)
+        self.assertEqual([(row[0], row[1]) for row in rows], expected)
+        self.assertEqual([re.match(r"^(Q\d+)", row[0]).group(1) for row in rows], ["Q1", "Q2", "Q3", "Q4", "Q5"])
+
+    def test_markdown_tables_are_blank_line_separated(self):
+        lines, ranges = markdown_table_ranges(self.text)
+        self.assertGreater(len(ranges), 0)
+        for start, end in ranges:
+            with self.subTest(table_start=start + 1):
+                self.assertGreater(start, 0)
+                self.assertEqual(lines[start - 1], "")
+                if end + 1 < len(lines):
+                    self.assertEqual(lines[end + 1], "")
 
     def test_removes_duplicate_finding_sections(self):
         self.assertNotIn("## 직접 확인된 사실", self.text)
@@ -184,6 +221,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
             self.assertIn(phrase, limitations)
 
     def test_required_terms_and_scope_are_defined(self):
+        scope = section_body(self.text, "## 검증 범위")
         for phrase in (
             "로그 저장소",
             "무손실",
@@ -200,7 +238,8 @@ class ReviewedResultsContractTests(unittest.TestCase):
             "대부분 한 번만 실행",
             "1,000 RPS는 테스트하지 않았다",
         ):
-            self.assertIn(phrase, self.text)
+            self.assertIn(phrase, scope)
+        self.assertNotIn("| RPS | N8 Capacity | A8 Capacity | E8 Capacity |", scope)
 
     def test_decision_tree_is_explicitly_superseded_for_conflicting_guidance(self):
         sources = section_body(self.text, "## 원천 문서")
@@ -240,6 +279,10 @@ class ReviewedResultsContractTests(unittest.TestCase):
         self.assertIn("100/200/300/400/500 RPS 포인트", self.text)
 
     def test_capacity_evidence_is_scoped(self):
+        scope = section_body(self.text, "## 검증 범위")
+        self.assertNotIn("N8 Capacity", scope)
+        conclusions = section_body(self.text, "## 핵심 결론")
+        self.assertIn("| RPS | N8 Capacity | A8 Capacity | E8 Capacity |", conclusions)
         required = [
             "N8/N64 조건은 App Insights diagnostic을 완전히 끈 상태가 아니다",
             "200 RPS에서 E8 Capacity는 85%였고 N8은 58%, A8은 66%였다",
@@ -248,6 +291,12 @@ class ReviewedResultsContractTests(unittest.TestCase):
         ]
         for phrase in required:
             self.assertIn(phrase, self.text)
+
+    def test_event_hub_drop_evidence_leads_question_three(self):
+        q3 = section_body(self.text, "## 질문 3 — Event Hub 연결은 무손실 로그 전송을 보장하는가")
+        evidence = next(line for line in q3.splitlines() if line.startswith("- **핵심 근거:**"))
+        self.assertRegex(evidence, r"^\- \*\*핵심 근거:\*\* E8 400 RPS.*2,933.*drop")
+        self.assertLess(evidence.index("drop"), evidence.index("EH 스로틀링"))
 
     def test_uses_metadata_only_baseline_wording(self):
         self.assertIn("App Insights 메타데이터만 기록한 기준선", self.text)
@@ -305,6 +354,10 @@ class ReviewedResultsContractTests(unittest.TestCase):
         for phrase in required:
             self.assertIn(phrase, self.text)
 
+    def test_v1_v2_metric_asymmetry_is_natural_korean(self):
+        self.assertNotIn("v1/v2 metrics are asymmetric", self.text)
+        self.assertIn("v1과 v2의 지표 수집 범위가 달라 직접 비교가 제한된다", self.text)
+
     def test_limitations_cover_execution_deviations(self):
         limitations = section_body(self.text, "## 한계")
         required = [
@@ -322,8 +375,21 @@ class ReviewedResultsContractTests(unittest.TestCase):
     def test_customer_guidance_includes_body_minimization_and_retest(self):
         guidance = section_body(self.text, "## 고객 운영 권고")
         for phrase in (
+            "API 성공 SLO와 로깅-delivery SLO",
+            "APIM EH success/drop",
+            "Event Hubs ingress/throttling",
+            "peak RPS × logged payload size",
+            "v1은 classic Capacity",
+            "v2는 gateway CPU/Memory",
             "기록할 본문 크기를 최소화",
             "고객 환경에서 재시험",
+            "downstream consumer",
+            "retention",
+            "reprocessing",
+            "runbook",
+            "audit scope",
+            "cost",
+            "PII masking",
         ):
             self.assertIn(phrase, guidance)
 
