@@ -1,6 +1,6 @@
 # Archived Lab 13 reports
 
-`old/RESULTS.md` and `old/REVIEW.md` are archived/superseded copies from the prior Lab 13 interpretation and review.
+`old/RESULTS-Old.md` and `old/REVIEW.md` are archived/superseded copies from the prior Lab 13 interpretation and review.
 
 - Archived on: 2026-08-20.
 - Active report: `../RESULTS.md`.

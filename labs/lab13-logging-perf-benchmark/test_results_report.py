@@ -1,12 +1,16 @@
 import hashlib
 import re
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
+
+import markdown
 
 
 ROOT = Path(__file__).parent
 ACTIVE = ROOT / "RESULTS.md"
 OLD_RESULTS = ROOT / "old" / "RESULTS-Old.md"
+OLD_RESULTS_LEGACY = ROOT / "old" / "RESULTS.md"
 OLD_REVIEW = ROOT / "old" / "REVIEW.md"
 OLD_README = ROOT / "old" / "README.md"
 ACTIVE_REVIEW = ROOT / "REVIEW.md"
@@ -114,6 +118,28 @@ def conclusion_question_rows(text):
     return rows
 
 
+def render_markdown(fragment):
+    return markdown.markdown(fragment, extensions=["tables"])
+
+
+class ConclusionHTMLParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.conclusions = []
+
+    def handle_starttag(self, tag, attrs):
+        self.stack.append(tag)
+
+    def handle_endtag(self, tag):
+        if self.stack and self.stack[-1] == tag:
+            self.stack.pop()
+
+    def handle_data(self, data):
+        if data.strip() == "결론:" and self.stack and self.stack[-1] == "strong":
+            self.conclusions.append(tuple(self.stack[:-1]))
+
+
 class ReviewedResultsContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -127,12 +153,13 @@ class ReviewedResultsContractTests(unittest.TestCase):
 
     def test_archive_contract_uses_exact_current_path(self):
         self.assertEqual(OLD_RESULTS, ROOT / "old" / "RESULTS-Old.md")
+        self.assertFalse(OLD_RESULTS_LEGACY.exists())
 
     def test_archive_readme_marks_superseded_files_without_changing_archives(self):
         self.assertTrue(OLD_README.exists())
         readme = OLD_README.read_text(encoding="utf-8")
         for phrase in (
-            "old/RESULTS.md",
+            "old/RESULTS-Old.md",
             "old/REVIEW.md",
             "archived/superseded",
             "2026-08-20",
@@ -193,6 +220,20 @@ class ReviewedResultsContractTests(unittest.TestCase):
                 if end + 1 < len(lines):
                     self.assertEqual(lines[end + 1], "")
 
+    def test_question_conclusions_render_as_top_level_paragraphs(self):
+        table_tags = {"table", "thead", "tbody", "tr", "td", "th"}
+        for heading in QUESTION_HEADINGS:
+            with self.subTest(question=heading):
+                body = section_body(self.text, f"## {heading}")
+                html = render_markdown(f"## {heading}\n{body}")
+                parser = ConclusionHTMLParser()
+                parser.feed(html)
+                self.assertEqual(len(parser.conclusions), 1)
+                ancestors = parser.conclusions[0]
+                self.assertEqual(ancestors[-1], "p")
+                self.assertNotIn("li", ancestors)
+                self.assertFalse(any(tag in table_tags for tag in ancestors))
+
     def test_removes_duplicate_finding_sections(self):
         self.assertNotIn("## 직접 확인된 사실", self.text)
         self.assertNotIn("## 조건부로 지지되는 해석", self.text)
@@ -234,7 +275,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
             "Capacity",
             "Duration",
             "metadata-only 기준선",
-            "Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건",
+            "Developer v1과의 8KB 500 RPS 비교 한 건",
             "대부분 한 번만 실행",
             "1,000 RPS는 테스트하지 않았다",
         ):
@@ -284,7 +325,7 @@ class ReviewedResultsContractTests(unittest.TestCase):
         conclusions = section_body(self.text, "## 핵심 결론")
         self.assertIn("| RPS | N8 Capacity | A8 Capacity | E8 Capacity |", conclusions)
         required = [
-            "N8/N64 조건은 App Insights diagnostic을 완전히 끈 상태가 아니다",
+            "metadata-only 기준선(N8/N64)은 App Insights 메타데이터만 기록했고",
             "200 RPS에서 E8 Capacity는 85%였고 N8은 58%, A8은 66%였다",
             "400~500 RPS에서는 세 조건 모두 상단 범위에 가까워 Capacity만으로 로깅 효과를 분리할 수 없었다",
             "이 단일 실행들에서 보편 Capacity 임계값을 제시하지 않는다",
@@ -367,6 +408,9 @@ class ReviewedResultsContractTests(unittest.TestCase):
             "대부분 1회",
             "warmup",
             "v2 CPU/메모리",
+            "Standard/Premium",
+            "streaming/SSE",
+            "response-body logging",
             "1,000 RPS",
         ]
         for phrase in required:

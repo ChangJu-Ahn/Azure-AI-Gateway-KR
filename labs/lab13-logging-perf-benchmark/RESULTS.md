@@ -1,11 +1,11 @@
 # Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크
 
 ## 검증 범위
-- 환경: Azure API Management(APIM) Developer v1 SKU, Korea Central; Basic v2 SKU는 Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건에서만 보았다.
+- 환경: Azure API Management(APIM) Developer v1 SKU, Korea Central; Basic v2는 Developer v1과의 8KB 500 RPS 비교 한 건만 보았다.
 - 조건: 로그 저장소는 App Insights와 Event Hub이며, payload(요청 데이터 크기)는 8KB와 64KB, RPS는 초당 요청 수다.
-- 기준선: metadata-only 기준선은 App Insights 메타데이터만 기록한 기준선이고, N8/N64 조건은 App Insights diagnostic을 완전히 끈 상태가 아니다; body bytes만 0이다.
+- 기준선: metadata-only 기준선(N8/N64)은 App Insights 메타데이터만 기록했고, App Insights diagnostic을 완전히 끈 상태가 아니다; body bytes만 0이다.
 - 정의: 무손실은 요청 로그가 모두 도착했다는 의미이나 요청 단위 증명은 완료되지 않았다; 드롭은 APIM `EventHubDroppedEvents`, Capacity는 classic v1 부하, Duration은 APIM 서버측 처리시간이다.
-- 범위: Developer v1 중심, 100~500 RPS, 조건별 3회 반복 미완료 및 조건별 대부분 1회, 즉 대부분 한 번만 실행; 1,000 RPS는 테스트하지 않았다.
+- 범위: Developer v1 중심, 100~500 RPS, 조건별 3회 반복 계획은 미완료였고 대부분 한 번만 실행했다; 1,000 RPS는 테스트하지 않았다.
 
 ## 핵심 결론
 
@@ -16,8 +16,6 @@
 | Q3 Event Hub 무손실 보장 | 반박(본 Developer v1 고부하 조건) | E8 400 RPS부터 APIM-reported drop 관측 | EH 연결만으로 감사 로그 전달을 보장하지 않음 |
 | Q4 요청 크기 영향 | 조건부 강함 | 64KB는 Duration과 EH drop 모두 커짐 | payload 크기를 로깅 용량 변수로 관리해야 함 |
 | Q5 v1/v2 전달 결과 차이 | 조건부 지지 | Basic v2 EH 도달 수는 500 RPS 발신량과 대체로 일치 | v2가 다르게 관측됐지만 원인 단정은 금물 |
-
-보조 Capacity 관측:
 
 | RPS | N8 Capacity | A8 Capacity | E8 Capacity |
 |---:|---:|---:|---:|
@@ -32,7 +30,8 @@
 ---
 
 ## 질문 1 — App Insights 본문 로깅은 APIM 처리에 영향을 주는가
-- **가설/판정:** App Insights body 8KB 로깅은 APIM 처리시간을 늘린다; **판정:** 조건부 지지 — CPU/p99/3회 반복은 부족하지만 Duration 방향은 일관됐다.
+- **가설:** App Insights body 8KB 로깅은 APIM 처리시간을 늘린다.
+- **판정:** 조건부 지지 — CPU/p99/3회 반복은 부족하지만 Duration 방향은 일관됐다.
 - **핵심 근거:** 100/200/300/400/500 RPS 포인트에서 A8이 N8 metadata-only 기준선보다 높았다.
 
 | RPS | N8 — App Insights 메타데이터만 기록한 기준선 Duration | A8 — App Insights body 8KB Duration |
@@ -44,14 +43,13 @@
 | 500 | 0.1~0.35 ms | 0.9~2.5 ms |
 
 **결론:** 본 환경의 8KB body 로깅은 고객 처리시간 예산에 포함해야 한다.
-
 ## 질문 2 — 성능 저하 없이 모든 요청을 로깅할 수 있는가
 - **가설:** 성능 저하 없이 모든 요청 로그를 남길 수 있다.
 - **판정:** 미검증 — 완전성과 무저하를 동시에 입증하지 못했다.
 - **핵심 근거:** App Insights AppRequests 집계는 A8 500 RPS에서 150,178건으로 150,000 offered와 누락 없음에 양립하지만, 요청 단위 완전성 증명은 아니다.
 - **반례:** E8 500 RPS는 클라이언트 150,000건이 모두 200이어도 APIM Event Hub drop을 대량 보고했다.
-**결론:** 고객에게는 API 성공 SLO와 로깅-delivery SLO를 분리해 제시해야 한다.
 
+**결론:** 고객에게는 API 성공 SLO와 로깅-delivery SLO를 분리해 제시해야 한다.
 ## 질문 3 — Event Hub 연결은 무손실 로그 전송을 보장하는가
 - **가설:** Event Hub 연결은 요청 로그를 손실 없이 전달한다.
 - **판정:** 반박(본 Developer v1 고부하 조건) — API 200 성공과 별도로 APIM-reported drop이 발생했다.
@@ -64,7 +62,6 @@
 | E8 | 500 | 150,000 / 150,000 | 대량, 약 절반으로 기록됨 | 정확한 비율은 미확정 |
 
 **결론:** Event Hub 자체가 아니라 APIM EH 성공/drop과 Event Hubs ingress/throttling을 함께 보아야 한다.
-
 ## 질문 4 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가
 - **가설:** payload 증가가 Duration과 로깅 전달 범위를 악화시킨다.
 - **판정:** 조건부 강함 — 64KB 두 포인트 모두 drop을 동반했고 Duration도 8KB보다 컸다.
@@ -76,7 +73,6 @@
 | 500 | 7.32 ms | 7.58 ms | 76,434 |
 
 **결론:** Duration은 로그 전달 완전성 지표가 아니며, 순수 EH 로깅 비용이나 더 나은 성능으로 해석하지 않는다.
-
 ## 질문 5 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가
 - **가설:** SKU/세대 변경 시 Event Hub 전달 관측 결과가 달라질 수 있다.
 - **판정:** 조건부 지지 — Basic v2 관측 결과는 Developer v1과 다르지만 원인을 SKU 하나로 단정하지 않는다.
@@ -105,7 +101,7 @@
 - 조건별 3회 반복 계획은 완료되지 않았고 조건별 대부분 1회, 즉 대부분 한 번만 실행했다.
 - 요청 ID 집합, 페이로드 해시, 메시지 크기 대조는 완료되지 않았고 App Insights count 150,178에는 warmup 경계 records가 포함될 수 있다.
 - 클라이언트 p95/p99에는 load-generator/TLS artifacts가 섞일 수 있어 서버측 Duration과 구분한다.
-- v1과 v2의 지표 수집 범위가 달라 직접 비교가 제한된다: v2 CPU/메모리, v2 Duration, v2 drop 카운터가 없어 메커니즘은 미검증이고 1,000 RPS와 production multi-unit/region/backend scenarios도 미검증이다.
+- v1과 v2의 지표 수집 범위가 달라 직접 비교가 제한된다: v2 CPU/메모리, v2 Duration, v2 drop 카운터, Standard/Premium, streaming/SSE, response-body logging, 1,000 RPS, production multi-unit/region/backend scenarios는 미검증이다.
 
 ## 원천 문서
 
