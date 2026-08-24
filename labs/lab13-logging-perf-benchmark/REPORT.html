@@ -724,6 +724,7 @@
             <article class="panel-card" data-question="q5">
               <h3>질문 5 · Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가</h3>
               <p><strong>가설:</strong> Developer v1과 Basic v2 비교에서 Event Hub 전달 결과가 다르게 관측됩니다.</p>
+              <p><strong>비교 이유:</strong> 공식 가격표는 Developer v1에 예상 최대 500 requests/sec을 제시하지만 Basic v2에는 대응 RPS 수치가 없고 포함 요청 초과분을 추가 과금하는 체계이므로, 실제 처리량과 로깅 여력을 직접 측정할 필요가 있었습니다.</p>
               <p><strong>실제 증거:</strong> 동일한 8KB 500 RPS E8 비교에서 Developer v1은 약 절반만 EH에 도달한 것으로 기록되고 대량 drop을 보였습니다. Basic v2 관측 창은 분당 약 30,000건 수준의 EH 도달 수와 클라이언트 요청 200 성공을 보였지만 v2 CPU/메모리와 직접 비교 가능한 drop 카운터는 확보하지 못했습니다.</p>
               <p><strong>판정:</strong> 조건부 지지. 전달 결과 차이는 관측됐지만 지표가 비대칭이므로 원인을 SKU 하나로 단정하지 않습니다.</p>
               <p><strong>안전 재사용 문장:</strong> 이번 Basic v2 관측 창에서는 EH 도달 수가 발신량과 대체로 맞았고 Developer v1과 다른 운영 결과가 관측됐습니다. 원인 확인에는 v2 CPU/메모리와 drop 카운터를 포함한 대칭 측정이 필요합니다.</p>

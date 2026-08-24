@@ -1,7 +1,7 @@
 # Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크
 
 ## 검증 범위
-- 환경: Azure API Management(APIM) Developer v1 SKU, Korea Central; Basic v2는 Developer v1과의 8KB 500 RPS 비교 한 건만 보았다.
+- 환경: Azure API Management(APIM) Developer v1 SKU, Korea Central; Basic v2는 공식 가격표에 예상 최대 RPS가 없고 포함 요청 초과분을 추가 과금하는 체계라 실제 처리량 확인을 위해 8KB 500 RPS 비교 한 건만 보았다.
 - 조건: 로그 저장소는 App Insights와 Event Hub이며, payload(요청 데이터 크기)는 8KB와 64KB, RPS는 초당 요청 수다.
 - 기준선: metadata-only 기준선(N8/N64)은 App Insights 메타데이터만 기록했고, App Insights diagnostic을 완전히 끈 상태가 아니다; body bytes만 0이다.
 - 정의: 무손실은 요청 로그가 모두 도착했다는 의미이나 요청 단위 증명은 완료되지 않았다; 드롭은 APIM `EventHubDroppedEvents`, Capacity는 classic v1 부하, Duration은 APIM 서버측 처리시간이다.
@@ -75,8 +75,8 @@
 **결론:** Duration은 로그 전달 완전성 지표가 아니며, 순수 EH 로깅 비용이나 더 나은 성능으로 해석하지 않는다.
 ## 질문 5 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가
 - **가설:** SKU/세대 변경 시 Event Hub 전달 관측 결과가 달라질 수 있다.
+- **비교 이유:** 공식 가격표는 Developer v1에 예상 최대 500 requests/sec을 제시하지만 Basic v2에는 대응 RPS 수치가 없고 포함 요청 초과분을 추가 과금하는 체계라 직접 측정이 필요했다.
 - **판정:** 조건부 지지 — Basic v2 관측 결과는 Developer v1과 다르지만 원인을 SKU 하나로 단정하지 않는다.
-- **핵심 근거:** 동일 8KB 500 RPS E8 비교에서 EH 도달 수와 drop 지표가 서로 다른 방식으로 수집됐다.
 
 | 지표 | Developer v1 관측 | Basic v2 관측 | 주의점 |
 |---|---|---|---|

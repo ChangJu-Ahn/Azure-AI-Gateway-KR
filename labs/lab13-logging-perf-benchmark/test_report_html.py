@@ -619,6 +619,15 @@ class ReportContractTests(unittest.TestCase):
             ).group(0)
             self.assertIn(verdict, card)
 
+    def test_basic_v2_selection_rationale_is_shown(self):
+        card = re.search(
+            r'data-question="q5"[\s\S]*?</article>',
+            self.html,
+        ).group(0)
+        self.assertIn("비교 이유", card)
+        self.assertIn("500 requests/sec", card)
+        self.assertIn("대응 RPS 수치가 없고", card)
+
     def test_sources_link_active_and_archived_reports(self):
         for href in (
             "RESULTS.md",

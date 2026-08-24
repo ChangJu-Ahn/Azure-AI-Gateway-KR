@@ -275,12 +275,22 @@ class ReviewedResultsContractTests(unittest.TestCase):
             "Capacity",
             "Duration",
             "metadata-only 기준선",
-            "Developer v1과의 8KB 500 RPS 비교 한 건",
+            "8KB 500 RPS 비교 한 건",
             "대부분 한 번만 실행",
             "1,000 RPS는 테스트하지 않았다",
         ):
             self.assertIn(phrase, scope)
         self.assertNotIn("| RPS | N8 Capacity | A8 Capacity | E8 Capacity |", scope)
+
+    def test_basic_v2_selection_rationale_is_documented(self):
+        scope = section_body(self.text, "## 검증 범위")
+        self.assertIn("예상 최대 RPS가 없고", scope)
+        self.assertIn("추가 과금", scope)
+
+        question5 = section_body(self.text, "## 질문 5")
+        self.assertIn("비교 이유", question5)
+        self.assertIn("500 requests/sec", question5)
+        self.assertIn("대응 RPS 수치가 없고", question5)
 
     def test_decision_tree_is_explicitly_superseded_for_conflicting_guidance(self):
         sources = section_body(self.text, "## 원천 문서")
