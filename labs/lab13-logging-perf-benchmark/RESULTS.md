@@ -1,21 +1,65 @@
 # Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크
 
+## 실험 결과 요약
+
+**한 줄 요약:** 두 경로 모두 API 요청은 100% 성공했으나, 포화 시 App Insights는 처리시간을 늘려 로그를 보존하고 Event Hub는 로그를 폐기한다.
+
+**핵심 발견**
+
+1. 본문 로깅은 APIM 처리시간 증가
+2. App Insights 본문 상한은 8,192 bytes. 초과 시 Event Hub 필요
+3. 평시(100~400 RPS)에는 Event Hub 경로가 게이트웨이를 더 무겁게 사용(200 RPS Capacity: N8 58% / A8 66% / E8 85%)
+4. 포화(500 RPS)에서는 역전. E8 Duration 0.4~1.7 ms < A8 0.9~2.5 ms이나 로그 폐기가 대가
+5. 드롭 주체는 Event Hubs가 아닌 APIM 게이트웨이
+6. 부하를 낮추거나 SKU를 올리면 드롭 소멸. 500 RPS는 Developer v1의 공식 예상 최대치
+
+**상황별 선택 기준**
+
+| 상황 | 권장 경로 | 조건 |
+|---|---|---|
+| 메타데이터만 필요 | App Insights 메타데이터 | 처리시간 부담 최소 |
+| 본문 8KB 이하, 조회·분석 중심 | App Insights 본문 로깅 | 8KB 구간에서는 Event Hub보다 게이트웨이 부하가 작고 로그 보존에 유리 |
+| 본문 8KB 초과 | Event Hub | 200KB 초과분 자동 절단 |
+| 로그 유실 불가(감사·규제) | Event Hub + 게이트웨이 여유 확보 | Event Hub는 포화 시 로그를 버리므로 목표 부하에서 드롭 0 검증 필수 |
+| 이미 드롭 발생 중 | 부하 완화 또는 SKU 상향 | Event Hubs 증설이 아닌 게이트웨이부터 점검 |
+
+**함께 볼 지표:** APIM 전송 성공·드롭 수 + Event Hubs 수신·스로틀링. API 응답 성공률만으로는 로그 유실 감지 불가
+
+**적용 범위:** Developer v1, Korea Central, 8KB·64KB, 100~500 RPS, 대부분 1회 실행. 고객 환경 재검증 필요
+
+---
+
 ## 검증 범위
-- 환경: Azure API Management(APIM) Developer v1 SKU, Korea Central; Basic v2는 공식 가격표에 예상 최대 RPS가 없고 포함 요청 초과분을 추가 과금하는 체계라 실제 처리량 확인을 위해 8KB 500 RPS 비교 한 건만 보았다.
-- 조건: 로그 저장소는 App Insights와 Event Hub이며, payload(요청 데이터 크기)는 8KB와 64KB, RPS는 초당 요청 수다.
-- 기준선: metadata-only 기준선(N8/N64)은 App Insights 메타데이터만 기록했고, App Insights diagnostic을 완전히 끈 상태가 아니다; body bytes만 0이다.
-- 정의: 무손실은 요청 로그가 모두 도착했다는 의미이나 요청 단위 증명은 완료되지 않았다; 드롭은 APIM `EventHubDroppedEvents`, Capacity는 classic v1 부하, Duration은 APIM 서버측 처리시간이다.
-- 범위: Developer v1 중심, 100~500 RPS, 조건별 3회 반복 계획은 미완료였고 대부분 한 번만 실행했다; 1,000 RPS는 테스트하지 않았다.
+- 환경: 
+    - Azure API Management(APIM) Developer v1 SKU
+    - Korea Central; 
+    - Basic v2는 공식 가격표에 예상 최대 RPS가 없고 포함 요청 초과분을 추가 과금하는 체계(= RPS 차이에 의해 EH Drop을 확인하기 위함)
+- 조건: 로그 저장소는 App Insights와 Event Hub. payload(요청 데이터 크기)는 8KB와 64KB, RPS는 초당 요청 수.
+- 기준선: metadata-only 기준선(N8/N64)은 App Insights 메타데이터만 기록. App Insights diagnostic을 완전히 끈 상태가 아님. 즉, body bytes만 0으로 설정.
+- 정의: 무손실은 요청 로그가 모두 도착했다는 의미이나 요청 단위 증명은 완료되지 않음. 드롭은 APIM `EventHubDroppedEvents`, Capacity는 classic v1 부하, Duration은 APIM 서버측 처리시간
+
+### 측정 조건 정의
+
+숫자는 요청 크기(8=8KB, 64=64KB), 문자는 로깅 방식(N=기준선, A=App Insights 본문, E=Event Hub)이다.
+
+| 조건 | 요청 크기 | App Insights body | Event Hub 로깅 | 역할 |
+|---|---|---|---|---|
+| N8 | 8KB | 기록 안 함(메타데이터만) | 없음 | 8KB 기준선 |
+| A8 | 8KB | 8KB 기록 | 없음 | App Insights 본문 로깅 비용 |
+| E8 | 8KB | 기록 안 함(메타데이터만) | 8KB 전송 | Event Hub 로그 전달 |
+| N64 | 64KB | 기록 안 함(메타데이터만) | 없음 | 64KB 기준선 |
+| E64 | 64KB | 기록 안 함(메타데이터만) | 64KB 전송 | 대용량 Event Hub 로그 전달 |
 
 ## 핵심 결론
 
-| 질문 | 판정 | 핵심 근거 | 고객 의미 |
+| No | 질문 | 판정 | 핵심 근거 |
 |---|---|---|---|
-| Q1 App Insights 본문 로깅 영향 | 조건부 지지 | A8 Duration이 모든 8KB RPS 포인트에서 N8보다 높음 | body 기록은 처리시간 예산에 넣어야 함 |
-| Q2 성능 저하 없는 모든 요청 로깅 | 미검증 | AppRequests 150,178/150,000은 집계상 양립하나 ID 대조 없음 | API 성공과 로그 완전성을 따로 검증해야 함 |
-| Q3 Event Hub 무손실 보장 | 반박(본 Developer v1 고부하 조건) | E8 400 RPS부터 APIM-reported drop 관측 | EH 연결만으로 감사 로그 전달을 보장하지 않음 |
-| Q4 요청 크기 영향 | 조건부 강함 | 64KB는 Duration과 EH drop 모두 커짐 | payload 크기를 로깅 용량 변수로 관리해야 함 |
-| Q5 v1/v2 전달 결과 차이 | 조건부 지지 | Basic v2 EH 도달 수는 500 RPS 발신량과 대체로 일치 | v2가 다르게 관측됐지만 원인 단정은 금물 |
+| Q1 | App Insights 본문 로깅 영향 | 조건부 지지 | A8 Duration이 모든 8KB RPS 포인트에서 N8보다 높음 |
+| Q2 | 8KB 초과 본문 로깅 경로 | 확인 | App Insights 진단 설정은 8,192 bytes 상한, `log-to-eventhub`는 200KB까지 전송 |
+| Q3 | 성능 저하 없는 모든 요청 로깅 | 조건부 지지 | 8KB 기준. 평시(~400 RPS)는 E8 Duration이 A8보다 높지만, 포화(500 RPS)에서는 E8 0.4~1.7 ms < A8 0.9~2.5 ms로 역전. 대가는 로그 폐기 |
+| Q4 | Event Hub 무손실 보장 | 반박(본 Developer v1 고부하 조건) | E8 400 RPS부터 APIM-reported drop 관측. 드롭 주체는 Event Hubs가 아닌 APIM 게이트웨이이며 300 RPS에서는 드롭 0 |
+| Q5 | 요청 크기 영향 | 조건부 강함 | 500 RPS 기준선 Duration이 8KB 0.1~0.35 ms에서 64KB 7.32 ms로 증가. 드롭 시작도 8KB는 400 RPS, 64KB는 300 RPS |
+| Q6 | v1/v2 전달 결과 차이 | 지지 | SKU만 교체하자 드롭 소멸. 500 RPS는 Developer v1의 공식 예상 최대치 |
 
 | RPS | N8 Capacity | A8 Capacity | E8 Capacity |
 |---:|---:|---:|---:|
@@ -25,83 +69,169 @@
 | 400 | 85.5% | 84.5% | 85.5% |
 | 500 | 약 89% | 약 89% | 약 87% |
 
-해석: 200 RPS에서 E8 Capacity는 85%였고 N8은 58%, A8은 66%였다; 400~500 RPS에서는 세 조건 모두 상단 범위에 가까워 Capacity만으로 로깅 효과를 분리할 수 없었다; 이 단일 실행들에서 보편 Capacity 임계값을 제시하지 않는다.
+**해석:**  
+1) 200 RPS에서 E8 Capacity는 85%였고 N8은 58%, A8은 66%.  
+2) 400~500 RPS에서는 세 조건 모두 상단 범위에 가까워 Capacity만으로 로깅 효과를 분리할 수 없었음.   
+3) 이 단일 실행들에서 보편 Capacity 임계값을 제시하지 않음.  
 
 ---
 
 ## 질문 1 — App Insights 본문 로깅은 APIM 처리에 영향을 주는가
-- **가설:** App Insights body 8KB 로깅은 APIM 처리시간을 늘린다.
-- **판정:** 조건부 지지 — CPU/p99/3회 반복은 부족하지만 Duration 방향은 일관됐다.
-- **핵심 근거:** 100/200/300/400/500 RPS 포인트에서 A8이 N8 metadata-only 기준선보다 높았다.
+- **가설:** App Insights body 8KB 로깅(App Insights Max 로깅용량)은 APIM 처리시간을 늘린다.
+- **판정:** 조건부 지지
+- **근거:** 모든 RPS 구간에서 A8이 기준선보다 높음
 
-| RPS | N8 — App Insights 메타데이터만 기록한 기준선 Duration | A8 — App Insights body 8KB Duration |
-|---:|---:|---:|
-| 100 | 0.01 ms | 0.03 ms |
-| 200 | 0.02 ms | 0.05 ms |
-| 300 | 0.06 ms | 0.13 ms |
-| 400 | 0.03 ms | 0.64 ms |
-| 500 | 0.1~0.35 ms | 0.9~2.5 ms |
+    | RPS | N8 — 메타데이터만 기록한 기준선 Duration | A8 — body 8KB Duration |
+    |---:|---:|---:|
+    | 100 | 0.01 ms | 0.03 ms |
+    | 200 | 0.02 ms | 0.05 ms |
+    | 300 | 0.06 ms | 0.13 ms |
+    | 400 | 0.03 ms | 0.64 ms |
+    | 500 | 0.1~0.35 ms | 0.9~2.5 ms |
 
-**결론:** 본 환경의 8KB body 로깅은 고객 처리시간 예산에 포함해야 한다.
-## 질문 2 — 성능 저하 없이 모든 요청을 로깅할 수 있는가
+**결론:** 본문 로깅은 APIM Duration을 증가시킴
+
+## 질문 2 — 8KB를 넘는 본문은 어떻게 로깅해야 하는가
+- **가설:** App Insights 진단 설정만으로는 8KB를 넘는 본문을 남길 수 없어 다른 경로가 필요하다.
+- **판정:** 확인
+- **근거:** 두 경로의 본문 상한
+
+    | 경로 | 본문 상한 | 근거 |
+    |---|---|---|
+    | App Insights 진단 설정 | 8,192 bytes(8KB) | `BodyDiagnosticSettings.bytes`의 `maximum: 8192` |
+    | `log-to-eventhub` 정책 | 200KB, 초과분 자동 절단 | 정책 문서 Usage notes |
+
+- **본 실험의 적용**
+    - 64KB 본문(N64/E64)은 Event Hub 경로로만 측정
+    - 8KB 초과 본문 감사는 사실상 Event Hub 계열만 가능
+
+**결론:**
+1) 8KB 초과 본문은 Event Hub 경로 필수
+2) Event Hub를 함께 설계한다면, 이벤트 미처리 가능성을 전제로 설계
+
+## 질문 3 — 성능 저하 없이 모든 요청을 로깅할 수 있는가
 - **가설:** 성능 저하 없이 모든 요청 로그를 남길 수 있다.
-- **판정:** 미검증 — 완전성과 무저하를 동시에 입증하지 못했다.
-- **핵심 근거:** App Insights AppRequests 집계는 A8 500 RPS에서 150,178건으로 150,000 offered와 누락 없음에 양립하지만, 요청 단위 완전성 증명은 아니다.
-- **반례:** E8 500 RPS는 클라이언트 150,000건이 모두 200이어도 APIM Event Hub drop을 대량 보고했다.
+- **판정:** 조건부 지지
+- **비교 전제:** App Insights 본문 상한이 8,192 bytes이므로 두 경로 직접 비교는 8KB에서만 가능(64KB에는 A64 조건 없음)
 
-**결론:** 고객에게는 API 성공 SLO와 로깅-delivery SLO를 분리해 제시해야 한다.
-## 질문 3 — Event Hub 연결은 무손실 로그 전송을 보장하는가
+    **근거 1. Duration 우열이 부하 구간에 따라 뒤바뀜**
+
+    | RPS | N8 Duration | A8 Duration | E8 Duration | 더 느린 쪽 | E8 drop | Capacity |
+    |---:|---:|---:|---:|---|---:|---|
+    | 100 | 0.01 ms | 0.03 ms | 0.03 ms | 동일 | 0 | ~38% |
+    | 200 | 0.02 ms | 0.05 ms | 0.04 ms | A8 | 0 | N8 58 / A8 66 / E8 85% |
+    | 300 | 0.06 ms | 0.13 ms | 0.36 ms | **E8** | 0 | ~86% |
+    | 400 | 0.03 ms | 0.64 ms | 1.00 ms | **E8** | 2,933 | ~85% |
+    | 500 | 0.1~0.35 ms | 0.9~2.5 ms | 0.4~1.7 ms | **A8** | 대량 | ~89% |
+
+    - **여유~중부하(100~400 RPS):** Event Hub 경로가 게이트웨이를 더 무겁게 씀. 200 RPS Capacity는 E8 85%로 A8 66%보다 높음
+    - **포화(500 RPS):** E8 Duration이 A8보다 낮아짐. 로그 폐기로 작업량이 줄어든 결과
+
+    **근거 2. 같은 포화 상태에서 포기한 대상이 다름**
+
+    | 로깅 경로 | 클라이언트 성공 | 로그 기록 결과 | Duration | 포화 시 결과 |
+    |---|---:|---|---:|---|
+    | A8 — App Insights body 8KB | 150,000 / 150,000 | AppRequests 150,178건, 누락 없음 | 0.9~2.5 ms | 처리시간 증가, 로그 보존 |
+    | E8 — Event Hub 8KB | 150,000 / 150,000 | APIM-reported drop 대량 발생 | 0.4~1.7 ms | 로그 폐기, 로깅 작업량 감소 |
+
+    Capacity는 두 조건 모두 ~87~89%로 이미 포화 상태였고, 차이는 그 상태에서 무엇을 포기했는가에서 갈렸다.
+
+    **주의. 드롭 주체는 Event Hub가 아님**
+
+    - Event Hubs 스로틀링 0, 드롭은 APIM 게이트웨이 보고값
+    - 게이트웨이가 API 처리를 우선하고 로깅 큐 초과분을 폐기하는 구조
+    - 부하 완화(질문 4: 300 RPS 드롭 0) 또는 상위 SKU(질문 6)에서 드롭 미관측
+
+    **단서.** 로그 ID 대조 없이 총 수량으로만 판단
+
+**결론:**
+1) 두 경로 모두 API 요청은 100% 성공. 차이는 포화 시 무엇을 포기하는가
+2) 평시에는 Event Hub 경로가 게이트웨이를 더 무겁게 사용
+3) 포화 시 Event Hub는 로그를 폐기해 로깅 작업량이 줄고, App Insights는 처리시간을 내주고 로그 보존
+4) API 응답 성공률과 로그 전달 성공률은 분리 관리
+
+## 질문 4 — Event Hub 연결은 무손실 로그 전송을 보장하는가
 - **가설:** Event Hub 연결은 요청 로그를 손실 없이 전달한다.
-- **판정:** 반박(본 Developer v1 고부하 조건) — API 200 성공과 별도로 APIM-reported drop이 발생했다.
-- **핵심 근거:** E8 400 RPS 2,933 drop과 500 RPS 대량 drop이 먼저 관측됐다; EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐다.
+- **판정:** 반박(본 Developer v1 고부하 조건)
+- **근거:** 부하 완화 시 드롭 미관측, 같은 구간 Event Hubs 스로틀링 0
 
-| 조건 | RPS | 클라이언트 성공 | APIM-reported EH drop | 해석 |
-|---|---:|---:|---:|---|
-| E8 | 300 | 54,000 / 54,000 | 0 | 이 관측 창에서는 APIM drop 보고 없음 |
-| E8 | 400 | 72,000 / 72,000 | 2,933 | API 성공과 로그 전달 실패가 분리됨 |
-| E8 | 500 | 150,000 / 150,000 | 대량, 약 절반으로 기록됨 | 정확한 비율은 미확정 |
+    | 조건 | RPS | 클라이언트 성공 | APIM-reported EH drop | 해석 |
+    |---|---:|---:|---:|---|
+    | E8 | 300 | 54,000 / 54,000 | 0 | 게이트웨이 여유 구간, 드롭 없음 |
+    | E8 | 400 | 72,000 / 72,000 | 2,933 | API 성공과 로그 전달 실패 분리 |
+    | E8 | 500 | 150,000 / 150,000 | 대량, 약 절반 | 정확한 비율 미확정 |
 
-**결론:** Event Hub 자체가 아니라 APIM EH 성공/drop과 Event Hubs ingress/throttling을 함께 보아야 한다.
-## 질문 4 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가
-- **가설:** payload 증가가 Duration과 로깅 전달 범위를 악화시킨다.
-- **판정:** 조건부 강함 — 64KB 두 포인트 모두 drop을 동반했고 Duration도 8KB보다 컸다.
-- **핵심 근거:** E64 300 RPS는 N64보다 Duration이 낮지만 APIM-reported drop 41,435건이 함께 발생했다.
+**결론:**
+1) 무손실 여부는 Event Hub 연결이 아니라 게이트웨이 부하 수준에 의존
+2) 같은 경로도 300 RPS에서는 드롭 없음
+3) 운영 시 APIM 전송 성공·드롭 수와 Event Hubs 수신·스로틀링을 함께 확인
 
-| RPS | N64 — App Insights 메타데이터만 기록한 기준선 Duration | E64 — Event Hub 64KB Duration | E64 APIM-reported EH drop |
-|---:|---:|---:|---:|
-| 300 | 6.04 ms | 5.24 ms | 41,435 |
-| 500 | 7.32 ms | 7.58 ms | 76,434 |
+## 질문 5 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가
+- **가설:** 요청 크기가 커지면 Duration과 로그 전달 범위가 악화된다.
+- **판정:** 조건부 강함
 
-**결론:** Duration은 로그 전달 완전성 지표가 아니며, 순수 EH 로깅 비용이나 더 나은 성능으로 해석하지 않는다.
-## 질문 5 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가
-- **가설:** SKU/세대 변경 시 Event Hub 전달 관측 결과가 달라질 수 있다.
-- **비교 이유:** 공식 가격표는 Developer v1에 예상 최대 500 requests/sec을 제시하지만 Basic v2에는 대응 RPS 수치가 없고 포함 요청 초과분을 추가 과금하는 체계라 직접 측정이 필요했다.
-- **판정:** 조건부 지지 — Basic v2 관측 결과는 Developer v1과 다르지만 원인을 SKU 하나로 단정하지 않는다.
+    **근거 1. 요청 크기가 커지면 Duration 증가**
 
-| 지표 | Developer v1 관측 | Basic v2 관측 | 주의점 |
-|---|---|---|---|
-| EH 도달 | 약 절반만 도달한 것으로 기록, 대량 drop | 분당 약 30,000건 수준: 30056, 29900, 29926, 30108, 29796, 30186 | Basic v2는 EH 도달 수로 판단 |
-| APIM EventHubDroppedEvents | 대량 drop 보고 | 직접 비교 가능한 drop 카운터 확보 못 함 | v1과 v2 지표가 달라 직접 비교 제한 |
-| EH throttling | 0 | 0 | EH가 throttle한 증거는 없음 |
-| 클라이언트 결과 | 요청 200 성공, p99 약 500 ms | 요청 200 성공, p99 약 30 ms | 클라이언트 p99는 참고 지표 |
-| 게이트웨이 리소스 | classic Capacity 관측 | v2 CPU/메모리 미수집 | 메커니즘 확정 불가 |
+    | 500 RPS 기준선 | 요청 크기 | Duration |
+    |---|---|---:|
+    | N8 | 8KB | 0.1~0.35 ms |
+    | N64 | 64KB | 7.32 ms |
 
-**결론:** v2 효과를 고객 권고로 쓰려면 같은 지표 집합으로 재시험해야 한다.
+    **근거 2. 요청 크기가 커지면 드롭 시작 지점이 앞당겨짐**
+
+    | RPS | 8KB(E8) drop | 64KB(E64) drop |
+    |---:|---:|---:|
+    | 300 | 0 | 41,435 |
+    | 500 | 대량, 약 절반 | 76,434 |
+
+    **주의. 64KB 내부 비교로는 로깅 비용을 알 수 없음**
+
+    | RPS | N64 Duration | E64 Duration | E64 drop |
+    |---:|---:|---:|---:|
+    | 300 | 6.04 ms | 5.24 ms | 41,435 |
+    | 500 | 7.32 ms | 7.58 ms | 76,434 |
+
+    300 RPS 역전은 E64가 빠른 것이 아니라 드롭된 41,435건만큼 전송하지 않은 결과다. 드롭 구간의 Duration은 비교 근거로 사용 불가.
+
+**결론:**
+1) 요청 크기가 Duration을 지배(8KB 0.1~0.35 ms vs 64KB 7.32 ms)
+2) 요청 크기 증가 시 안전 로깅 부하 범위 축소
+3) 드롭 구간 Duration은 성능 우열 근거로 사용 금지
+
+## 질문 6 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가
+- **가설:** v1, v2의 기본 RPS 처리량이 다르다.
+- **비교 이유:** 공식 가격표상 Developer v1은 예상 최대 500 requests/sec, Basic v2는 대응 RPS 수치 없이 포함 요청 초과분 추가 과금
+- **판정:** 지지
+
+    **근거 1. SKU만 교체한 통제 조건**
+
+    요청 크기(8KB)·부하(500 RPS)·정책 XML·Event Hub(40 TU)·부하 생성 VM·유닛 수(1)를 고정.
+
+    **근거 2. 판정에 쓴 지표는 두 SKU에서 동일 수집**
+
+    | 지표 | Developer v1 관측 | Basic v2 관측 | 수집 |
+    |---|---|---|---|
+    | EH 도달 | 약 절반만 도달, 대량 drop | 분당 약 30,000건: 30056, 29900, 29926, 30108, 29796, 30186 | 동일 |
+    | EH throttling | 0 | 0 | 동일 |
+    | 클라이언트 결과 | 200 성공, p99 약 500 ms | 200 성공, p99 약 30 ms | 동일 |
+    | APIM EventHubDroppedEvents | 대량 drop 보고 | 미수집 | 비대칭 |
+    | 게이트웨이 리소스 | classic Capacity 관측 | v2 CPU/메모리 미수집 | 비대칭 |
+
+    측정한 500 RPS는 Developer v1의 공식 예상 최대 처리량과 같은 값이다. v1은 정격 상한에서, v2는 상한이 공표되지 않은 여유 구간에서 측정됐다.
+
+**결론:**
+1) 같은 정책·같은 부하에서 SKU 교체만으로 드롭 소멸
+2) 드롭은 `log-to-eventhub`의 성질이 아니라 게이트웨이를 정격 상한으로 운영한 결과
+3) 게이트웨이 리소스 지표는 비대칭이라 메커니즘 자체는 미확정
 
 ---
 
-## 고객 운영 권고
-1. API 성공 SLO와 로깅-delivery SLO를 분리하고 downstream consumer 처리 성공률, APIM EH success/drop, Event Hubs ingress/throttling을 함께 본다.
-2. runbook에 경보 대응을 두고 운영 목표 peak RPS × logged payload size로 capacity-test하며 retention/reprocessing 요구량을 포함한다.
-3. v1은 classic Capacity, v2는 gateway CPU/Memory 계열 지표를 수집한다.
-4. audit scope, retention, cost, PII masking을 정하고 기록할 본문 크기를 최소화한다.
-5. 고객 환경에서 재시험해 region, SKU, unit 수, backend 지연, policy 조합을 반영한다.
-
 ## 한계
-- 조건별 3회 반복 계획은 완료되지 않았고 조건별 대부분 1회, 즉 대부분 한 번만 실행했다.
-- 요청 ID 집합, 페이로드 해시, 메시지 크기 대조는 완료되지 않았고 App Insights count 150,178에는 warmup 경계 records가 포함될 수 있다.
-- 클라이언트 p95/p99에는 load-generator/TLS artifacts가 섞일 수 있어 서버측 Duration과 구분한다.
-- v1과 v2의 지표 수집 범위가 달라 직접 비교가 제한된다: v2 CPU/메모리, v2 Duration, v2 drop 카운터, Standard/Premium, streaming/SSE, response-body logging, 1,000 RPS, production multi-unit/region/backend scenarios는 미검증이다.
+- 조건별 대부분 1회 실행. 3회 반복 계획 미완료
+- 요청 ID·페이로드 해시·메시지 크기 대조 미수행. App Insights 150,178건에 warmup 경계 레코드 포함 가능
+- 클라이언트 p95/p99에 부하 생성기·TLS 영향 혼입. 서버측 Duration과 구분 필요
+- v1/v2 게이트웨이 리소스 지표 비대칭으로 드롭 메커니즘 미확정. v2 조건은 App Insights diagnostic 미설정
+- 미검증: v2 CPU·메모리·Duration·drop 카운터, Standard/Premium, streaming/SSE, 응답 본문 로깅, 1,000 RPS, 다중 단위·리전·백엔드 구성
 
 ## 원천 문서
 
