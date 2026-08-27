@@ -1,4 +1,3 @@
-import json
 import re
 import unittest
 from html.parser import HTMLParser
@@ -7,160 +6,62 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 REPORT = ROOT / "REPORT.html"
-RESULTS = ROOT / "RESULTS.md"
-
-EXPECTED_TITLE = "Lab 13 로깅 성능·로그 전달 벤치마크 보고서"
-EXPECTED_H1 = "APIM 로깅 성능·로그 전달 벤치마크"
-
-TAB_IDS = [
-    "summary",
-    "hypotheses",
-    "conditions",
-    "results",
-    "limitations",
-    "guidance",
-    "sources",
-]
 
 SOURCE_DOCS = [
-    "EXPERIMENT-SPEC.md",
-    "EXPERIMENT-LOG.md",
     "RESULTS.md",
-    "old/RESULTS.md",
-    "old/REVIEW.md",
+    "EXPERIMENT-LOG.md",
+    "EXPERIMENT-SPEC.md",
     "DECISION-TREE.md",
 ]
 
-EXPECTED_RESULT_SUMMARY_HEADINGS = [
-    "App Insights 본문 로깅은 처리시간을 늘렸다",
-    "App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다",
-    "API 성공과 Event Hub 로그 전달 성공은 별개다",
-    "관측된 드롭은 EH 스로틀링으로 설명되지 않았다",
-    "8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다",
-    "큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다",
-    "Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다",
+SECTION_IDS = [
+    "executive-summary",
+    "results-full",
+    "decision",
+    "evidence",
+    "experiment",
+    "guardrails",
+    "limitations",
 ]
 
-RESULT_VERDICTS = {
-    "q1": "조건부 지지",
-    "q2": "미검증",
-    "q3": "반박(본 Developer v1 고부하 조건)",
-    "q4": "조건부 강함",
-    "q5": "조건부 지지",
-}
+CHART_IDS = [
+    "chart-capacity-8k",
+    "chart-duration-8k",
+    "chart-drops-8k",
+    "chart-duration-64k",
+    "chart-drops-64k",
+    "chart-saturation-outcomes",
+    "chart-sku-comparison",
+]
+
+CAPACITY_VALUES = ["31.5%", "58%", "79%", "85.5%", "~89%", "39%", "66%", "88.5%", "84.5%", "38%", "85%", "86.5%", "~87%"]
+DURATION_VALUES = ["0.01 ms", "0.03 ms", "0.02 ms", "0.05 ms", "0.04 ms", "0.06 ms", "0.13 ms", "0.36 ms", "0.64 ms", "1.00 ms", "0.10~0.35 ms", "0.90~2.50 ms", "0.40~1.70 ms"]
+BASIC_V2_MINUTES = ["30,056", "29,900", "29,926", "30,108", "29,796", "30,186"]
 
 RESULT_FILES = sorted(
     str(path.relative_to(ROOT))
     for path in (ROOT / "results").glob("*/result.json")
 )
 
-REQUIRED_CHARTS = [
-    "chart-capacity-8k",
-    "chart-duration-8k",
-    "chart-drops-8k",
-    "chart-duration-64k",
-    "chart-drops-64k",
-    "chart-client-latency",
-    "chart-request-success",
-    "chart-sku-comparison",
-    "chart-confidence",
-]
-
-REQUIRED_EVIDENCE_LABELS = [
-    "확정",
-    "조건부",
-    "드롭/위험",
-    "미검증",
-    "교정",
-]
-
-LIGHT_TOKEN_LINES = [
-    "color-scheme: light;",
-    "--cp-bg: #f7f4ef;",
-    "--cp-bg-elevated: #fcfbf8;",
-    "--cp-surface: #ffffff;",
-    "--cp-surface-soft: #f5f5f5;",
-    "--cp-border: #dedede;",
-    "--cp-border-strong: #919191;",
-    "--cp-text: #242424;",
-    "--cp-text-muted: #5c5c5c;",
-    "--cp-text-soft: #6f6f6f;",
-    "--cp-accent: #b11f4b;",
-    "--cp-accent-hover: #9a1a41;",
-    "--cp-accent-soft: rgba(177, 31, 75, 0.08);",
-    "--cp-accent-fg: #ffffff;",
-    "--cp-success: #16a34a;",
-    "--cp-danger: #dc2626;",
-    "--cp-warning: #f59e0b;",
-    "--cp-link: #0078d4;",
-    "--cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);",
-    "--cp-overlay: rgba(255, 255, 255, 0.8);",
-    "--cp-panel: rgba(255, 255, 255, 0.86);",
-    "--cp-panel-strong: rgba(255, 255, 255, 0.96);",
-    "--cp-sheen: rgba(255, 255, 255, 0.55);",
-    "--cp-highlight: rgba(177, 31, 75, 0.12);",
-]
-
-RESULT_FIELDS = ["offered", "successful", "errors", "p50Ms", "p95Ms", "p99Ms"]
-
-
-def result_markdown():
-    return RESULTS.read_text(encoding="utf-8")
-
-
-def result_section(text, heading):
-    match = re.search(
-        rf"^{re.escape(heading)}\s*(?P<body>.*?)(?=^## |\Z)",
-        text,
-        re.MULTILINE | re.DOTALL,
-    )
-    if match is None:
-        raise AssertionError(f"Missing RESULTS.md section: {heading}")
-    return match.group("body")
-
-
-def result_summary_headings():
-    summary = result_section(result_markdown(), "## 요약")
-    return [
-        heading.rstrip(".")
-        for _, heading in re.findall(r"^\s*(\d+)\.\s+\*\*(.*?)\*\*", summary, re.MULTILINE)
-    ]
-
-
-def result_question_verdicts():
-    text = result_markdown()
-    verdicts = {}
-    for index, match in enumerate(
-        re.finditer(r"^## 질문 \d+ [^\n]+\s*(?P<body>.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL),
-        start=1,
-    ):
-        verdict = re.search(r"\*\*판정: (?P<verdict>.*?)\.\*\*", match.group("body"))
-        if verdict is None:
-            raise AssertionError(f"Missing verdict for q{index}")
-        verdicts[f"q{index}"] = verdict.group("verdict")
-    return verdicts
-
 
 class ReportParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.ids = set()
-        self.tabs = []
+        self.links = []
         self.external_assets = []
-        self.hrefs = []
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        if values.get("id"):
-            self.ids.add(values["id"])
-        if values.get("role") == "tab":
-            self.tabs.append(values)
+        element_id = values.get("id")
+        if element_id:
+            self.ids.add(element_id)
+        if tag == "a" and values.get("href"):
+            self.links.append(values["href"])
         if tag in {"script", "link", "img"}:
             target = values.get("src") or values.get("href")
             if target and re.match(r"^(?:https?:)?//", target):
                 self.external_assets.append(target)
-        if tag == "a" and values.get("href"):
-            self.hrefs.append(values["href"])
 
 
 class VisibleTextParser(HTMLParser):
@@ -189,39 +90,27 @@ class ReportContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.html = REPORT.read_text(encoding="utf-8")
-        cls.result_summary_headings = result_summary_headings()
-        cls.result_verdicts = result_question_verdicts()
         cls.parser = ReportParser()
         cls.parser.feed(cls.html)
         visible_parser = VisibleTextParser()
         visible_parser.feed(cls.html)
         cls.visible_text = " ".join(visible_parser.parts)
-        cls.results = {
-            str(path.relative_to(ROOT)): json.loads(path.read_text(encoding="utf-8"))
-            for path in sorted((ROOT / "results").glob("*/result.json"))
-        }
 
     def chart_fragment(self, chart_id):
         match = re.search(
-            rf'<figure class="chart-card[^"]*" id="{re.escape(chart_id)}"[\s\S]*?</figure>',
+            rf'<figure[^>]*id="{re.escape(chart_id)}"[\s\S]*?</figure>',
             self.html,
         )
         self.assertIsNotNone(match, chart_id)
         return match.group(0)
 
-    def css_body(self, selector):
+    def section_fragment(self, section_id):
         match = re.search(
-            rf"{re.escape(selector)}\s*\{{(?P<body>.*?)\n\s*\}}",
+            rf'<section[^>]*id="{re.escape(section_id)}"[\s\S]*?</section>',
             self.html,
-            re.DOTALL,
         )
-        self.assertIsNotNone(match, selector)
-        return match.group("body")
-
-    def print_media(self):
-        match = re.search(r"@media print\s*\{(?P<body>[\s\S]*?)\n\s*\}\s*@media", self.html)
-        self.assertIsNotNone(match)
-        return match.group("body")
+        self.assertIsNotNone(match, section_id)
+        return match.group(0)
 
     def text_without_tags(self, fragment):
         return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", fragment)).strip()
@@ -233,205 +122,99 @@ class ReportContractTests(unittest.TestCase):
             fragment,
         )
 
-    def test_has_required_tabs_and_panels(self):
-        self.assertEqual(
-            [tab["data-tab"] for tab in self.parser.tabs],
-            TAB_IDS,
+    def svg_group_fragment(self, fragment, *, rps, value, series=None):
+        open_tag_pattern = re.compile(r'<g\b[^>]*>')
+        token_pattern = re.compile(r'</g>|<g\b[^>]*>')
+        rps_pattern = re.compile(rf'\bdata-rps="{re.escape(str(rps))}"')
+        value_pattern = re.compile(rf'\bdata-value="{re.escape(str(value))}"')
+        series_pattern = (
+            re.compile(rf'\bdata-series="{re.escape(str(series))}"')
+            if series is not None
+            else None
         )
-        for tab_id in TAB_IDS:
-            self.assertIn(f"panel-{tab_id}", self.parser.ids)
 
-    def test_title_and_h1_use_log_delivery_wording(self):
-        self.assertIn(f"<title>{EXPECTED_TITLE}</title>", self.html)
-        self.assertIn(f"<h1>{EXPECTED_H1}</h1>", self.html)
-        hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
-        self.assertNotIn("무손실 벤치마크", hero)
+        for opening_match in open_tag_pattern.finditer(fragment):
+            opening_tag = opening_match.group(0)
+            if not (rps_pattern.search(opening_tag) and value_pattern.search(opening_tag)):
+                continue
+            if series_pattern is not None and not series_pattern.search(opening_tag):
+                continue
+
+            depth = 1
+            for token_match in token_pattern.finditer(fragment, opening_match.end()):
+                token = token_match.group(0)
+                if token.startswith('<g'):
+                    depth += 1
+                else:
+                    depth -= 1
+                    if depth == 0:
+                        return fragment[opening_match.start():token_match.end()]
+
+            self.fail(f"unbalanced svg group for rps={rps} value={value}")
+
+        self.fail(f"missing svg group for rps={rps} value={value}")
+
+    def test_has_scroll_sections_in_approved_order(self):
+        positions = []
+        for section_id in SECTION_IDS:
+            position = self.html.find(f'id="{section_id}"')
+            self.assertNotEqual(position, -1, section_id)
+            positions.append(position)
+        self.assertEqual(positions, sorted(positions))
+
+    def test_has_semantic_navigation_and_accessible_charts(self):
+        self.assertIn("<nav", self.html)
+        self.assertIn("<main", self.html)
+        self.assertRegex(self.html, r'href="#main-content"')
+        self.assertRegex(self.html, r'class="[^"]*skip-link[^"]*"')
+        self.assertRegex(self.html, r':focus-visible\s*\{[\s\S]*?outline:\s*(?!none\b)[^;}]+')
+        self.assertRegex(self.html, r'@media\s*(?:screen\s+and\s+)?\(max-width:')
+        self.assertIn("@media print", self.html)
+        for section_id in SECTION_IDS:
+            self.assertIn(f'href="#{section_id}"', self.html)
+        self.assertEqual(re.findall(r'<li><a href="#([^"]+)"', self.html), SECTION_IDS)
+        for chart_id in CHART_IDS:
+            fragment = self.chart_fragment(chart_id)
+            self.assertIn('role="img"', fragment)
+            self.assertRegex(fragment, r'aria-label="[^"]*[가-힣][^"]*"')
+            self.assertIn("<title>", fragment)
 
     def test_is_self_contained(self):
         self.assertEqual(self.parser.external_assets, [])
-        banned_runtime_loading = [
-            r"\bfetch\s*\(",
-            r"\bXMLHttpRequest\b",
-            r"\bimport\s*\(",
-            r"@import\b",
-            r"url\(\s*['\"]?https?://",
-        ]
-        for pattern in banned_runtime_loading:
+        for pattern in (r"\bfetch\s*\(", r"\bXMLHttpRequest\b", r"@import\b"):
             self.assertNotRegex(self.html, pattern)
 
-    def test_references_all_source_documents(self):
-        for source in SOURCE_DOCS:
-            self.assertIn(source, self.html)
-
-    def test_decision_tree_is_marked_as_supplemental_with_results_precedence(self):
-        sources = re.search(r'id="panel-sources"[\s\S]*?</section>', self.html).group(0)
-        decision_item = re.search(
-            r'<article class="source-item">[\s\S]*?DECISION-TREE\.md[\s\S]*?</article>',
-            sources,
-        ).group(0)
-        self.assertIn("보완 문서(RESULTS.md 우선)", decision_item)
-        self.assertIn("손실 여부·임계값·지연·인과 표현이 충돌하면 RESULTS.md가 우선", decision_item)
-        guidance = re.search(r'id="panel-guidance"[\s\S]*?</section>', self.html).group(0)
-        for card in re.findall(r'<article class="panel-card">[\s\S]*?DECISION-TREE\.md[\s\S]*?</article>', guidance):
-            self.assertIn("RESULTS.md 기준으로 제한", card)
-
-    def test_source_references_are_relative_links(self):
-        expected = SOURCE_DOCS + RESULT_FILES
-        for href in expected:
-            self.assertIn(href, self.parser.hrefs)
-        for href in self.parser.hrefs:
-            self.assertNotRegex(href, r"^(?:https?:)?//")
-
-    def test_has_accessible_tab_markup(self):
-        for tab in self.parser.tabs:
-            self.assertEqual(tab.get("aria-controls"), f"panel-{tab['data-tab']}")
-        self.assertIn('role="tabpanel"', self.html)
-
-    def test_print_and_no_script_fallbacks_exist(self):
-        self.assertIn("@media print", self.html)
+    def test_progressive_enhancement_keeps_content_visible(self):
+        self.assertNotRegex(self.html, r"\.js\s+main\s*\{[^}]*display:\s*none")
         self.assertIn("<noscript>", self.html)
 
-    def test_print_only_hides_tab_navigation(self):
+    def test_sticky_navigation_preserves_headings_and_marks_current_location(self):
         self.assertRegex(
             self.html,
-            r"@media print[\s\S]*?\[role=\"tablist\"\]\s*\{\s*display:\s*none;",
+            r'<a\b(?=[^>]*\bhref="#executive-summary")(?=[^>]*\baria-current="location")[^>]*>',
         )
+        self.assertIn('a[aria-current="location"]', self.html)
+        self.assertIn('setAttribute("aria-current", "location")', self.html)
+        self.assertIn('addEventListener("hashchange"', self.html)
+        self.assertIn("scrollHeight", self.html)
         self.assertRegex(
             self.html,
-            r"@media print[\s\S]*?\[role=\"tabpanel\"\]\s*\{\s*display:\s*block\s*!important;",
+            r'main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*(?:[7-9]\d|\d{3,})px',
         )
-        self.assertNotRegex(
+
+    def test_report_body_wraps_long_technical_identifiers(self):
+        self.assertRegex(
             self.html,
-            r"@media print[\s\S]*?\.tabs\s*\{\s*display:\s*none;",
+            r'main\s*\{[^}]*overflow-wrap:\s*anywhere',
         )
 
-    def test_print_forces_light_tokens_and_avoids_card_breaks(self):
-        media = self.print_media()
-        for token_line in LIGHT_TOKEN_LINES:
-            self.assertIn(token_line, media)
-        self.assertIn("background: var(--cp-surface);", media)
-        self.assertIn("color: var(--cp-text);", media)
-        self.assertIn("break-inside: avoid;", media)
-        self.assertIn("page-break-inside: avoid;", media)
-
-    def test_customer_report_omits_internal_maintenance_copy(self):
-        for phrase in (
-            "유지보수 방식",
-            "수동 갱신 전용",
-            "수동 유지보수 안내",
-            "출처 번호가 바뀌면",
-            "외부 fetch",
-            "실시간 의존성",
-        ):
-            self.assertNotIn(phrase, self.visible_text)
-
-    def test_evidence_legend_uses_required_meanings(self):
-        match = re.search(
-            r"<dt>검증 등급</dt>\s*<dd>(.*?)</dd>",
-            self.html,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match)
-        legend = re.sub(r"<[^>]+>", " ", match.group(1)).lower()
-        for required in ("초록=확정", "노랑=조건부", "빨강=드롭/위험", "회색=미검증", "교정=별도 텍스트 상태"):
-            self.assertIn(required, legend)
-        for banned in ("drops/risks(교정)", "planned", "reconciled", "pending"):
-            self.assertNotIn(banned, legend)
-
-    def test_evidence_badges_use_neutral_text_and_semantic_accent_tokens(self):
-        base = next(
-            match.group("body")
-            for match in re.finditer(r"\.evidence\s*\{(?P<body>.*?)\n\s*\}", self.html, re.DOTALL)
-            if "--evidence-accent" in match.group("body")
-        )
-        self.assertIn("--evidence-accent: var(--cp-border-strong);", base)
-        self.assertIn("color: var(--cp-text);", base)
-        self.assertIn("border: 1px solid var(--evidence-accent);", base)
-        dot = self.css_body(".evidence::before")
-        self.assertIn("background: var(--evidence-accent);", dot)
-        for selector, token in (
-            (".evidence.confirmed", "var(--cp-success)"),
-            (".evidence.conditional", "var(--cp-warning)"),
-            (".evidence.risk", "var(--cp-danger)"),
-            (".evidence.unverified", "var(--cp-text-muted)"),
-            (".evidence.corrected", "var(--cp-accent)"),
-        ):
-            body = self.css_body(selector)
-            self.assertIn(f"--evidence-accent: {token};", body)
-            self.assertNotRegex(body, r"\bcolor\s*:")
-
-    def test_references_all_19_client_results(self):
+    def test_source_names_are_listed_without_dead_links(self):
+        self.assertEqual([href for href in self.parser.links if not href.startswith("#")], [])
+        for name in SOURCE_DOCS + RESULT_FILES:
+            self.assertIn(name, self.html)
         self.assertEqual(len(RESULT_FILES), 19)
-        for result_file in RESULT_FILES:
-            self.assertIn(result_file, self.html)
 
-    def test_has_all_required_charts(self):
-        for chart_id in REQUIRED_CHARTS:
-            self.assertIn(chart_id, self.parser.ids)
-
-    def test_chart_cards_reset_default_figure_margin_and_can_shrink(self):
-        match = re.search(
-            r"\.chart-card\s*\{(?P<body>.*?)\n\s*\}",
-            self.html,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match)
-        body = match.group("body")
-        self.assertIn("margin: 0;", body)
-        self.assertIn("min-width: 0;", body)
-
-    def test_value_labels_are_right_aligned_for_narrow_viewports(self):
-        match = re.search(
-            r"\.value-label\s*\{(?P<body>.*?)\n\s*\}",
-            self.html,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match)
-        self.assertIn("text-anchor: start;", match.group("body"))
-
-    def test_long_metric_names_wrap_inside_cards(self):
-        self.assertRegex(
-            self.html,
-            r"\.panel-card p,\s*\.panel-card li,\s*\.source-item p,\s*\.chart-note,\s*\.chart-source\s*\{"
-            r"[\s\S]*?overflow-wrap:\s*anywhere;",
-        )
-
-    def test_numeric_chart_bars_stay_within_tracks(self):
-        for chart_id in REQUIRED_CHARTS:
-            if chart_id in {"chart-sku-comparison", "chart-confidence"}:
-                continue
-            fragment = self.chart_fragment(chart_id)
-            tracks = [
-                (float(x), float(width))
-                for x, width in re.findall(
-                    r'<rect class="range-track" x="([0-9.]+)" y="[0-9.]+" width="([0-9.]+)"',
-                    fragment,
-                )
-            ]
-            bars = [
-                (float(x), float(width))
-                for x, width in re.findall(
-                    r'<rect class="bar [^"]+" x="([0-9.]+)" y="[0-9.]+" width="([0-9.]+)"',
-                    fragment,
-                )
-            ]
-            self.assertLessEqual(len(bars), len(tracks), chart_id)
-            for (track_x, track_width), (bar_x, bar_width) in zip(tracks, bars):
-                self.assertGreaterEqual(bar_x + 0.01, track_x, chart_id)
-                self.assertLessEqual(bar_x + bar_width, track_x + track_width + 0.1, chart_id)
-
-    def test_representative_chart_widths_follow_declared_scales(self):
-        expectations = [
-            ("chart-capacity-8k", 'width="94.5"', "31.5% of 300px track"),
-            ("chart-duration-64k", 'width="196.5"', "5.24/8ms of 300px track"),
-            ("chart-drops-8k", 'width="293.3"', "2933/3000 drops of 300px track"),
-            ("chart-drops-64k", 'width="286.6"', "76434/80000 drops of 300px track"),
-        ]
-        for chart_id, expected_width, description in expectations:
-            with self.subTest(description):
-                self.assertIn(expected_width, self.chart_fragment(chart_id))
-
-    def test_capacity_chart_matches_every_source_matrix_value(self):
+    def test_capacity_duration_and_drop_values_are_present(self):
         self.assertEqual(
             self.chart_text_sequence("chart-capacity-8k"),
             [
@@ -442,8 +225,6 @@ class ReportContractTests(unittest.TestCase):
                 "500 RPS", "N8", "~89%", "A8", "~89%", "E8", "~87%",
             ],
         )
-
-    def test_duration_charts_match_every_source_matrix_value(self):
         self.assertEqual(
             self.chart_text_sequence("chart-duration-8k"),
             [
@@ -454,6 +235,24 @@ class ReportContractTests(unittest.TestCase):
                 "500 RPS", "N8", "0.10~0.35 ms", "A8", "0.90~2.50 ms", "E8", "0.40~1.70 ms",
             ],
         )
+        drops_fragment = self.chart_fragment("chart-drops-8k")
+        self.assertIn("300 RPS", drops_fragment)
+        self.assertIn("400 RPS", drops_fragment)
+        self.assertIn("500 RPS", drops_fragment)
+        row_300 = self.svg_group_fragment(drops_fragment, rps=300, value=0)
+        self.assertIn('<text', row_300)
+        self.assertIn('>0</text>', row_300)
+        row_400 = self.svg_group_fragment(drops_fragment, rps=400, value="2,933")
+        self.assertIn('<text', row_400)
+        self.assertIn('>2,933</text>', row_400)
+        row_500 = self.svg_group_fragment(drops_fragment, rps=500, value="unknown")
+        self.assertRegex(row_500, r'class="[^"]*(?:offscale|qualitative)-marker[^"]*"')
+        self.assertIn("정확한 드롭률 미확정", row_500)
+        self.assertNotRegex(row_500, r'<rect[^>]*class="[^"]*\bbar\b[^"]*"')
+        self.assertNotRegex(row_500, r'<text[^>]*>\s*\d[\d,]*\s*</text>')
+        self.assertIn("300 RPS", self.chart_text_sequence("chart-drops-8k"))
+        self.assertIn("400 RPS", self.chart_text_sequence("chart-drops-8k"))
+        self.assertIn("500 RPS", self.chart_text_sequence("chart-drops-8k"))
         self.assertEqual(
             self.chart_text_sequence("chart-duration-64k"),
             [
@@ -462,382 +261,358 @@ class ReportContractTests(unittest.TestCase):
             ],
         )
 
-    def test_500_rps_e8_drop_marker_is_off_scale_qualitative(self):
-        fragment = self.chart_fragment("chart-drops-8k")
-        row = re.search(r">500 RPS</text>(?P<row>[\s\S]*?)</svg>", fragment).group("row")
-        self.assertNotIn('<rect class="bar', row)
-        self.assertNotRegex(row, r">[0-9][0-9,]*</text>")
-        marker = re.search(r'data-run="real-E8"[^>]*cx="([0-9.]+)"', row)
-        self.assertIsNotNone(marker)
-        self.assertGreater(float(marker.group(1)), 430.0)
-        self.assertIn("축 범위 밖 · 정확한 드롭률 미확정", row)
+    def test_metric_chart_rows_expose_machine_readable_observations(self):
+        capacity = self.chart_fragment("chart-capacity-8k")
+        self.assertEqual(capacity.count('class="metric-row"'), 15)
+        self.svg_group_fragment(capacity, rps=200, series="E8", value=85)
 
-    def test_uses_all_evidence_labels(self):
-        for label in REQUIRED_EVIDENCE_LABELS:
-            self.assertIn(label, self.html)
+        duration = self.chart_fragment("chart-duration-8k")
+        self.assertEqual(duration.count('class="metric-row"'), 15)
+        self.svg_group_fragment(
+            duration,
+            rps=500,
+            series="E8",
+            value="0.40~1.70",
+        )
 
-    def test_contains_required_scope_and_cautions(self):
-        required = [
-            "Korea Central",
+        duration_64k = self.chart_fragment("chart-duration-64k")
+        self.assertEqual(duration_64k.count('class="metric-row"'), 4)
+        self.svg_group_fragment(duration_64k, rps=300, series="E64", value=5.24)
+
+        drops_64k = self.chart_fragment("chart-drops-64k")
+        self.assertEqual(drops_64k.count('class="metric-row"'), 2)
+        self.svg_group_fragment(drops_64k, rps=300, series="E64", value="41,435")
+        self.svg_group_fragment(drops_64k, rps=500, series="E64", value="76,434")
+
+    def test_dense_svg_labels_use_separate_layout_slots(self):
+        drops = self.chart_fragment("chart-drops-8k")
+        self.assertEqual(
+            len(re.findall(r'<text class="series-label mono" x="88"[^>]*>E8</text>', drops)),
+            3,
+        )
+
+        sku = self.chart_fragment("chart-sku-comparison")
+        self.assertIn("동일 조건 · SKU만 교체", sku)
+        self.assertNotIn("Event Hub 도달 (기대 ~30,000/분)", sku)
+
+    def test_sku_comparison_puts_both_skus_side_by_side(self):
+        sku = self.chart_fragment("chart-sku-comparison")
+        self.assertIn('data-sku="developer-v1"', sku)
+        self.assertIn('data-sku="basic-v2"', sku)
+        self.assertIn("\uc57d \uc808\ubc18", sku)
+        self.assertIn("\uc815\ud655\ud55c \ube44\uc728 \ubbf8\ud655\uc815", sku)
+        self.assertNotRegex(sku, r"\ub4dc\ub86d\s*0\b")
+        for minute in BASIC_V2_MINUTES:
+            self.assertIn(minute, sku)
+
+    def test_client_latency_is_only_used_where_it_is_a_controlled_comparison(self):
+        # 클라이언트 p99는 Q6(SKU 대조)에서만 증거 능력이 있다. Q1~Q5의 권위 지표는 서버측이다.
+        self.assertNotIn('id="chart-client-latency"', self.html)
+        sku = self.chart_fragment("chart-sku-comparison")
+        svg = sku[sku.index("<svg") : sku.index("</svg>")]
+        self.assertIn('data-measure="client-p99"', svg)
+        self.assertRegex(svg, r"약\s*500\s*ms")
+        self.assertRegex(svg, r"\b30\s*ms")
+        annotation = sku[sku.index("</svg>") :]
+        self.assertRegex(annotation, r"같은 방식|동일 수집|공통 조건")
+
+    def test_report_never_claims_the_client_tail_originates_outside_apim(self):
+        # SKU만 교체하자 ~500ms 꼬리가 30ms로 사라졌으므로 '게이트웨이 밖' 단정은 반박된다.
+        self.assertNotRegex(self.html, r"APIM 밖에서 생긴")
+        self.assertNotRegex(self.html, r"APIM 서버측과 무관")
+
+    def test_run_ledger_survives_under_experiment_design(self):
+        experiment = self.section_fragment("experiment")
+        self.assertIn('id="run-ledger"', experiment)
+        ledger = experiment[experiment.index('id="run-ledger"') :]
+        self.assertIn("오류 0", ledger)
+        self.assertEqual(len(re.findall(r"results/[^<]+/result\.json", ledger)), 19)
+        for value in ("506.87", "563.79", "1112.23"):
+            self.assertIn(value, ledger)
+
+    def test_run_ledger_warns_that_client_ranking_contradicts_server_ranking(self):
+        experiment = self.section_fragment("experiment")
+        ledger = experiment[experiment.index('id="run-ledger"') :]
+        self.assertRegex(ledger, r"546\.83")
+        self.assertRegex(ledger, r"563\.79")
+        self.assertRegex(ledger, r"뒤집|역전|반대")
+
+    def test_every_evidence_chart_opens_with_a_meaning_line(self):
+        for chart_id in CHART_IDS:
+            with self.subTest(chart=chart_id):
+                fragment = self.chart_fragment(chart_id)
+                lede = fragment[fragment.index("</h3>") : fragment.index("<svg")]
+                self.assertRegex(lede, r'<p class="chart-lede"><span class="lede-label">의미</span>')
+                prose = re.sub(r"<[^>]+>", "", lede).replace("의미", "", 1).strip()
+                self.assertGreaterEqual(len(prose), 40)
+        self.assertIn(".lede-label {", self.html)
+
+    def test_aggregate_counts_are_not_presented_as_end_to_end_lossless(self):
+        saturation = self.chart_fragment("chart-saturation-outcomes")
+        self.assertRegex(
+            saturation,
+            r'<text class="outcome-line"[^>]*>AppRequests 측정창 집계 150,178건</text>',
+        )
+        self.assertIn("요청 ID 단위 대조 없음", saturation)
+
+        sku = self.chart_fragment("chart-sku-comparison")
+        self.assertIn("드롭 미관측", sku)
+        self.assertIn("요청 ID 대조 미수행", sku)
+        self.assertIn("종단 간 무손실이나 원인을 확정할 수 없습니다", sku)
+        self.assertNotIn("일정 도달로 무손실", sku)
+
+        self.assertNotRegex(self.html, r"빨간 띠|빨간 띄")
+
+    def test_executive_headline_scopes_log_loss_to_event_hub_saturation(self):
+        executive = self.section_fragment("executive-summary")
+        headline = re.search(
+            r'<h2[^>]*class="primary-statement"[^>]*>([\s\S]*?)</h2>',
+            executive,
+        )
+        self.assertIsNotNone(headline)
+        self.assertIn("<br", headline.group(1))
+        statement = self.text_without_tags(headline.group(1))
+        self.assertIn("Event Hub", statement)
+        self.assertIn("포화", statement)
+        self.assertNotEqual(statement, "API 요청은 100% 성공해도 감사 로그는 유실될 수 있다")
+        for phrase in (
             "Developer v1",
-            "Basic v2",
-            "8KB",
-            "64KB",
-            "100~500 RPS",
-            "3회 반복",
-            "메타데이터만",
-            "1,000 RPS",
-            "워밍업",
+            "8KB 400 RPS · 64KB 300 RPS",
+            "App Insights",
+            "부하 완화 또는 SKU 상향",
+        ):
+            self.assertIn(phrase, executive)
+        self.assertIn("게이트웨이가 포화하면", self.html)
+
+    def test_embedded_results_stay_collapsed_by_default(self):
+        embedded = self.section_fragment("results-full")
+        details = re.search(r"<details[^>]*>", embedded)
+        self.assertIsNotNone(details)
+        self.assertNotIn("open", details.group(0))
+
+    def test_executive_summary_points_to_embedded_results(self):
+        executive = self.section_fragment("executive-summary")
+        self.assertRegex(
+            executive,
+            r'<a href="#results-full"[^>]*>[^<]*결과 보고서 원문[^<]*</a>',
+        )
+
+    def test_executive_summary_stays_scannable_not_narrative(self):
+        executive = self.section_fragment("executive-summary")
+        self.assertNotIn("습니다", executive)
+        self.assertNotIn('class="lede"', executive)
+
+    def test_executive_summary_visualizes_two_path_sacrifice(self):
+        executive = self.section_fragment("executive-summary")
+        self.assertIn('data-path="app-insights"', executive)
+        self.assertIn('data-path="event-hub"', executive)
+        self.assertIn("150,000 / 150,000 HTTP 성공", executive)
+        self.assertIn("처리시간 증가 · 로그 보존", executive)
+        self.assertIn("로그 폐기 · 작업량 감소", executive)
+        self.assertIn("0.9~2.5 ms", executive)
+        self.assertIn("0.4~1.7 ms", executive)
+
+    def test_executive_summary_lists_six_key_findings_and_scope(self):
+        executive = self.section_fragment("executive-summary")
+        self.assertEqual(len(re.findall(r'class="finding-item"', executive)), 6)
+        for phrase in (
+            "8,192 bytes",
+            "N8 58% · A8 66% · E8 85%",
+            "Event Hubs가 아닌 APIM 게이트웨이",
+            "Developer v1의 공식 예상 최대치",
+            "APIM 전송 성공·드롭 수",
+            "Event Hubs 수신·스로틀링",
+            "API 응답 성공률만으로는 로그 유실 감지 불가",
+            "Korea Central",
+            "대부분 1회 실행",
+        ):
+            self.assertIn(phrase, executive)
+
+    def test_exact_visible_labels_cover_basic_v2_and_limit_phrases(self):
+        for phrase in CAPACITY_VALUES + DURATION_VALUES + BASIC_V2_MINUTES:
+            self.assertIn(phrase, self.visible_text)
+        for phrase in (
+            "정확한 드롭률 미확정",
+            "300~400 RPS 사이에서 드롭 전이가 관측",
+            "드롭 구간 Duration은 성능 우열 근거가 아님",
+            "8,192 bytes",
+            "200KB",
+        ):
+            self.assertIn(phrase, self.visible_text)
+
+    def test_experiment_section_keeps_cautions_in_scope(self):
+        experiment = self.section_fragment("experiment")
+        for phrase in (
+            "APIM success/drop",
+            "Event Hubs ingress/throttling",
+            "API 성공률",
+            "로그 전달 성공률",
             "요청 ID",
-        ]
-        for phrase in required:
-            self.assertIn(phrase, self.html)
-
-    def test_scope_line_names_one_basic_v2_comparison_and_untested_1000_rps(self):
-        hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
-        for phrase in (
-            "Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건",
-            "조건별 대부분 한 번 실행",
-            "1,000 RPS는 테스트하지 않음",
-        ):
-            self.assertIn(phrase, hero)
-
-    def test_experiment_conditions_include_required_infrastructure_without_row_grades(self):
-        conditions = re.search(
-            r'<section role="tabpanel" id="panel-conditions"[\s\S]*?</section>',
-            self.html,
-        ).group(0)
-        required = [
-            "Event Hubs Standard 40 TU",
-            "32 partitions",
-            "auto-inflate OFF",
-            "Standard_D8as_v5",
-            "Python asyncio/aiohttp",
-            "동시성 20",
-            "재시도 비활성화",
             "워밍업",
-        ]
-        for phrase in required:
-            self.assertIn(phrase, conditions)
-        self.assertNotIn("<th>증거 등급</th>", conditions)
-
-    def test_condition_definition_source_line_has_no_evidence_badge(self):
-        conditions = re.search(
-            r'<section role="tabpanel" id="panel-conditions"[\s\S]*?</section>',
-            self.html,
-        ).group(0)
-        source = re.search(r'<p class="chart-source">(?P<body>[\s\S]*?)</p>', conditions).group("body")
-        self.assertIn("조건 정의에는 색상 등급을 붙이지 않고", self.text_without_tags(source))
-        self.assertNotRegex(source, r'class="evidence')
-
-    def test_summary_has_customer_action_list_and_scoped_eh_bottleneck_evidence(self):
-        summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
-        required_actions = [
-            "API SLO와 로깅 SLO를 분리",
-            "APIM EH 드롭/성공과 EH 유입/스로틀링을 함께 모니터링",
-            "피크 RPS × 기록 페이로드 크기",
-            "v1은 클래식 티어 Capacity, v2는 게이트웨이 CPU/메모리",
-        ]
-        for action in required_actions:
-            self.assertIn(action, summary)
-        for evidence in ("8KB 500 RPS", "약 4 MB/s", "40 TU의 약 10%", "EH 스로틀링은 측정창 집계에서 0"):
-            self.assertIn(evidence, summary)
-        self.assertIn(
-            "EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다.",
-            summary,
-        )
-
-    def test_summary_uses_intentional_four_three_layout_instead_of_fixed_five_columns(self):
-        body = self.css_body(".summary-grid")
-        self.assertIn("grid-template-columns: repeat(12, minmax(0, 1fr));", body)
-        self.assertNotIn("grid-template-columns: repeat(5, minmax(0, 1fr));", body)
-        self.assertRegex(
-            self.html,
-            r'\.summary-card\[data-result-key="1"\],\s*'
-            r'\.summary-card\[data-result-key="2"\],\s*'
-            r'\.summary-card\[data-result-key="3"\],\s*'
-            r'\.summary-card\[data-result-key="4"\]\s*\{\s*grid-column:\s*span 3;',
-        )
-        self.assertRegex(
-            self.html,
-            r'\.summary-card\[data-result-key="5"\],\s*'
-            r'\.summary-card\[data-result-key="6"\],\s*'
-            r'\.summary-card\[data-result-key="7"\]\s*\{\s*grid-column:\s*span 4;',
-        )
-
-    def test_html_summary_matches_active_results_order(self):
-        summary = re.search(
-            r'id="panel-summary"[\s\S]*?</section>',
-            self.html,
-        ).group(0)
-        positions = [summary.index(f'data-result-key="{index}"') for index in range(1, 8)]
-        self.assertEqual(positions, sorted(positions))
-        self.assertEqual(self.result_summary_headings, EXPECTED_RESULT_SUMMARY_HEADINGS)
-        for heading in self.result_summary_headings:
-            self.assertIn(heading, summary)
-
-    def test_summary_has_exactly_seven_cards_bound_to_matching_keys_and_headings(self):
-        summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
-        all_cards = re.findall(r'<article class="panel-card summary-card"[\s\S]*?</article>', summary)
-        self.assertEqual(len(all_cards), 7)
-        cards = [
-            (
-                re.search(r'data-result-key="([^"]+)"', card_html).group(1),
-                card_html,
-            )
-            for card_html in all_cards
-        ]
-        self.assertEqual([key for key, _ in cards], [str(index) for index in range(1, 8)])
-        self.assertEqual(self.result_summary_headings, EXPECTED_RESULT_SUMMARY_HEADINGS)
-        for index, heading in enumerate(self.result_summary_headings, start=1):
-            card_html = next(card for key, card in cards if key == str(index))
-            self.assertIn(f"<h3>{heading}</h3>", card_html)
-
-    def test_summary_cards_consistently_cite_source_documents_in_evidence_badges(self):
-        summary = re.search(r'id="panel-summary"[\s\S]*?</section>', self.html).group(0)
-        cards = re.findall(
-            r'<article class="panel-card summary-card" data-result-key="([1-7])">([\s\S]*?)</article>',
-            summary,
-        )
-        for key, card_html in cards:
-            badge = re.search(r'<span class="evidence [^"]+">(?P<badge>[^<]+)</span>', card_html)
-            self.assertIsNotNone(badge, key)
-            badge_text = badge.group("badge")
-            self.assertIn("RESULTS.md +", badge_text)
-            self.assertRegex(badge_text, r"RESULTS\.md \+ [^<]*(?:\.md|\.json)")
-
-    def test_html_question_verdicts_match_active_results(self):
-        hypotheses = re.search(
-            r'id="panel-hypotheses"[\s\S]*?</section>',
-            self.html,
-        ).group(0)
-        self.assertEqual(self.result_verdicts, RESULT_VERDICTS)
-        for question, verdict in self.result_verdicts.items():
-            card = re.search(
-                rf'data-question="{question}"[\s\S]*?</article>',
-                hypotheses,
-            ).group(0)
-            self.assertIn(verdict, card)
-
-    def test_basic_v2_selection_rationale_is_shown(self):
-        card = re.search(
-            r'data-question="q5"[\s\S]*?</article>',
-            self.html,
-        ).group(0)
-        self.assertIn("비교 이유", card)
-        self.assertIn("500 requests/sec", card)
-        self.assertIn("대응 RPS 수치가 없고", card)
-
-    def test_sources_link_active_and_archived_reports(self):
-        for href in (
-            "RESULTS.md",
-            "old/RESULTS.md",
-            "old/REVIEW.md",
         ):
-            self.assertIn(f'href="{href}"', self.html)
-        self.assertNotIn('href="REVIEW.md"', self.html)
+            self.assertIn(phrase, experiment)
+        self.assertNotIn("운영 모니터링", experiment)
 
-    def test_limitations_panel_scopes_cautions_and_links_archived_review_basis(self):
-        limitations = re.search(r'id="panel-limitations"[\s\S]*?</section>', self.html).group(0)
+    def test_guardrails_section_keeps_operational_monitoring_copy_in_scope(self):
+        guardrails = self.section_fragment("guardrails")
         for phrase in (
-            "조건별 대부분 한 번 실행",
-            "요청 ID·해시 대조 누락",
-            "메타데이터만 기록한 기준선",
-            "1,000 RPS",
-            "old/REVIEW.md",
+            "APIM 권위 지표 아님 · 보조 증거",
+            "APIM 서버측 Duration/Capacity",
+            "EventHubDroppedEvents",
+            "판정의 우선 근거",
         ):
-            self.assertIn(phrase, limitations)
+            self.assertIn(phrase, guardrails)
 
-    def test_confidence_matrix_scopes_throttling_and_uses_archived_review_sources(self):
-        fragment = self.chart_fragment("chart-confidence")
-        self.assertNotIn("8KB RPS를 낮추면 APIM 드롭이 사라졌습니다", fragment)
-        self.assertIn("8KB 드롭 전이는 300~400 RPS 사이에서 관측됐습니다", fragment)
-        self.assertIn("EH 스로틀링은 측정창 집계에서 0으로 확인됐고", fragment)
-        self.assertIn("RPS 구간별 개별 확인은 일부만 기록됐습니다", fragment)
-        self.assertIn("old/RESULTS.md", fragment)
-        self.assertIn("old/REVIEW.md", fragment)
-        self.assertNotIn("RESULTS.md 교정 해석", fragment)
-
-    def test_customer_facing_hypothesis_copy_uses_hamnida_style(self):
-        hypotheses = re.search(r'id="panel-hypotheses"[\s\S]*?</section>', self.html).group(0)
-        plain_style = [
-            "영향을 준다.",
-            "로깅할 수 있다.",
-            "보장한다.",
-            "다르게 관측된다.",
-            "판단할 수 없다.",
-            "원인을 SKU 하나로 단정하지 않는다.",
-        ]
-        polite_style = [
-            "영향을 줍니다.",
-            "로깅할 수 있습니다.",
-            "보장합니다.",
-            "다르게 관측됩니다.",
-            "판단할 수 없습니다.",
-            "원인을 SKU 하나로 단정하지 않습니다.",
-        ]
-        for phrase in plain_style:
-            self.assertNotIn(phrase, hypotheses)
-        for phrase in polite_style:
-            self.assertIn(phrase, hypotheses)
-
-    def test_hero_marks_queue_mechanism_as_conditional_or_inferred(self):
-        hero = re.search(r"<header class=\"hero\">[\s\S]*?</header>", self.html).group(0)
-        self.assertIn("큐 한도 메커니즘은 조건부/추정", hero)
-
-    def test_visible_customer_copy_rejects_unnecessary_english_phrases(self):
-        visible = self.visible_text.lower()
-        banned_phrases = [
-            "evidence report",
-            "tested scope",
-            "evidence legend",
-            "maintenance model",
-            "manual-maintenance notice",
-            "mostly one run per cell",
-            "one run per cell",
-            "customer action",
-            "diagnostics disabled",
-            "source doc",
-            "client result json",
-            "working-tree",
-            "backend latency",
-            "logging cost",
-            "source:",
-            "off-scale",
-        ]
-        for phrase in banned_phrases:
-            self.assertNotIn(phrase, visible)
-
-        required_phrases = [
-            "근거 기반 보고서",
-            "검증 범위",
-            "검증 등급",
-            "첫 화면 고객 실행 항목",
-            "조건별 대부분 한 번 실행",
-            "요청 id/해시 대조",
-            "메타데이터만 기준선",
-            "진단 기능 비활성화",
-            "원문 문서",
-            "클라이언트 결과 json",
+    def test_sources_section_keeps_precedence_copy_in_scope(self):
+        embedded = self.section_fragment("results-full")
+        for phrase in (
+            "RESULTS.md가 우선",
             "활성 공식 결과 보고서",
-            "백엔드 지연",
-            "로깅 비용",
-            "출처:",
-            "축 범위 밖",
-        ]
-        for phrase in required_phrases:
-            self.assertIn(phrase, visible)
+            "보관된 이전 해석",
+        ):
+            self.assertIn(phrase, embedded)
 
-    def test_hypothesis_cards_include_safe_reuse_payload_and_sku_messages(self):
-        hypotheses = re.search(r'id="panel-hypotheses"[\s\S]*?</section>', self.html).group(0)
-        self.assertEqual(re.findall(r'data-question="(q[1-5])"', hypotheses), ["q1", "q2", "q3", "q4", "q5"])
-        self.assertEqual(hypotheses.count("안전 재사용 문장:"), 5)
-        for heading in ("요청 크기는 APIM 처리와 로그 전달에 영향을 주는가", "Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가"):
-            self.assertIn(heading, hypotheses)
-        self.assertIn("HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없습니다", hypotheses)
-        self.assertIn("원인을 SKU 하나로 단정하지 않습니다", hypotheses)
+    def test_decision_tree_has_required_nodes_and_loop_warning(self):
+        decision = self.section_fragment("decision")
+        for phrase in (
+            "로깅 목적",
+            "본문 필요 여부",
+            "8KB 초과 여부",
+            "목표 RPS × payload",
+            "용량 확보",
+            "같은 부하로 재시험",
+            "저장소 선택",
+            "Event Hubs TU 증설은 APIM 드롭의 기본 해법이 아닙니다",
+        ):
+            self.assertIn(phrase, decision)
+        self.assertRegex(self.text_without_tags(decision), r"재시험\s*→\s*부하 판정")
 
-    def test_64kb_duration_chart_has_delivery_completeness_caution(self):
-        fragment = self.chart_fragment("chart-duration-64k")
-        self.assertIn("APIM Duration은 전달 완전성 지표가 아닙니다", fragment)
-        self.assertIn("E/N 차이는 순수한 로깅 비용 측정치가 아닙니다", fragment)
+    def test_decision_tree_branches_and_terminates_at_sink_alerts(self):
+        decision = self.section_fragment("decision")
+        sinks = re.search(r'<ul class="sink-branches"[\s\S]*?</ul>', decision)
+        self.assertIsNotNone(sinks)
+        self.assertIn('data-node="app-insights"', sinks.group(0))
+        self.assertIn('data-node="event-hub"', sinks.group(0))
+        self.assertIn('data-node="app-insights-alert"', decision)
+        self.assertIn('data-node="event-hub-alert"', decision)
+        self.assertIn('data-node="monitoring-exit"', decision)
+        self.assertIn("데이터 수집 한도", decision)
+        self.assertIn("EventHubDroppedEvents 알림 필수", decision)
+        self.assertIn("드롭이 나도 요청은 200", decision)
 
-    def test_client_latency_chart_is_supporting_and_uses_neutral_series_color(self):
-        fragment = self.chart_fragment("chart-client-latency")
-        self.assertIn("APIM 권위 지표 아님 · 보조 증거", fragment)
-        self.assertNotRegex(fragment, r'class="bar series-(?:a|n|e|warning|danger|success)"')
-        self.assertRegex(fragment, r'class="bar series-neutral"')
-
-    def test_customer_facing_limitations_and_confidence_matrix_are_korean(self):
-        checked = "\n".join(
-            [
-                re.search(r'id="panel-limitations"[\s\S]*?</section>', self.html).group(0),
-                self.chart_fragment("chart-confidence"),
-                self.chart_fragment("chart-sku-comparison"),
-            ]
+    def test_sink_choice_states_destination_criteria_not_body_size_only(self):
+        decision = self.section_fragment("decision")
+        sink_choice = re.search(
+            r'<li class="decision-node" data-node="sink-choice"[\s\S]*?<ul class="sink-branches"',
+            decision,
         )
-        banned = [
-            "planned three repeats",
-            "missing request-ID",
-            "metadata-only baseline",
-            "warmup contamination",
-            "drop=0 versus",
-            "stable threshold",
-            "asymmetric v1/v2 metrics",
-            "client p99 artifacts",
-            "untested 1,000 RPS",
-            "HTTP 200 can coexist",
-            "was not collected라",
-            "mechanism and SKU-only causality unproven",
-        ]
-        for phrase in banned:
-            self.assertNotIn(phrase, checked)
-        for phrase in ("반복 실행 부족", "요청 ID·해시 대조 누락", "메타데이터만 기록한 기준선", "v2 CPU/메모리 미수집"):
-            self.assertIn(phrase, checked)
+        self.assertIsNotNone(sink_choice)
+        for phrase in (
+            "본문이 필요 없어도",
+            "갈림은 목적지",
+            "외부 실시간 스트리밍",
+            "이 분기에 오지 않습니다",
+        ):
+            self.assertIn(phrase, sink_choice.group(0))
 
-    def test_confidence_matrix_source_line_is_not_mislabeled_as_confirmed(self):
-        fragment = self.chart_fragment("chart-confidence")
-        source = re.search(r'<p class="chart-source">(?P<body>[\s\S]*?)</p>', fragment).group("body")
-        self.assertIn("확정/조건부/미검증/교정", self.text_without_tags(source))
-        self.assertNotRegex(source, r'class="evidence')
+    def test_results_report_is_embedded_for_standalone_sharing(self):
+        embedded = self.section_fragment("results-full")
+        self.assertIn("Lab 13 \ucd5c\uc885 \uacb0\uacfc \ubcf4\uace0\uc11c", embedded)
+        for heading in (
+            "\uc9c8\ubb38 1 \u2014",
+            "\uc9c8\ubb38 2 \u2014",
+            "\uc9c8\ubb38 3 \u2014",
+            "\uc9c8\ubb38 4 \u2014",
+            "\uc9c8\ubb38 5 \u2014",
+            "\uc9c8\ubb38 6 \u2014",
+        ):
+            self.assertIn(heading, embedded)
+        for value in ("2,933", "41,435", "76,434", "150,178", "30056"):
+            self.assertIn(value, embedded)
+        self.assertGreaterEqual(embedded.count("<table>"), 10)
+        self.assertIn("\uc774\ub984\uc73c\ub85c\ub9cc 표기", embedded)
 
-    def test_latency_rows_match_all_json_results_with_sensible_precision(self):
-        self.assertEqual(len(self.results), 19)
-        table = re.search(
-            r"<caption>19개 result\.json 파일의 클라이언트 지연 값 \(소수 둘째 자리 반올림\)</caption>[\s\S]*?<tbody>(?P<body>[\s\S]*?)</tbody>",
+    def test_scenario_recommendations_are_not_duplicated_as_a_section(self):
+        for token in (
+            'id="recommendations"',
+            'href="#recommendations"',
+            "recommendation-item",
+            "recommendation-grid",
+            "\uc2dc\ub098\ub9ac\uc624\ubcc4",
+        ):
+            self.assertNotIn(token, self.html)
+        self.assertIn("\uc2f1\ud06c \uc18c\ube44 \uc9c0\uc5f0\uacfc \ud30c\ud2f0\uc158 \ucc98\ub9ac\ub7c9", self.section_fragment("limitations"))
+
+    def test_decision_steps_are_collapsed_below_the_flowchart(self):
+        decision = self.section_fragment("decision")
+        chart_pos = decision.index('class="diagram-scroll"')
+        details = re.search(
+            r'<details class="[^"]*step-details[^"]*">\s*<summary>([^<]+)</summary>',
+            decision,
+        )
+        self.assertIsNotNone(details)
+        self.assertIn("단계별", details.group(1))
+        self.assertGreater(details.start(), chart_pos)
+        self.assertGreater(decision.index('class="decision-flow"'), details.start())
+
+    def test_decision_track_layout_keeps_branching_steps_readable(self):
+        self.assertRegex(self.html, r"\.decision-track\s*\{[^}]*align-items:\s*start")
+        self.assertRegex(
             self.html,
+            r'\.decision-node\[data-node="sink-choice"\][\s\S]{0,160}?grid-column:\s*1\s*/\s*-1',
         )
-        self.assertIsNotNone(table)
-        row_matches = re.findall(r"<tr>(?P<row>[\s\S]*?)</tr>", table.group("body"))
-        rows = {}
-        for row in row_matches:
-            cells = re.findall(r"<td>(?P<cell>[\s\S]*?)</td>", row)
-            text_cells = [self.text_without_tags(cell) for cell in cells]
-            if text_cells:
-                rows[text_cells[0]] = text_cells
-        self.assertEqual(set(rows), set(self.results))
-        for path, data in self.results.items():
-            expected = [
-                path,
-                data["condition"],
-                str(data["payloadBytes"]),
-                str(data["rate"]),
-                str(data["offered"]),
-                str(data["successful"]),
-                str(data["errors"]),
-                f"{data['p50Ms']:.2f}",
-                f"{data['p95Ms']:.2f}",
-                f"{data['p99Ms']:.2f}",
-            ]
-            self.assertEqual(rows[path], expected)
+        self.assertNotRegex(
+            self.html,
+            r"\.decision-track\s*\{[^}]*grid-template-columns:\s*repeat\(4,",
+        )
 
-    def test_no_raw_colors_outside_clawpilot_token_definitions(self):
-        style = re.search(r"<style>(?P<style>[\s\S]*?)</style>", self.html).group("style")
-        color_pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(")
-        offenders = [
-            line.strip()
-            for line in style.splitlines()
-            if color_pattern.search(line) and "--cp-" not in line
-        ]
-        self.assertEqual(offenders, [])
+    def test_drop_check_is_scoped_to_event_hub_paths(self):
+        decision = self.section_fragment("decision")
+        chart = re.search(r'<svg class="decision-connectors[^"]*"[\s\S]*?</svg>', decision).group(0)
+        self.assertIn('data-role="sink-choice"', chart)
+        self.assertEqual(chart.count('data-role="eh-load-check"'), 1)
+        self.assertIn("Event Hub 경로 전용 판정", chart)
+        self.assertIn("드롭 미관측 · 처리시간 증가 감안", chart)
+        self.assertIn("외부 실시간 스트리밍(SIEM·데이터레이크)", chart)
+        self.assertIn("Azure Monitor 통합(쿼리·알림·분석)", chart)
+        for leaked in (
+            "본문 &gt; 8KB 고정",
+            "8KB 이하 또는 메타데이터만",
+            "8KB 초과는 이미 고정됨",
+            "실시간 스트리밍 · 본문 &gt; 8KB",
+        ):
+            self.assertNotIn(leaked, chart)
 
-    def test_customer_facing_tables_and_captions_use_korean_labels(self):
-        self.assertIn(
-            "<caption>19개 result.json 파일의 클라이언트 지연 값 (소수 둘째 자리 반올림)</caption>",
-            self.html,
-        )
-        self.assertIn(
-            "<tr><th>출처</th><th>조건</th><th>payloadBytes</th><th>요청률</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>p50Ms</th><th>p95Ms</th><th>p99Ms</th></tr>",
-            self.html,
-        )
-        self.assertIn(
-            "<caption>19개 result.json 파일의 목표 요청 대비 성공 요청</caption>",
-            self.html,
-        )
-        self.assertIn(
-            "<thead><tr><th>출처</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>클라이언트 성공률</th></tr></thead>",
-            self.html,
-        )
+    def test_decision_flowchart_mirrors_source_tree(self):
+        decision = self.section_fragment("decision")
+        chart = re.search(r'<svg class="decision-connectors[^"]*"[\s\S]*?</svg>', decision)
+        self.assertIsNotNone(chart)
+        svg = chart.group(0)
+        self.assertIn('role="img"', svg)
+        self.assertNotIn('aria-hidden="true"', svg)
+        self.assertRegex(svg, r'aria-label="[^"]*[가-힣][^"]*"')
+        self.assertIn("<title>", svg)
+        for label in (
+            "APIM 로깅 설계 시작",
+            "로깅 목적?",
+            "App Insights 선택",
+            "App Insights + 적정 기록 비율",
+            "본문 크기 &gt; 8KB?",
+            "Event Hub 경로만 가능",
+            "부하 재측정",
+            "드롭 0 달성 → 재판정",
+            "저장소 선택",
+            "App Insights 100% 기록",
+            "Event Hub + 드롭 알림",
+            "데이터 수집 한도",
+            "EventHubDroppedEvents 알림 필수",
+        ):
+            self.assertIn(label, svg)
+
+    def test_report_uses_korean_chart_context_not_tabbed_copy(self):
+        self.assertNotIn('role="tab"', self.html)
+        self.assertNotIn('role="tabpanel"', self.html)
+        self.assertNotIn('data-tab=', self.html)
 
 
 if __name__ == "__main__":

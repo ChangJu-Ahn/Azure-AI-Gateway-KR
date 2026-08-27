@@ -92,21 +92,42 @@
         font-family: Consolas, "Courier New", Courier, monospace;
       }
 
+      :focus-visible {
+        outline: 2px solid var(--cp-accent);
+        outline-offset: 2px;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -48px;
+        left: 12px;
+        z-index: 100;
+        padding: 10px 16px;
+        background: var(--cp-accent);
+        color: var(--cp-accent-fg);
+        border-radius: 0.625rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: top 0.15s ease;
+      }
+
+      .skip-link:focus {
+        top: 12px;
+      }
+
       .page {
         max-width: 1180px;
         margin: 0 auto;
         padding: 32px 20px 40px;
       }
 
-      .hero,
-      [role="tabpanel"] {
+      .report-hero {
         background: var(--cp-surface);
         border: 1px solid var(--cp-border);
-      }
-
-      .hero {
         border-radius: 16px;
         padding: 24px;
+        margin: 0 auto;
+        max-width: 1180px;
       }
 
       .eyebrow,
@@ -156,64 +177,20 @@
         font-size: 1rem;
       }
 
-      .hero-meta,
-      .summary-grid,
-      .panel-grid,
-      .chart-grid,
-      .source-list {
+      .hero-meta {
         display: grid;
         gap: 12px;
-      }
-
-      .hero-meta {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         margin-top: 20px;
       }
 
-      .summary-grid {
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        margin-top: 16px;
-      }
-
-      .summary-card[data-result-key="1"],
-      .summary-card[data-result-key="2"],
-      .summary-card[data-result-key="3"],
-      .summary-card[data-result-key="4"] {
-        grid-column: span 3;
-      }
-
-      .summary-card[data-result-key="5"],
-      .summary-card[data-result-key="6"],
-      .summary-card[data-result-key="7"] {
-        grid-column: span 4;
-      }
-
-      .panel-grid,
-      .chart-grid,
-      .source-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-top: 16px;
-      }
-
-      .meta-card,
-      .panel-card,
-      .source-item,
-      .chart-card {
+      .meta-card {
         margin: 0;
         min-width: 0;
         padding: 16px;
         border: 1px solid var(--cp-border);
         border-radius: 16px;
         background: var(--cp-surface-soft);
-      }
-
-      .summary-card {
-        min-height: 160px;
-      }
-
-      .chart-wide,
-      .full-span {
-        grid-column: 1 / -1;
       }
 
       .meta-card dt {
@@ -229,92 +206,500 @@
         font-weight: 600;
       }
 
+      .report-nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: var(--cp-panel-strong);
+        border-top: 1px solid var(--cp-border);
+        border-bottom: 1px solid var(--cp-border);
+        backdrop-filter: blur(6px);
+      }
+
+      .report-nav ul {
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        margin: 0 auto;
+        padding: 0;
+        max-width: 1180px;
+      }
+
+      .report-nav li {
+        flex: 0 0 auto;
+      }
+
+      .report-nav a {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        color: var(--cp-text-muted);
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+
+      .report-nav a:hover {
+        color: var(--cp-text);
+        background: var(--cp-surface-soft);
+      }
+
+      .report-nav a[aria-current="location"] {
+        color: var(--cp-accent);
+        border-color: var(--cp-border-strong);
+        background: var(--cp-accent-soft);
+      }
+
+      main {
+        display: block;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        overflow-wrap: anywhere;
+      }
+
+      main > section {
+        margin-top: 32px;
+        padding-top: 8px;
+        scroll-margin-top: 80px;
+        border-top: 1px solid var(--cp-border);
+      }
+
+      main > section:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .primary-statement {
+        margin-top: 12px;
+        color: var(--cp-accent);
+      }
+
+      .path-compare {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        background: var(--cp-surface-soft);
+      }
+
+      .compare-head {
+        color: var(--cp-text-muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      .compare-head strong {
+        color: var(--cp-text);
+      }
+
+      .path-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 12px;
+      }
+
+      .path-card {
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid var(--cp-border);
+        border-top: 4px solid var(--cp-border-strong);
+        border-radius: 12px;
+        background: var(--cp-surface);
+      }
+
+      .path-card[data-path="app-insights"] {
+        border-top-color: var(--cp-link);
+      }
+
+      .path-card[data-path="event-hub"] {
+        border-top-color: var(--cp-accent);
+      }
+
+      .path-card h3 {
+        color: var(--cp-text-muted);
+        font-size: 0.95rem;
+      }
+
+      .path-verdict {
+        margin-top: 6px;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .path-card[data-path="app-insights"] .path-verdict {
+        color: var(--cp-link);
+      }
+
+      .path-card[data-path="event-hub"] .path-verdict {
+        color: var(--cp-danger);
+      }
+
+      .path-metric {
+        margin-top: 6px;
+        font-size: 0.95rem;
+      }
+
+      .path-chip {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 4px 10px;
+        border: 1px solid var(--cp-border);
+        border-radius: 999px;
+        background: var(--cp-surface-soft);
+        color: var(--cp-text-muted);
+        font-size: 0.78rem;
+      }
+
+      .finding-list {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 16px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .finding-item {
+        display: flex;
+        gap: 10px;
+        min-width: 0;
+        padding: 12px 14px;
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        background: var(--cp-surface);
+      }
+
+      .finding-index {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--cp-accent);
+        color: var(--cp-accent-fg);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .finding-item p {
+        font-size: 0.9rem;
+      }
+
+      .finding-item strong {
+        color: var(--cp-accent);
+      }
+
+      .digest-strip {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 16px 0 0;
+      }
+
+      .digest-item {
+        min-width: 0;
+        padding: 12px 14px;
+        border-left: 4px solid var(--cp-border-strong);
+        border-radius: 0.625rem;
+        background: var(--cp-surface-soft);
+      }
+
+      .digest-item dt {
+        color: var(--cp-text-muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .digest-item dd {
+        margin: 4px 0 0;
+        font-size: 0.9rem;
+      }
+
+      .source-jump {
+        margin-top: 12px;
+        color: var(--cp-text-muted);
+        font-size: 0.9rem;
+      }
+
+      .guardrail-grid,
+      .limitation-grid,
+      .panel-grid,
+      .chart-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 16px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .guardrail-item,
+      .limitation-item,
+      .panel-card,
+      .chart-card {
+        margin: 0;
+        min-width: 0;
+        padding: 16px;
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        background: var(--cp-surface-soft);
+      }
+
+      .chart-wide,
+      .full-span {
+        grid-column: 1 / -1;
+      }
+
+      .evidence-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .legend-icon {
+        font-size: 0.7rem;
+      }
+
       .warning {
         margin-top: 16px;
         padding: 14px 16px;
-        border-left: 4px solid var(--cp-accent);
+        border-left: 4px solid var(--cp-warning);
         border-radius: 0.625rem;
         background: var(--cp-accent-soft);
         color: var(--cp-text);
       }
 
-      .warning {
-        border-left-color: var(--cp-warning);
+      .decision-flow {
+        margin-top: 16px;
       }
 
-      .tabs {
-        margin-top: 20px;
-      }
-
-      [role="tablist"] {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 0;
+      .decision-track {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+        list-style: none;
         margin: 0;
-        border-bottom: 1px solid var(--cp-border);
+        padding: 0;
       }
 
-      [role="tab"] {
-        appearance: none;
-        border: 1px solid var(--cp-border);
-        border-bottom: 0;
-        border-radius: 0.625rem 0.625rem 0 0;
-        background: var(--cp-surface-soft);
-        color: var(--cp-text-muted);
-        cursor: pointer;
-        font: inherit;
-        font-weight: 700;
-        padding: 12px 16px;
-        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      .decision-node[data-node="sink-choice"],
+      .decision-node[data-node="load-check"] {
+        grid-column: 1 / -1;
       }
 
-      [role="tab"]:hover {
-        color: var(--cp-text);
-        background: var(--cp-bg-elevated);
+      .decision-branches {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        margin-top: 16px;
       }
 
-      [role="tab"][aria-selected="true"] {
+      .decision-branch {
+        padding: 16px;
+        border: 1px dashed var(--cp-border-strong);
+        border-radius: 16px;
+      }
+
+      .decision-branch-no {
+        border-color: var(--cp-warning);
+      }
+
+      .decision-branch-yes {
+        border-color: var(--cp-success);
+      }
+
+      .branch-label {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 4px 10px;
+        border-radius: 999px;
         background: var(--cp-surface);
-        color: var(--cp-accent);
-        border-color: var(--cp-border-strong);
-        position: relative;
-        top: 1px;
+        border: 1px solid var(--cp-border-strong);
+        font-weight: 700;
+        font-size: 0.85rem;
       }
 
-      [role="tab"]:focus-visible {
-        outline: 2px solid var(--cp-accent);
-        outline-offset: 2px;
+      .decision-steps {
+        display: grid;
+        gap: 10px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
       }
 
-      .panel-stack {
+      .decision-node {
+        padding: 14px;
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        background: var(--cp-surface);
+      }
+
+      .decision-node p {
+        margin-top: 6px;
+        color: var(--cp-text-muted);
+      }
+
+      .loop-callout {
+        margin-top: 6px;
+        padding: 8px 10px;
+        border-radius: 0.625rem;
+        border: 1px solid var(--cp-warning);
+        background: var(--cp-accent-soft);
+        color: var(--cp-text);
+        font-weight: 700;
+      }
+
+      .decision-connectors {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin-top: 16px;
+      }
+
+      .connector-line {
+        fill: none;
+        stroke: var(--cp-border-strong);
+        stroke-width: 2;
+      }
+
+      .connector-loop {
+        fill: none;
+        stroke: var(--cp-warning);
+        stroke-width: 2;
+        stroke-dasharray: 6 4;
+      }
+
+      .connector-label {
+        fill: var(--cp-text-muted);
+        font-size: 12px;
+      }
+
+      .connector-node {
+        fill: var(--cp-surface-soft);
+        stroke: var(--cp-border);
+      }
+
+      .connector-alert {
+        fill: var(--cp-accent-soft);
+        stroke: var(--cp-warning);
+        stroke-width: 1.5;
+      }
+
+      .diagram-scroll {
+        margin-top: 16px;
+        overflow-x: auto;
+      }
+
+      .diagram-scroll .decision-connectors {
         margin-top: 0;
       }
 
-      [role="tabpanel"] {
-        display: block;
-        padding: 20px;
-        border-top: 0;
-        border-radius: 0 0 16px 16px;
+      .flowchart {
+        min-width: 760px;
       }
 
-      .js [role="tabpanel"]:not(.is-active) {
-        display: none;
+      .flow-terminal {
+        fill: var(--cp-highlight);
+        stroke: var(--cp-accent);
+        stroke-width: 1.5;
       }
 
-      .panel-card p,
-      .panel-card li,
-      .source-item p,
-      .chart-note,
-      .chart-source {
+      .flow-decision {
+        fill: var(--cp-surface);
+        stroke: var(--cp-accent);
+        stroke-width: 1.5;
+      }
+
+      .flow-junction {
+        fill: var(--cp-border-strong);
+      }
+
+      .flow-text {
+        fill: var(--cp-text);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .flow-text.sub {
+        fill: var(--cp-text-muted);
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+
+      .sink-branches {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 10px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .sink-node {
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--cp-border);
+        border-top: 3px solid var(--cp-border-strong);
+        border-radius: 10px;
+        background: var(--cp-surface-soft);
+      }
+
+      .sink-node[data-node="app-insights"] {
+        border-top-color: var(--cp-link);
+      }
+
+      .sink-node[data-node="event-hub"] {
+        border-top-color: var(--cp-accent);
+      }
+
+      .sink-node h4 {
+        font-size: 0.95rem;
+      }
+
+      .sink-node p {
+        margin-top: 4px;
         color: var(--cp-text-muted);
-        overflow-wrap: anywhere;
+        font-size: 0.85rem;
       }
 
-      .panel-card ul,
-      .panel-card ol {
-        margin: 12px 0 0;
-        padding-left: 18px;
+      .sink-alert {
+        padding: 6px 10px;
+        border-left: 3px solid var(--cp-warning);
+        border-radius: 0.5rem;
+        background: var(--cp-accent-soft);
+        color: var(--cp-text);
+        font-weight: 600;
+      }
+
+      .branch-exit {
+        margin-top: 8px;
+        padding: 6px 10px;
+        border-left: 3px solid var(--cp-link);
+        border-radius: 0.5rem;
+        background: var(--cp-surface-soft);
+        color: var(--cp-text);
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .connector-node-text {
+        fill: var(--cp-text);
+        font-size: 12px;
+        font-weight: 700;
       }
 
       .table-wrap {
@@ -401,92 +786,264 @@
         color: var(--cp-text-muted);
       }
 
-      .axis,
-      .range-track {
-        stroke: var(--cp-text-muted);
-      }
-
-      .axis {
-        stroke-width: 1;
-      }
-
-      .range-track {
-        fill: var(--cp-surface);
-        stroke-width: 1;
-      }
-
-      .warning-marker,
-      .offscale-marker {
-        fill: var(--cp-warning);
-      }
-
-      .offscale-band {
-        fill: var(--cp-accent-soft);
-        stroke: var(--cp-warning);
-        stroke-width: 1;
-      }
-
-      .series-n {
-        fill: var(--cp-text-muted);
-      }
-
-      .series-a {
-        fill: var(--cp-accent);
-      }
-
-      .series-e,
-      .series-warning {
-        fill: var(--cp-warning);
-      }
-
-      .series-danger {
-        fill: var(--cp-danger);
-      }
-
-      .series-success {
-        fill: var(--cp-success);
-      }
-
-      .series-neutral {
-        fill: var(--cp-text-muted);
-      }
-
-      .group-label,
-      .series-label,
-      .value-label,
-      .qualitative-label,
-      .axis-label {
-        fill: var(--cp-text-muted);
-        font-size: 12px;
-      }
-
       .group-label {
         fill: var(--cp-text);
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .series-label {
+        fill: var(--cp-text-muted);
+        font-size: 14px;
         font-weight: 700;
       }
 
       .value-label {
         fill: var(--cp-text);
-        text-anchor: start;
-      }
-
-      .qualitative-label {
-        fill: var(--cp-text);
+        font-size: 14px;
         font-weight: 700;
-        text-anchor: start;
       }
 
-      .chart-source {
+      .value-label.neutral {
+        fill: var(--cp-text-muted);
+        font-weight: 600;
+      }
+
+      .axis {
+        fill: var(--cp-text-muted);
+        font-size: 13px;
+      }
+
+      .bar-n {
+        fill: var(--cp-text-soft);
+      }
+
+      .bar-a {
+        fill: var(--cp-link);
+      }
+
+      .bar-e {
+        fill: var(--cp-accent);
+      }
+
+      .bar-ok {
+        fill: var(--cp-success);
+      }
+
+      .bar-risk {
+        fill: var(--cp-danger);
+      }
+
+      .bar-range {
+        stroke: var(--cp-surface);
+        stroke-width: 1;
+      }
+
+      .series-neutral {
+        fill: var(--cp-text-soft);
+      }
+
+      .risk-band {
+        fill: var(--cp-danger);
+        fill-opacity: 0.1;
+        stroke: var(--cp-danger);
+        stroke-opacity: 0.5;
+        stroke-width: 1;
+      }
+
+      .offscale-zone {
+        fill: var(--cp-accent-soft);
+        stroke: var(--cp-danger);
+        stroke-width: 1.5;
+        stroke-dasharray: 5 3;
+      }
+
+      .offscale-arrow {
+        fill: var(--cp-danger);
+      }
+
+      .offscale-marker {
+        fill: var(--cp-danger);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .marker-ok {
+        fill: var(--cp-success);
+      }
+
+      .drop-note {
+        fill: var(--cp-text-muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .drop-note.ok {
+        fill: var(--cp-success);
+      }
+
+      .ref-line {
+        stroke: var(--cp-border-strong);
+        stroke-width: 1.5;
+        stroke-dasharray: 5 4;
+      }
+
+      .ref-label {
+        fill: var(--cp-text-muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .outcome-input,
+      .outcome-box {
+        fill: var(--cp-surface);
+        stroke: var(--cp-border);
+        stroke-width: 1.5;
+      }
+
+      .outcome-a {
+        stroke: var(--cp-link);
+      }
+
+      .outcome-e {
+        stroke: var(--cp-accent);
+      }
+
+      .outcome-title,
+      .outcome-head {
+        fill: var(--cp-text);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .outcome-line {
+        fill: var(--cp-text-muted);
+        font-size: 13px;
+      }
+
+      .outcome-line.ok {
+        fill: var(--cp-success);
+        font-weight: 700;
+      }
+
+      .outcome-line.risk {
+        fill: var(--cp-danger);
+        font-weight: 700;
+      }
+
+      .outcome-caveat {
+        fill: var(--cp-text-muted);
+        font-size: 12px;
+      }
+
+      .chart-source,
+      .chart-note {
         margin-top: 10px;
         font-size: 0.9rem;
+        color: var(--cp-text-muted);
       }
 
-      .kpi {
-        display: block;
-        margin-top: 8px;
+      .chart-lede {
+        margin: -4px 0 14px;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: var(--cp-text-muted);
+      }
+
+      .lede-label {
+        display: inline-block;
+        margin-right: 8px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: var(--cp-accent-soft);
+        color: var(--cp-accent);
+        font-size: 0.78rem;
+        font-weight: 700;
+        vertical-align: 1px;
+      }
+
+      .chart-annotation {
+        margin-top: 10px;
+        font-size: 0.85rem;
+        color: var(--cp-text-muted);
+        line-height: 1.5;
+      }
+
+      .chart-annotation.risk-note {
+        padding: 8px 12px;
+        border-left: 4px solid var(--cp-danger);
+        border-radius: 0.5rem;
+        background: var(--cp-accent-soft);
         color: var(--cp-text);
-        font-size: 1.25rem;
-        font-weight: 800;
+      }
+
+      .subhead {
+        margin-top: 24px;
+        font-size: 1.05rem;
+        color: var(--cp-accent);
+      }
+
+      .embedded-doc {
+        margin-top: 8px;
+      }
+
+      .embedded-doc h3 {
+        margin-top: 4px;
+        font-size: 1.15rem;
+      }
+
+      .embedded-doc h4 {
+        margin-top: 22px;
+        font-size: 1rem;
+        color: var(--cp-accent);
+      }
+
+      .embedded-doc h5 {
+        margin-top: 16px;
+        font-size: 0.95rem;
+      }
+
+      .embedded-doc p {
+        margin-top: 10px;
+        color: var(--cp-text-muted);
+        font-size: 0.92rem;
+      }
+
+      .embedded-doc ul,
+      .embedded-doc ol {
+        margin: 10px 0 0;
+        padding-left: 20px;
+        color: var(--cp-text-muted);
+        font-size: 0.92rem;
+      }
+
+      .embedded-doc li {
+        margin-top: 4px;
+      }
+
+      .embedded-doc strong {
+        color: var(--cp-text);
+      }
+
+      .embedded-doc hr {
+        margin: 24px 0;
+        border: 0;
+        border-top: 1px solid var(--cp-border);
+      }
+
+      .result-details {
+        margin-top: 12px;
+        padding: 8px 12px;
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        background: var(--cp-surface);
+      }
+
+      .result-details summary {
+        padding: 4px 0;
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--cp-text);
       }
 
       noscript {
@@ -533,28 +1090,35 @@
           color: var(--cp-text);
         }
 
-        .page {
+        .page,
+        main {
           max-width: none;
           padding: 0;
         }
 
-        [role="tablist"] {
+        .skip-link,
+        .report-nav {
           display: none;
         }
 
-        [role="tabpanel"] {
-          display: block !important;
-          border: 1px solid var(--cp-border);
-          border-radius: 16px;
-          margin-top: 16px;
+        .diagram-scroll {
+          overflow: visible;
         }
 
-        .hero,
-        [role="tabpanel"],
+        .flowchart {
+          min-width: 0;
+        }
+
+        .guardrail-item,
+        .limitation-item,
         .panel-card,
-        .source-item,
-        .meta-card,
         .chart-card,
+        .path-card,
+        .finding-item,
+        .digest-item,
+        .sink-node,
+        .decision-node,
+        .decision-connectors,
         noscript {
           break-inside: avoid;
           page-break-inside: avoid;
@@ -563,1211 +1127,1058 @@
       }
 
       @media (max-width: 1180px) {
-        .summary-grid {
+        .finding-list {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .summary-card[data-result-key] {
-          grid-column: span 1;
+        .decision-track {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
       @media (max-width: 760px) {
-        .page {
+        .page,
+        main {
           padding-inline: 12px;
         }
 
         .hero-meta,
-        .summary-grid,
+        .path-grid,
+        .finding-list,
+        .digest-strip,
+        .guardrail-grid,
+        .limitation-grid,
         .panel-grid,
         .chart-grid,
-        .source-list {
+        .decision-track,
+        .sink-branches,
+        .decision-branches {
           grid-template-columns: 1fr;
         }
 
-        [role="tablist"] {
-          gap: 6px;
+        .report-nav {
+          overflow-x: auto;
         }
 
-        [role="tab"] {
-          flex: 1 1 auto;
+        .report-nav ul {
+          flex-wrap: nowrap;
         }
 
         .table-wrap {
-          margin-inline: -20px;
-          padding-inline: 20px;
+          margin-inline: -12px;
+          padding-inline: 12px;
         }
       }
     </style>
   </head>
   <body>
-    <main class="page">
-      <header class="hero">
+    <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+    <div class="page">
+      <header class="report-hero">
         <span class="eyebrow">Lab 13 · 근거 기반 보고서</span>
         <h1>APIM 로깅 성능·로그 전달 벤치마크</h1>
         <p class="lede">
           고객 관점의 결론은 단순합니다. API가 200으로 성공해도 감사 로그가 전달됐다는 뜻은 아니며,
-          본 관측에서는 APIM Event Hub 로거가 로그를 조용히 드롭할 수 있었습니다. 큐 한도 메커니즘은 조건부/추정이며,
-          공식 EventHubDroppedEvents 정의와 Capacity·RPS 상관관계로 해석했습니다.
+          본 관측에서는 게이트웨이가 포화하면 APIM Event Hub 로거가 로그를 조용히 드롭할 수 있었습니다. 저장소를 고르기 전에
+          목표 RPS × payload에서 게이트웨이 용량이 드롭 없이 버티는지 먼저 증명해야 합니다.
         </p>
         <dl class="hero-meta" aria-label="보고서 범위">
           <div class="meta-card">
             <dt>검증 범위</dt>
-            <dd>Korea Central · Developer v1과 Basic v2의 8KB 500 RPS 비교 한 건 · 8KB/64KB · 100~500 RPS · 조건별 대부분 한 번 실행 · 1,000 RPS는 테스트하지 않음</dd>
+            <dd>Korea Central · Developer v1과 Basic v2 · 8KB/64KB · 100~500 RPS · 조건별 대부분 한 번 실행</dd>
           </div>
           <div class="meta-card">
-            <dt>검증 등급</dt>
-            <dd>초록=확정 · 노랑=조건부 · 빨강=드롭/위험 · 회색=미검증 · 교정=별도 텍스트 상태</dd>
+            <dt>읽는 순서</dt>
+            <dd>결론 → 결과 원문 → 의사결정 → 측정 근거 → 실험 설계 → 가드레일 → 한계</dd>
           </div>
         </dl>
       </header>
+    </div>
 
-      <section class="tabs" aria-label="Lab 13 보고서 탭">
-        <div role="tablist" aria-label="보고서 섹션">
-          <button type="button" role="tab" id="tab-summary" data-tab="summary" aria-controls="panel-summary" aria-selected="true" tabindex="0">요약</button>
-          <button type="button" role="tab" id="tab-hypotheses" data-tab="hypotheses" aria-controls="panel-hypotheses" aria-selected="false" tabindex="-1">가설</button>
-          <button type="button" role="tab" id="tab-conditions" data-tab="conditions" aria-controls="panel-conditions" aria-selected="false" tabindex="-1">조건</button>
-          <button type="button" role="tab" id="tab-results" data-tab="results" aria-controls="panel-results" aria-selected="false" tabindex="-1">결과</button>
-          <button type="button" role="tab" id="tab-limitations" data-tab="limitations" aria-controls="panel-limitations" aria-selected="false" tabindex="-1">한계</button>
-          <button type="button" role="tab" id="tab-guidance" data-tab="guidance" aria-controls="panel-guidance" aria-selected="false" tabindex="-1">안내</button>
-          <button type="button" role="tab" id="tab-sources" data-tab="sources" aria-controls="panel-sources" aria-selected="false" tabindex="-1">출처</button>
+    <nav class="report-nav" aria-label="보고서 목차">
+      <ul>
+        <li><a href="#executive-summary" aria-current="location">30초 결론</a></li>
+        <li><a href="#results-full">결과 원문</a></li>
+        <li><a href="#decision">의사결정 흐름</a></li>
+        <li><a href="#evidence">측정 근거</a></li>
+        <li><a href="#experiment">실험 설계</a></li>
+        <li><a href="#guardrails">운영 가드레일</a></li>
+        <li><a href="#limitations">한계</a></li>
+      </ul>
+    </nav>
+
+    <main id="main-content">
+      <section id="executive-summary" aria-labelledby="executive-summary-title">
+        <span class="eyebrow">30초 결론</span>
+        <h2 id="executive-summary-title" class="primary-statement">두 경로 모두 API 요청은 100% 성공<br />포화 시 App Insights는 처리시간을, Event Hub는 감사 로그를 포기한다</h2>
+        <div class="path-compare" role="group" aria-label="포화 시 두 경로가 포기한 대상 비교">
+          <p class="compare-head">8KB · 500 RPS · 클라이언트 <strong>150,000 / 150,000 HTTP 성공</strong></p>
+          <div class="path-grid">
+            <article class="path-card" data-path="app-insights">
+              <h3>App Insights (A8)</h3>
+              <p class="path-verdict">처리시간 증가 · 로그 보존</p>
+              <p class="path-metric mono">Duration 0.9~2.5 ms</p>
+              <p class="path-chip">측정창 집계 ≥ 발신 수 · ID 대조 없음</p>
+            </article>
+            <article class="path-card" data-path="event-hub">
+              <h3>Event Hub (E8)</h3>
+              <p class="path-verdict">로그 폐기 · 작업량 감소</p>
+              <p class="path-metric mono">Duration 0.4~1.7 ms</p>
+              <p class="path-chip">드롭 시작 8KB 400 RPS · 64KB 300 RPS</p>
+            </article>
+          </div>
         </div>
-
-        <section role="tabpanel" id="panel-summary" aria-labelledby="tab-summary" class="panel-stack is-active">
-          <h2>요약</h2>
-          <div class="summary-grid">
-            <article class="panel-card summary-card" data-result-key="1">
-              <h3>App Insights 본문 로깅은 처리시간을 늘렸다</h3>
-              <p>기록된 8KB RPS 포인트에서 A8 Duration은 App Insights 메타데이터만 기록한 기준선보다 높았습니다. 다만 사전 명세의 CPU/p99/3회 반복 기준은 그대로 수행되지 않았습니다.</p>
-              <span class="evidence conditional">조건부 지지 · RESULTS.md + EXPERIMENT-LOG.md(Duration 비교)</span>
-            </article>
-            <article class="panel-card summary-card" data-result-key="2">
-              <h3>App Insights 집계는 무손실과 양립하지만 요청 단위 증명은 아니다</h3>
-              <p>A8 500 RPS 관측 창의 AppRequests 수는 발신 요청 수 이상이었지만, 워밍업 혼입과 요청 ID/해시 대조 부재 때문에 전건 단위 증명으로 보지 않습니다.</p>
-              <span class="evidence conditional">조건부 · RESULTS.md + EXPERIMENT-LOG.md(AppRequests 집계)</span>
-            </article>
-            <article class="panel-card summary-card" data-result-key="3">
-              <h3>API 성공과 Event Hub 로그 전달 성공은 별개다</h3>
-              <p>E8/E64 런에서 클라이언트 요청은 200으로 성공할 수 있었고, 동시에 APIM은 Event Hub drop을 보고했습니다. 19개 result.json의 API 성공과 감사 로그 전달은 별도 SLO입니다.</p>
-              <span class="evidence confirmed">확정 · RESULTS.md + EXPERIMENT-LOG.md(result.json·EventHubDroppedEvents)</span>
-            </article>
-            <article class="panel-card summary-card" data-result-key="4">
-              <h3>관측된 드롭은 EH 스로틀링으로 설명되지 않았다</h3>
-              <p>8KB 500 RPS는 약 4 MB/s로 40 TU의 약 10%였습니다. EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다. 따라서 본 관측값은 EH throttling 때문이라는 설명과 맞지 않습니다.</p>
-              <span class="evidence confirmed">확정 · RESULTS.md + EXPERIMENT-LOG.md(EH throttling 기록)</span>
-            </article>
-            <article class="panel-card summary-card" data-result-key="5">
-              <h3>8KB 드롭 전이는 300~400 RPS 사이에서 관측됐다</h3>
-              <p>E8에서 APIM-reported drop은 300 RPS에서 0, 400 RPS에서 2,933, 500 RPS에서 대량으로 기록됐습니다. 안정 임계값이 아니라 관측된 전이 구간입니다.</p>
-              <span class="evidence confirmed">확정 · RESULTS.md + EXPERIMENT-LOG.md(APIM drop 전이)</span>
-            </article>
-            <article class="panel-card summary-card" data-result-key="6">
-              <h3>큰 요청은 처리시간과 로깅 운영 범위에 영향을 줬다</h3>
-              <p>64KB 요청은 메타데이터만 기준선에서도 8KB보다 Duration이 뚜렷하게 높았고, E64는 300·500 RPS 모두에서 APIM-reported drop이 있었습니다.</p>
-              <span class="evidence conditional">조건부 강함 · RESULTS.md + EXPERIMENT-LOG.md(64KB Duration·drop)</span>
-            </article>
-            <article class="panel-card summary-card" data-result-key="7">
-              <h3>Developer v1과 Basic v2에서 전달 결과 차이가 관측됐다</h3>
-              <p>동일한 8KB 500 RPS E8 비교에서 Developer v1은 대량 drop을 보였고 Basic v2 관측 창은 EH 도달 수가 발신량과 대체로 맞았습니다. 단, 지표 수집은 비대칭이었습니다.</p>
-              <span class="evidence conditional">조건부 지지 · RESULTS.md + EXPERIMENT-LOG.md(Basic v2 EH IncomingMessages)</span>
-            </article>
+        <ol class="finding-list" aria-label="핵심 발견">
+          <li class="finding-item">
+            <span class="finding-index" aria-hidden="true">1</span>
+            <p>본문 로깅은 APIM <strong>처리시간 증가</strong></p>
+          </li>
+          <li class="finding-item">
+            <span class="finding-index" aria-hidden="true">2</span>
+            <p>App Insights 본문 상한 <strong>8,192 bytes</strong> · 초과 시 Event Hub 필요</p>
+          </li>
+          <li class="finding-item">
+            <span class="finding-index" aria-hidden="true">3</span>
+            <p>평시 100~400 RPS — Event Hub 경로가 게이트웨이를 더 무겁게 사용 (200 RPS Capacity <strong>N8 58% · A8 66% · E8 85%</strong>)</p>
+          </li>
+          <li class="finding-item">
+            <span class="finding-index" aria-hidden="true">4</span>
+            <p>포화 500 RPS — 역전 <strong>E8 0.4~1.7 ms &lt; A8 0.9~2.5 ms</strong> · 대가는 로그 폐기</p>
+          </li>
+          <li class="finding-item">
+            <span class="finding-index" aria-hidden="true">5</span>
+            <p>드롭 주체는 <strong>Event Hubs가 아닌 APIM 게이트웨이</strong></p>
+          </li>
+          <li class="finding-item">
+            <span class="finding-index" aria-hidden="true">6</span>
+            <p><strong>부하 완화 또는 SKU 상향</strong> 시 드롭 소멸 · 500 RPS는 <strong>Developer v1의 공식 예상 최대치</strong></p>
+          </li>
+        </ol>
+        <dl class="digest-strip">
+          <div class="digest-item">
+            <dt>함께 볼 지표</dt>
+            <dd>APIM 전송 성공·드롭 수 + Event Hubs 수신·스로틀링 · API 응답 성공률만으로는 로그 유실 감지 불가</dd>
           </div>
-          <article class="panel-card full-span">
-            <h3>첫 화면 고객 실행 항목</h3>
-            <ol>
-              <li>API SLO와 로깅 SLO를 분리하십시오.</li>
-              <li>APIM EH 드롭/성공과 EH 유입/스로틀링을 함께 모니터링하십시오.</li>
-              <li>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오.</li>
-              <li>v1은 클래식 티어 Capacity, v2는 게이트웨이 CPU/메모리 지표를 권위 부하 지표로 수집하십시오.</li>
-            </ol>
-          </article>
-          <p class="warning">
-            범위 주의: 결론은 Korea Central의 기록된 APIM 배포, 8KB·64KB 요청, 100~500 RPS 관측 창에 한정됩니다. 반복, 요청 ID/해시 대조, 워밍업, 메타데이터만 기준선, 클라이언트 지연, v1/v2 지표 비대칭 주의는 한계 탭에서 별도로 다룹니다.
-          </p>
-        </section>
-
-        <section role="tabpanel" id="panel-hypotheses" aria-labelledby="tab-hypotheses" class="panel-stack">
-          <h2>가설 판정</h2>
-          <div class="panel-grid">
-            <article class="panel-card" data-question="q1">
-              <h3>질문 1 · App Insights 본문 로깅은 APIM 처리에 영향을 주는가</h3>
-              <p><strong>가설:</strong> App Insights body 로깅은 APIM 처리시간에 영향을 줍니다.</p>
-              <p><strong>실제 증거:</strong> 기록된 8KB 조건에서 A8 Duration은 N8 메타데이터만 기준선보다 높았습니다. 100 RPS는 0.01 ms에서 0.03 ms, 300 RPS는 0.06 ms에서 0.13 ms, 400 RPS는 0.03 ms에서 0.64 ms, 500 RPS는 0.10~0.35 ms에서 0.90~2.50 ms로 증가했습니다.</p>
-              <p><strong>판정:</strong> 조건부 지지. 방향은 본문 로깅이 게이트웨이 처리시간을 늘렸다는 해석을 지지하지만, 원래 H1의 CPU, p99, 성공 처리율, 조건별 3회 반복 기준은 그대로 수행되지 않았습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 본 실험의 8KB 관측 포인트에서는 App Insights body 로깅이 APIM Duration을 늘렸습니다. Microsoft 문서의 1,000 RPS 초과 처리량 저하 수치를 재현했다고 말하지 않습니다.</p>
-              <span class="evidence conditional">조건부 지지 · RESULTS.md + EXPERIMENT-LOG.md</span>
-            </article>
-            <article class="panel-card" data-question="q2">
-              <h3>질문 2 · 성능 저하 없이 모든 요청을 로깅할 수 있는가</h3>
-              <p><strong>가설:</strong> 로깅 방식을 선택하면 모든 요청을 성능 저하 없이 로깅할 수 있습니다.</p>
-              <p><strong>실제 증거:</strong> A8 500 RPS에서는 클라이언트 150,000 요청에 대해 AppRequests 150,178건이 조회됐지만 워밍업 잔여와 요청 ID/해시 대조 부재가 있습니다. E8 500 RPS에서는 클라이언트 요청 150,000건이 모두 200으로 성공했지만 APIM은 Event Hub drop을 대량 보고했습니다.</p>
-              <p><strong>판정:</strong> 미검증. 성공 요청 ID 집합, EH 수신 ID 집합, 페이로드 해시, 메시지 크기 대조가 최종 판정의 주된 근거로 수집되지 않아 “모든 요청”과 “성능 저하 없음”을 end-to-end로 동시에 증명하지 못했습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 이번 환경에서는 로깅 방식 선택만으로 무손실과 무저하를 함께 입증하지 못했습니다.</p>
-              <span class="evidence unverified">미검증 · RESULTS.md + EXPERIMENT-SPEC.md</span>
-            </article>
-            <article class="panel-card" data-question="q3">
-              <h3>질문 3 · Event Hub 연결은 무손실 로그 전송을 보장하는가</h3>
-              <p><strong>가설:</strong> Event Hub 연결 자체가 무손실 로그 전송을 보장합니다.</p>
-              <p><strong>실제 증거:</strong> 본 Developer v1의 8KB·64KB 고부하 관측에서는 API 요청이 성공해도 APIM이 Event Hub 로그 drop을 보고했습니다. E8은 300 RPS에서 drop 0, 400 RPS에서 2,933, 500 RPS에서 대량 drop이었습니다. EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다.</p>
-              <p><strong>판정:</strong> 반박(본 Developer v1 고부하 조건). 이 결과는 Event Hub 연결 자체가 무손실 전달을 보장한다는 주장을 본 조건에서 반박하며, 모든 SKU·부하로 일반화하지 않습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> HTTP 200 성공률만으로 감사 로그 성공률을 판단할 수 없습니다. APIM Event Hub drop/success 카운터와 Event Hubs ingress/throttling을 함께 모니터링해야 합니다.</p>
-              <span class="evidence risk">반박(본 Developer v1 고부하 조건) · RESULTS.md + APIM EventHubDroppedEvents</span>
-            </article>
-            <article class="panel-card" data-question="q4">
-              <h3>질문 4 · 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가</h3>
-              <p><strong>가설:</strong> 요청 크기가 커지면 APIM 처리시간과 로그 전달 운영 범위에 영향을 줍니다.</p>
-              <p><strong>실제 증거:</strong> N64 Duration은 300 RPS 6.04 ms, 500 RPS 7.32 ms로 8KB보다 높았습니다. E64는 300 RPS Duration 5.24 ms와 APIM-reported drop 41,435건, 500 RPS Duration 7.58 ms와 drop 76,434건을 함께 보였습니다.</p>
-              <p><strong>판정:</strong> 조건부 강함. 두 payload 크기와 제한된 RPS 포인트, 대부분 1회 측정만 있으므로 임계 곡선은 확정하지 않지만, 큰 요청이 처리시간과 Event Hub 전달 운영 범위에 영향을 준다는 방향은 강하게 지지됩니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 큰 요청은 처리시간과 로깅 전달 가능 운영 범위에 영향을 줄 수 있으므로 운영 목표 RPS와 실제 request/log 크기로 사전 부하 테스트를 수행해야 합니다.</p>
-              <span class="evidence conditional">조건부 강함 · RESULTS.md + EXPERIMENT-LOG.md</span>
-            </article>
-            <article class="panel-card" data-question="q5">
-              <h3>질문 5 · Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가</h3>
-              <p><strong>가설:</strong> Developer v1과 Basic v2 비교에서 Event Hub 전달 결과가 다르게 관측됩니다.</p>
-              <p><strong>비교 이유:</strong> 공식 가격표는 Developer v1에 예상 최대 500 requests/sec을 제시하지만 Basic v2에는 대응 RPS 수치가 없고 포함 요청 초과분을 추가 과금하는 체계이므로, 실제 처리량과 로깅 여력을 직접 측정할 필요가 있었습니다.</p>
-              <p><strong>실제 증거:</strong> 동일한 8KB 500 RPS E8 비교에서 Developer v1은 약 절반만 EH에 도달한 것으로 기록되고 대량 drop을 보였습니다. Basic v2 관측 창은 분당 약 30,000건 수준의 EH 도달 수와 클라이언트 요청 200 성공을 보였지만 v2 CPU/메모리와 직접 비교 가능한 drop 카운터는 확보하지 못했습니다.</p>
-              <p><strong>판정:</strong> 조건부 지지. 전달 결과 차이는 관측됐지만 지표가 비대칭이므로 원인을 SKU 하나로 단정하지 않습니다.</p>
-              <p><strong>안전 재사용 문장:</strong> 이번 Basic v2 관측 창에서는 EH 도달 수가 발신량과 대체로 맞았고 Developer v1과 다른 운영 결과가 관측됐습니다. 원인 확인에는 v2 CPU/메모리와 drop 카운터를 포함한 대칭 측정이 필요합니다.</p>
-              <span class="evidence conditional">조건부 지지 · RESULTS.md + EXPERIMENT-LOG.md(Basic v2 EH IncomingMessages)</span>
-            </article>
+          <div class="digest-item">
+            <dt>적용 범위</dt>
+            <dd>Developer v1 · Korea Central · 8KB/64KB · 100~500 RPS · 대부분 1회 실행 · 고객 환경 재검증 필요</dd>
           </div>
-        </section>
-
-        <section role="tabpanel" id="panel-conditions" aria-labelledby="tab-conditions" class="panel-stack">
-          <h2>조건과 실행 범위</h2>
-          <div class="panel-card">
-            <p>모든 조건은 Korea Central에서 실행됐습니다. 공통 인프라는 Event Hubs Standard 40 TU, 32 partitions, auto-inflate OFF, Standard_D8as_v5 Linux 부하 VM입니다. 부하 도구는 Python asyncio/aiohttp, 동시성 20, 재시도 비활성화, 워밍업 후 정상 구간 측정이었습니다.</p>
-            <p>모든 조건(N/A/E)에서 App Insights 진단은 샘플링 100%로 켜져 있었고, N/E는 본문 0B 메타데이터만 기록했습니다. 따라서 N은 진단 기능 비활성화가 아니라 메타데이터만 기준선입니다.</p>
-            <div class="table-wrap" aria-label="조건 매트릭스">
-              <table>
-                <thead>
-                  <tr>
-                    <th>조건</th>
-                    <th>요청 본문</th>
-                    <th>App Insights</th>
-                    <th>Event Hub</th>
-                    <th>관측 부하</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td>N8</td><td>8KB</td><td>메타데이터만, 본문 0B</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
-                  <tr><td>A8</td><td>8KB</td><td>샘플링 100%, 본문 8KB</td><td>없음</td><td>100/200/300/400/500 RPS</td></tr>
-                  <tr><td>E8</td><td>8KB</td><td>메타데이터만, 본문 0B</td><td>8KB 전체 메시지</td><td>100/200/300/400/500 RPS</td></tr>
-                  <tr><td>N64</td><td>64KB</td><td>메타데이터만, 본문 0B</td><td>없음</td><td>300/500 RPS</td></tr>
-                  <tr><td>E64</td><td>64KB</td><td>메타데이터만, 본문 0B</td><td>64KB 전체 메시지</td><td>300/500 RPS</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="chart-source">출처: EXPERIMENT-SPEC.md, EXPERIMENT-LOG.md. 조건 정의에는 색상 등급을 붙이지 않고, 판정은 별도 가설·차트에서만 표시합니다.</p>
-          </div>
-        </section>
-
-        <section role="tabpanel" id="panel-results" aria-labelledby="tab-results" class="panel-stack">
-          <h2>결과와 정적 시각화</h2>
-          <div class="chart-grid">
-            <figure class="chart-card" id="chart-capacity-8k" aria-labelledby="chart-capacity-8k-title">
-  <h3 id="chart-capacity-8k-title">8KB APIM Capacity 평균</h3>
-  <svg class="metric-chart" viewBox="0 0 760 424" role="img" aria-label="8KB APIM Capacity 평균">
-    <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0%</text>
-    <text class="axis-label" x="410" y="14">100%</text>
-    <text class="group-label" x="8" y="34">100 RPS</text>
-    <text class="series-label" x="42" y="59">N8</text>
-    <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="47" width="94.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="59">31.5%</text>
-    <text class="series-label" x="42" y="79">A8</text>
-    <rect class="range-track" x="130" y="67" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="67" width="117.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="79">39%</text>
-    <text class="series-label" x="42" y="99">E8</text>
-    <rect class="range-track" x="130" y="87" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="87" width="114.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="99">38%</text>
-    <text class="group-label" x="8" y="108">200 RPS</text>
-    <text class="series-label" x="42" y="133">N8</text>
-    <rect class="range-track" x="130" y="121" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="121" width="174.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="133">58%</text>
-    <text class="series-label" x="42" y="153">A8</text>
-    <rect class="range-track" x="130" y="141" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="141" width="198.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="153">66%</text>
-    <text class="series-label" x="42" y="173">E8</text>
-    <rect class="range-track" x="130" y="161" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="161" width="255.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="173">85%</text>
-    <text class="group-label" x="8" y="182">300 RPS</text>
-    <text class="series-label" x="42" y="207">N8</text>
-    <rect class="range-track" x="130" y="195" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="195" width="237.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="207">79%</text>
-    <text class="series-label" x="42" y="227">A8</text>
-    <rect class="range-track" x="130" y="215" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="215" width="265.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="227">88.5%</text>
-    <text class="series-label" x="42" y="247">E8</text>
-    <rect class="range-track" x="130" y="235" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="235" width="259.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="247">86.5%</text>
-    <text class="group-label" x="8" y="256">400 RPS</text>
-    <text class="series-label" x="42" y="281">N8</text>
-    <rect class="range-track" x="130" y="269" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="269" width="256.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="281">85.5%</text>
-    <text class="series-label" x="42" y="301">A8</text>
-    <rect class="range-track" x="130" y="289" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="289" width="253.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="301">84.5%</text>
-    <text class="series-label" x="42" y="321">E8</text>
-    <rect class="range-track" x="130" y="309" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="309" width="256.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="321">85.5%</text>
-    <text class="group-label" x="8" y="330">500 RPS</text>
-    <text class="series-label" x="42" y="355">N8</text>
-    <rect class="range-track" x="130" y="343" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="343" width="267.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="355">~89%</text>
-    <text class="series-label" x="42" y="375">A8</text>
-    <rect class="range-track" x="130" y="363" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="363" width="267.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="375">~89%</text>
-    <text class="series-label" x="42" y="395">E8</text>
-    <rect class="range-track" x="130" y="383" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="383" width="261.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="395">~87%</text>
-  </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. Capacity는 Developer v1 APIM 서버측 평균입니다.</p>
-</figure>
-            <figure class="chart-card" id="chart-duration-8k" aria-labelledby="chart-duration-8k-title">
-  <h3 id="chart-duration-8k-title">8KB APIM Duration 평균</h3>
-  <svg class="metric-chart" viewBox="0 0 760 424" role="img" aria-label="8KB APIM Duration 평균">
-    <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0 ms</text>
-    <text class="axis-label" x="410" y="14">2.5 ms</text>
-    <text class="group-label" x="8" y="34">100 RPS</text>
-    <text class="series-label" x="42" y="59">N8</text>
-    <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="47" width="1.2" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="59">0.01 ms</text>
-    <text class="series-label" x="42" y="79">A8</text>
-    <rect class="range-track" x="130" y="67" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="67" width="3.6" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="79">0.03 ms</text>
-    <text class="series-label" x="42" y="99">E8</text>
-    <rect class="range-track" x="130" y="87" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="87" width="3.6" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="99">0.03 ms</text>
-    <text class="group-label" x="8" y="108">200 RPS</text>
-    <text class="series-label" x="42" y="133">N8</text>
-    <rect class="range-track" x="130" y="121" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="121" width="2.4" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="133">0.02 ms</text>
-    <text class="series-label" x="42" y="153">A8</text>
-    <rect class="range-track" x="130" y="141" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="141" width="6.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="153">0.05 ms</text>
-    <text class="series-label" x="42" y="173">E8</text>
-    <rect class="range-track" x="130" y="161" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="161" width="4.8" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="173">0.04 ms</text>
-    <text class="group-label" x="8" y="182">300 RPS</text>
-    <text class="series-label" x="42" y="207">N8</text>
-    <rect class="range-track" x="130" y="195" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="195" width="7.2" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="207">0.06 ms</text>
-    <text class="series-label" x="42" y="227">A8</text>
-    <rect class="range-track" x="130" y="215" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="215" width="15.6" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="227">0.13 ms</text>
-    <text class="series-label" x="42" y="247">E8</text>
-    <rect class="range-track" x="130" y="235" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="235" width="43.2" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="247">0.36 ms</text>
-    <text class="group-label" x="8" y="256">400 RPS</text>
-    <text class="series-label" x="42" y="281">N8</text>
-    <rect class="range-track" x="130" y="269" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="269" width="3.6" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="281">0.03 ms</text>
-    <text class="series-label" x="42" y="301">A8</text>
-    <rect class="range-track" x="130" y="289" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="130" y="289" width="76.8" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="301">0.64 ms</text>
-    <text class="series-label" x="42" y="321">E8</text>
-    <rect class="range-track" x="130" y="309" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="309" width="120.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="321">1.00 ms</text>
-    <text class="group-label" x="8" y="330">500 RPS</text>
-    <text class="series-label" x="42" y="355">N8</text>
-    <rect class="range-track" x="130" y="343" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="142.0" y="343" width="30.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="355">0.10~0.35 ms</text>
-    <text class="series-label" x="42" y="375">A8</text>
-    <rect class="range-track" x="130" y="363" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-a" x="238.0" y="363" width="192.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="375">0.90~2.50 ms</text>
-    <text class="series-label" x="42" y="395">E8</text>
-    <rect class="range-track" x="130" y="383" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="178.0" y="383" width="156.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="395">0.40~1.70 ms</text>
-  </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 500 RPS는 구간 막대로 표시하고 단일 점으로 환산하지 않았습니다.</p>
-</figure>
-            <figure class="chart-card" id="chart-drops-8k" aria-labelledby="chart-drops-8k-title">
-  <h3 id="chart-drops-8k-title">8KB EventHubDroppedEvents</h3>
-  <svg class="metric-chart" viewBox="0 0 760 204" role="img" aria-label="8KB EventHubDroppedEvents">
-    <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0 드롭</text>
-    <text class="axis-label" x="410" y="14">3000 드롭</text>
-    <text class="group-label" x="8" y="34">100 RPS</text>
-    <text class="series-label" x="42" y="59">E8</text>
-    <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-danger" x="130" y="47" width="0.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="59">0</text>
-    <text class="group-label" x="8" y="68">200 RPS</text>
-    <text class="series-label" x="42" y="93">E8</text>
-    <rect class="range-track" x="130" y="81" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-danger" x="130" y="81" width="0.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="93">0</text>
-    <text class="group-label" x="8" y="102">300 RPS</text>
-    <text class="series-label" x="42" y="127">E8</text>
-    <rect class="range-track" x="130" y="115" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-danger" x="130" y="115" width="0.0" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="127">0</text>
-    <text class="group-label" x="8" y="136">400 RPS</text>
-    <text class="series-label" x="42" y="161">E8</text>
-    <rect class="range-track" x="130" y="149" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-danger" x="130" y="149" width="293.3" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="161">2,933</text>
-    <text class="group-label" x="8" y="170">500 RPS</text>
-    <text class="series-label" x="42" y="195">E8</text>
-    <rect class="offscale-band" x="444" y="178" width="260" height="18" rx="9"></rect>
-    <circle class="offscale-marker" data-run="real-E8" cx="460" cy="187" r="6"></circle>
-    <text class="qualitative-label" x="474" y="192">축 범위 밖 · 정확한 드롭률 미확정</text>
-  </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. real-E8 500 RPS는 원문 진술의 대량/약 절반 표현만 반영하고 숫자 드롭 수치 없이 축 범위 밖 질적 경고로 표시합니다.</p>
-</figure>
-            <figure class="chart-card" id="chart-duration-64k" aria-labelledby="chart-duration-64k-title">
-  <h3 id="chart-duration-64k-title">64KB APIM Duration 평균</h3>
-  <svg class="metric-chart" viewBox="0 0 760 146" role="img" aria-label="64KB APIM Duration 평균">
-    <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0 ms</text>
-    <text class="axis-label" x="410" y="14">8 ms</text>
-    <text class="group-label" x="8" y="34">300 RPS</text>
-    <text class="series-label" x="42" y="59">N64</text>
-    <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="47" width="226.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="59">6.04 ms</text>
-    <text class="series-label" x="42" y="79">E64</text>
-    <rect class="range-track" x="130" y="67" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="67" width="196.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="79">5.24 ms</text>
-    <text class="group-label" x="8" y="88">500 RPS</text>
-    <text class="series-label" x="42" y="113">N64</text>
-    <rect class="range-track" x="130" y="101" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-n" x="130" y="101" width="274.5" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="113">7.32 ms</text>
-    <text class="series-label" x="42" y="133">E64</text>
-    <rect class="range-track" x="130" y="121" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-e" x="130" y="121" width="284.2" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="133">7.58 ms</text>
-  </svg>
-  <p class="chart-note">주의: APIM Duration은 전달 완전성 지표가 아닙니다. E64 300 RPS는 41,435개 드롭이 있어 E/N 차이는 순수한 로깅 비용 측정치가 아닙니다.</p>
-  <p class="chart-source"><span class="evidence conditional">조건부</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 64KB는 300/500 RPS 각 1회 관측입니다.</p>
-</figure>
-            <figure class="chart-card" id="chart-drops-64k" aria-labelledby="chart-drops-64k-title">
-  <h3 id="chart-drops-64k-title">64KB EventHubDroppedEvents</h3>
-  <svg class="metric-chart" viewBox="0 0 760 120" role="img" aria-label="64KB EventHubDroppedEvents">
-    <line class="axis" x1="130" y1="18" x2="430" y2="18"></line>
-    <text class="axis-label" x="130" y="14">0 드롭</text>
-    <text class="axis-label" x="410" y="14">80000 드롭</text>
-    <text class="group-label" x="8" y="34">300 RPS</text>
-    <text class="series-label" x="42" y="59">E64</text>
-    <rect class="range-track" x="130" y="47" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-danger" x="130" y="47" width="155.4" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="59">41,435</text>
-    <text class="group-label" x="8" y="68">500 RPS</text>
-    <text class="series-label" x="42" y="93">E64</text>
-    <rect class="range-track" x="130" y="81" width="300" height="10" rx="5"></rect>
-    <rect class="bar series-danger" x="130" y="81" width="286.6" height="10" rx="5"></rect>
-    <text class="value-label" x="448" y="93">76,434</text>
-  </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. E64 드롭은 APIM EventHubDroppedEvents입니다.</p>
-</figure>
-            <figure class="chart-card" id="chart-sku-comparison" aria-labelledby="chart-sku-comparison-title">
-              <h3 id="chart-sku-comparison-title">SKU 비교: 8KB 500 RPS E8</h3>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th>항목</th><th>Developer v1</th><th>Basic v2</th></tr></thead>
-                  <tbody>
-                    <tr><td>EH 도달</td><td>APIM 보고 기준 대량 드롭/약 절반 · 정확한 드롭률 미확정</td><td>분당 약 30,000개로 500 RPS×60과 일치</td></tr>
-                    <tr><td>EH 스로틀링</td><td>0</td><td>0</td></tr>
-                    <tr><td>클라이언트 요청</td><td>150,000 전부 200</td><td>150,000 전부 200</td></tr>
-                    <tr><td>메커니즘</td><td>v1 Capacity 포화 관측</td><td>v2 CPU/메모리 미수집, Capacity 미지원</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <p class="chart-source"><span class="evidence conditional">조건부</span> 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 운영 차이는 관측됐지만 v2 CPU/메모리 미수집으로 세부 메커니즘은 조건부입니다. v2 클래식 티어 Capacity는 미지원이므로 공통 Capacity 차트는 표시하지 않습니다.</p>
-            </figure>
-            <figure class="chart-card chart-wide" id="chart-client-latency" aria-labelledby="chart-client-latency-title">
-  <h3 id="chart-client-latency-title">클라이언트 p99 지연 — APIM 권위 지표 아님 · 보조 증거</h3>
-  <svg class="metric-chart latency-chart" viewBox="0 0 860 510" role="img" aria-label="19개 JSON의 클라이언트 p99 지연, APIM 권위 지표 아님, 보조 증거">
-    <line class="axis" x1="170" y1="18" x2="560" y2="18"></line>
-    <text class="axis-label" x="170" y="14">0 ms</text>
-    <text class="axis-label" x="515" y="14">1112.23 ms</text>
-    <text class="series-label mono" x="8" y="63">r100-A8</text>
-    <rect class="range-track" x="170" y="51" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="51" width="2.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="63">6.47 ms</text>
-    <text class="series-label mono" x="8" y="87">r100-E8</text>
-    <rect class="range-track" x="170" y="75" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="75" width="3.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="87">10.41 ms</text>
-    <text class="series-label mono" x="8" y="111">r100-N8</text>
-    <rect class="range-track" x="170" y="99" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="99" width="2.1" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="111">5.86 ms</text>
-    <text class="series-label mono" x="8" y="135">r200-A8</text>
-    <rect class="range-track" x="170" y="123" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="123" width="25.9" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="135">73.81 ms</text>
-    <text class="series-label mono" x="8" y="159">r200-E8</text>
-    <rect class="range-track" x="170" y="147" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="147" width="36.9" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="159">105.24 ms</text>
-    <text class="series-label mono" x="8" y="183">r200-N8</text>
-    <rect class="range-track" x="170" y="171" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="171" width="2.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="183">6.67 ms</text>
-    <text class="series-label mono" x="8" y="207">r300-A8</text>
-    <rect class="range-track" x="170" y="195" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="195" width="99.6" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="207">284.07 ms</text>
-    <text class="series-label mono" x="8" y="231">r300-E64</text>
-    <rect class="range-track" x="170" y="219" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="219" width="390.0" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="231">1112.23 ms</text>
-    <text class="series-label mono" x="8" y="255">r300-E8</text>
-    <rect class="range-track" x="170" y="243" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="243" width="147.2" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="255">419.76 ms</text>
-    <text class="series-label mono" x="8" y="279">r300-N64</text>
-    <rect class="range-track" x="170" y="267" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="267" width="203.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="279">581.00 ms</text>
-    <text class="series-label mono" x="8" y="303">r300-N8</text>
-    <rect class="range-track" x="170" y="291" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="291" width="35.1" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="303">100.04 ms</text>
-    <text class="series-label mono" x="8" y="327">r400-A8</text>
-    <rect class="range-track" x="170" y="315" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="315" width="189.8" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="327">541.32 ms</text>
-    <text class="series-label mono" x="8" y="351">r400-E8</text>
-    <rect class="range-track" x="170" y="339" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="339" width="180.8" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="351">515.51 ms</text>
-    <text class="series-label mono" x="8" y="375">r400-N8</text>
-    <rect class="range-track" x="170" y="363" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="363" width="154.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="375">440.18 ms</text>
-    <text class="series-label mono" x="8" y="399">r500-E64</text>
-    <rect class="range-track" x="170" y="387" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="387" width="215.3" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="399">613.90 ms</text>
-    <text class="series-label mono" x="8" y="423">r500-N64</text>
-    <rect class="range-track" x="170" y="411" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="411" width="201.5" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="423">574.79 ms</text>
-    <text class="series-label mono" x="8" y="447">real-A8</text>
-    <rect class="range-track" x="170" y="435" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="435" width="191.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="447">546.83 ms</text>
-    <text class="series-label mono" x="8" y="471">real-E8</text>
-    <rect class="range-track" x="170" y="459" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="459" width="197.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="471">563.79 ms</text>
-    <text class="series-label mono" x="8" y="495">real-N8</text>
-    <rect class="range-track" x="170" y="483" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-neutral" x="170" y="483" width="177.7" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="495">506.87 ms</text>
-  </svg>
-  <p class="chart-source"><span class="evidence conditional">조건부</span> APIM 권위 지표 아님 · 보조 증거. 출처: 19개 result.json 파일 전체. 클라이언트 p95/p99에는 부하 생성기/TLS 영향이 포함됩니다.</p>
-</figure>
-            <figure class="chart-card chart-wide" id="chart-request-success" aria-labelledby="chart-request-success-title">
-  <h3 id="chart-request-success-title">요청 성공률: 목표 요청 == 성공 요청, 오류 0</h3>
-  <svg class="metric-chart success-chart" viewBox="0 0 860 460" role="img" aria-label="19개 JSON 모두 요청 성공률 100%">
-    <text class="series-label mono" x="8" y="49">r100-A8</text>
-    <rect class="range-track" x="170" y="37" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="37" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="49">18000 / 18000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="71">r100-E8</text>
-    <rect class="range-track" x="170" y="59" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="59" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="71">18000 / 18000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="93">r100-N8</text>
-    <rect class="range-track" x="170" y="81" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="81" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="93">18000 / 18000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="115">r200-A8</text>
-    <rect class="range-track" x="170" y="103" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="103" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="115">36000 / 36000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="137">r200-E8</text>
-    <rect class="range-track" x="170" y="125" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="125" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="137">36000 / 36000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="159">r200-N8</text>
-    <rect class="range-track" x="170" y="147" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="147" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="159">36000 / 36000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="181">r300-A8</text>
-    <rect class="range-track" x="170" y="169" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="169" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="181">54000 / 54000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="203">r300-E64</text>
-    <rect class="range-track" x="170" y="191" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="191" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="203">54000 / 54000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="225">r300-E8</text>
-    <rect class="range-track" x="170" y="213" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="213" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="225">54000 / 54000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="247">r300-N64</text>
-    <rect class="range-track" x="170" y="235" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="235" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="247">54000 / 54000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="269">r300-N8</text>
-    <rect class="range-track" x="170" y="257" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="257" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="269">54000 / 54000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="291">r400-A8</text>
-    <rect class="range-track" x="170" y="279" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="279" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="291">72000 / 72000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="313">r400-E8</text>
-    <rect class="range-track" x="170" y="301" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="301" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="313">72000 / 72000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="335">r400-N8</text>
-    <rect class="range-track" x="170" y="323" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="323" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="335">72000 / 72000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="357">r500-E64</text>
-    <rect class="range-track" x="170" y="345" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="345" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="357">90000 / 90000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="379">r500-N64</text>
-    <rect class="range-track" x="170" y="367" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="367" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="379">90000 / 90000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="401">real-A8</text>
-    <rect class="range-track" x="170" y="389" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="389" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="401">150000 / 150000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="423">real-E8</text>
-    <rect class="range-track" x="170" y="411" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="411" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="423">150000 / 150000 · 오류 0</text>
-    <text class="series-label mono" x="8" y="445">real-N8</text>
-    <rect class="range-track" x="170" y="433" width="390" height="10" rx="5"></rect>
-    <rect class="bar series-success" x="170" y="433" width="390" height="10" rx="5"></rect>
-    <text class="value-label" x="575" y="445">150000 / 150000 · 오류 0</text>
-  </svg>
-  <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: 19개 result.json 파일 전체. 각 파일은 목표 요청 == 성공 요청, 오류 0입니다.</p>
-</figure>
-            <figure class="chart-card chart-wide" id="chart-confidence" aria-labelledby="chart-confidence-title">
-              <h3 id="chart-confidence-title">신뢰도 매트릭스</h3>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th>라벨</th><th>주장</th><th>근거</th></tr></thead>
-                  <tbody>
-                    <tr><td>확정</td><td>HTTP 200 요청 성공과 APIM Event Hub 드롭은 동시에 발생할 수 있습니다. EH 스로틀링은 측정창 집계에서 0으로 확인됐고, RPS 구간별 개별 확인은 일부만 기록됐습니다. 8KB 드롭 전이는 300~400 RPS 사이에서 관측됐습니다.</td><td>RESULTS.md, EXPERIMENT-LOG.md</td></tr>
-                    <tr><td>조건부</td><td>App Insights 집계상 누락 없음, 페이로드 크기에 따른 운영 범위 축소, SKU 변경 효과는 관측됐지만 반복과 대칭 지표가 부족합니다.</td><td>RESULTS.md, 서버 카운터</td></tr>
-                    <tr><td>미검증</td><td>안정적인 300 RPS 무손실 임계값, Basic v2의 일반적 무손실성, 정확한 큐 메커니즘은 추가 검증이 필요합니다.</td><td>EXPERIMENT-SPEC.md 대비 누락 항목</td></tr>
-                    <tr><td>교정</td><td>Event Hub가 항상 더 빠르다거나 Developer v1 최대가 500 RPS라고 표현하면 안 됩니다.</td><td>old/RESULTS.md, old/REVIEW.md</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <p class="chart-source">출처: RESULTS.md, old/RESULTS.md, old/REVIEW.md, DECISION-TREE.md(보완, RESULTS.md 우선). 확정/조건부/미검증/교정 해석은 위 표를 따릅니다.</p>
-            </figure>
-          </div>
-          <p class="chart-source"><span class="evidence confirmed">확정</span> 8KB/64KB 서버 차트 출처: EXPERIMENT-LOG.md 및 RESULTS.md. 500 RPS E8은 드롭 수치 숫자를 두지 않고 “정확한 드롭률 미확정”으로 표시했습니다.</p>
-          <div class="table-wrap" aria-label="클라이언트 지연 상세 값">
-            <table>
-              <caption>19개 result.json 파일의 클라이언트 지연 값 (소수 둘째 자리 반올림)</caption>
-              <thead>
-                <tr><th>출처</th><th>조건</th><th>payloadBytes</th><th>요청률</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>p50Ms</th><th>p95Ms</th><th>p99Ms</th></tr>
-              </thead>
-              <tbody>
-                    <tr>
-                      <td><code>results/r100-A8/result.json</code></td>
-                      <td>A8</td>
-                      <td>8192</td>
-                      <td>100</td>
-                      <td>18000</td>
-                      <td>18000</td>
-                      <td>0</td>
-                      <td>1.42</td>
-                      <td>2.17</td>
-                      <td>6.47</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r100-E8/result.json</code></td>
-                      <td>E8</td>
-                      <td>8192</td>
-                      <td>100</td>
-                      <td>18000</td>
-                      <td>18000</td>
-                      <td>0</td>
-                      <td>1.42</td>
-                      <td>2.68</td>
-                      <td>10.41</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r100-N8/result.json</code></td>
-                      <td>N8</td>
-                      <td>8192</td>
-                      <td>100</td>
-                      <td>18000</td>
-                      <td>18000</td>
-                      <td>0</td>
-                      <td>1.51</td>
-                      <td>2.05</td>
-                      <td>5.86</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r200-A8/result.json</code></td>
-                      <td>A8</td>
-                      <td>8192</td>
-                      <td>200</td>
-                      <td>36000</td>
-                      <td>36000</td>
-                      <td>0</td>
-                      <td>1.35</td>
-                      <td>3.60</td>
-                      <td>73.81</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r200-E8/result.json</code></td>
-                      <td>E8</td>
-                      <td>8192</td>
-                      <td>200</td>
-                      <td>36000</td>
-                      <td>36000</td>
-                      <td>0</td>
-                      <td>1.50</td>
-                      <td>5.06</td>
-                      <td>105.24</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r200-N8/result.json</code></td>
-                      <td>N8</td>
-                      <td>8192</td>
-                      <td>200</td>
-                      <td>36000</td>
-                      <td>36000</td>
-                      <td>0</td>
-                      <td>1.29</td>
-                      <td>1.91</td>
-                      <td>6.67</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-A8/result.json</code></td>
-                      <td>A8</td>
-                      <td>8192</td>
-                      <td>300</td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>1.53</td>
-                      <td>28.88</td>
-                      <td>284.07</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-E64/result.json</code></td>
-                      <td>E64</td>
-                      <td>65536</td>
-                      <td>300</td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>15.32</td>
-                      <td>552.08</td>
-                      <td>1112.23</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-E8/result.json</code></td>
-                      <td>E8</td>
-                      <td>8192</td>
-                      <td>300</td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>1.40</td>
-                      <td>52.79</td>
-                      <td>419.76</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-N64/result.json</code></td>
-                      <td>N64</td>
-                      <td>65536</td>
-                      <td>300</td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>9.18</td>
-                      <td>529.65</td>
-                      <td>581.00</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-N8/result.json</code></td>
-                      <td>N8</td>
-                      <td>8192</td>
-                      <td>300</td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>1.35</td>
-                      <td>4.17</td>
-                      <td>100.04</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r400-A8/result.json</code></td>
-                      <td>A8</td>
-                      <td>8192</td>
-                      <td>400</td>
-                      <td>72000</td>
-                      <td>72000</td>
-                      <td>0</td>
-                      <td>4.58</td>
-                      <td>424.62</td>
-                      <td>541.32</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r400-E8/result.json</code></td>
-                      <td>E8</td>
-                      <td>8192</td>
-                      <td>400</td>
-                      <td>72000</td>
-                      <td>72000</td>
-                      <td>0</td>
-                      <td>3.47</td>
-                      <td>169.56</td>
-                      <td>515.51</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r400-N8/result.json</code></td>
-                      <td>N8</td>
-                      <td>8192</td>
-                      <td>400</td>
-                      <td>72000</td>
-                      <td>72000</td>
-                      <td>0</td>
-                      <td>1.53</td>
-                      <td>112.18</td>
-                      <td>440.18</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r500-E64/result.json</code></td>
-                      <td>E64</td>
-                      <td>65536</td>
-                      <td>500</td>
-                      <td>90000</td>
-                      <td>90000</td>
-                      <td>0</td>
-                      <td>12.16</td>
-                      <td>542.62</td>
-                      <td>613.90</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r500-N64/result.json</code></td>
-                      <td>N64</td>
-                      <td>65536</td>
-                      <td>500</td>
-                      <td>90000</td>
-                      <td>90000</td>
-                      <td>0</td>
-                      <td>9.40</td>
-                      <td>531.68</td>
-                      <td>574.79</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/real-A8/result.json</code></td>
-                      <td>A8</td>
-                      <td>8192</td>
-                      <td>500</td>
-                      <td>150000</td>
-                      <td>150000</td>
-                      <td>0</td>
-                      <td>5.03</td>
-                      <td>516.04</td>
-                      <td>546.83</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/real-E8/result.json</code></td>
-                      <td>E8</td>
-                      <td>8192</td>
-                      <td>500</td>
-                      <td>150000</td>
-                      <td>150000</td>
-                      <td>0</td>
-                      <td>6.31</td>
-                      <td>483.89</td>
-                      <td>563.79</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/real-N8/result.json</code></td>
-                      <td>N8</td>
-                      <td>8192</td>
-                      <td>500</td>
-                      <td>150000</td>
-                      <td>150000</td>
-                      <td>0</td>
-                      <td>3.72</td>
-                      <td>202.14</td>
-                      <td>506.87</td>
-                    </tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="warning">클라이언트 p95/p99에는 부하 생성기/TLS 영향이 포함되므로 APIM 권위 지표 아님 · 보조 증거입니다. APIM 서버측 Duration/Capacity와 EventHubDroppedEvents가 판정의 우선 근거입니다.</p>
-          <div class="table-wrap" aria-label="요청 성공 상세 값">
-            <table>
-              <caption>19개 result.json 파일의 목표 요청 대비 성공 요청</caption>
-              <thead><tr><th>출처</th><th>목표 요청</th><th>성공 요청</th><th>오류</th><th>클라이언트 성공률</th></tr></thead>
-              <tbody>
-                    <tr>
-                      <td><code>results/r100-A8/result.json</code></td>
-                      <td>18000</td>
-                      <td>18000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r100-E8/result.json</code></td>
-                      <td>18000</td>
-                      <td>18000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r100-N8/result.json</code></td>
-                      <td>18000</td>
-                      <td>18000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r200-A8/result.json</code></td>
-                      <td>36000</td>
-                      <td>36000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r200-E8/result.json</code></td>
-                      <td>36000</td>
-                      <td>36000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r200-N8/result.json</code></td>
-                      <td>36000</td>
-                      <td>36000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-A8/result.json</code></td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-E64/result.json</code></td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-E8/result.json</code></td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-N64/result.json</code></td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r300-N8/result.json</code></td>
-                      <td>54000</td>
-                      <td>54000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r400-A8/result.json</code></td>
-                      <td>72000</td>
-                      <td>72000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r400-E8/result.json</code></td>
-                      <td>72000</td>
-                      <td>72000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r400-N8/result.json</code></td>
-                      <td>72000</td>
-                      <td>72000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r500-E64/result.json</code></td>
-                      <td>90000</td>
-                      <td>90000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/r500-N64/result.json</code></td>
-                      <td>90000</td>
-                      <td>90000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/real-A8/result.json</code></td>
-                      <td>150000</td>
-                      <td>150000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/real-E8/result.json</code></td>
-                      <td>150000</td>
-                      <td>150000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-                    <tr>
-                      <td><code>results/real-N8/result.json</code></td>
-                      <td>150000</td>
-                      <td>150000</td>
-                      <td>0</td>
-                      <td>100%</td>
-                    </tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="chart-source"><span class="evidence confirmed">확정</span> 출처: 19개 result.json 파일 전체. API 성공이 감사 로그 성공을 뜻하지는 않습니다.</p>
-        </section>
-
-        <section role="tabpanel" id="panel-limitations" aria-labelledby="tab-limitations" class="panel-stack">
-          <h2>한계와 주의</h2>
-          <div class="panel-grid">
-            <article class="panel-card"><h3>반복 실행 부족</h3><p>명세는 조건별 3회 반복이었지만 실행 데이터는 조건별 대부분 한 번 실행됐습니다. 분산과 오차막대는 없습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>요청 ID·해시 대조 누락</h3><p>요청 ID 집합, 페이로드 해시, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>메타데이터만 기록한 기준선</h3><p>N8/N64는 App Insights 본문 0B일 뿐이며 진단 기능 비활성화가 아닙니다.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
-            <article class="panel-card"><h3>집계 창 경계</h3><p>A8 150,178은 측정창 경계와 워밍업 잔여가 섞였을 수 있어 요청 단위 완전성 증명으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>드롭 0의 의미</h3><p>APIM/EH 드롭 0만으로 최종 감사 무손실을 증명하지 않습니다. 종단 간 대조가 필요합니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>임계값 표현</h3><p>8KB는 300 RPS 드롭 0과 400 RPS 드롭으로 전환만 관측했으며 안정 임계값은 아닙니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>SKU 지표 비대칭</h3><p>v1은 Capacity/Duration/드롭, v2는 EH 도달 중심입니다. v2 CPU/메모리 미수집으로 메커니즘은 조건부입니다.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>클라이언트 지연</h3><p>단일 asyncio 부하 생성기와 TLS 영향으로 p95/p99 꼬리가 섞였습니다. APIM 판정은 서버측 지표를 우선합니다.</p><span class="evidence conditional">조건부 · EXPERIMENT-SPEC.md</span></article>
-            <article class="panel-card"><h3>공식 고부하 경고</h3><p>본 실험은 1,000 RPS 초과 App Insights throughput 40~50% 감소 경고를 검증하지 않았습니다.</p><span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span></article>
-          </div>
-          <p class="chart-source">출처: RESULTS.md와 보관 검토 근거 old/REVIEW.md. 한계 문구는 활성 결과 보고서의 증거 범위 안에서만 해석합니다.</p>
-        </section>
-
-        <section role="tabpanel" id="panel-guidance" aria-labelledby="tab-guidance" class="panel-stack">
-          <h2>고객 실행 안내</h2>
-          <div class="panel-grid">
-            <article class="panel-card"><h3>API와 로깅 SLO 분리</h3><p>API 200 성공률과 감사 로그 전달률을 별도 SLO로 정의하십시오. Event Hub 드롭은 API 오류로 나타나지 않습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>드롭·싱크 동시 모니터링</h3><p>APIM EventHubSuccessfulEvents/EventHubDroppedEvents와 EH IncomingMessages/ThrottledRequests를 함께 감시해 APIM 큐 문제와 EH 용량 문제를 분리하십시오.</p><span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span></article>
-            <article class="panel-card"><h3>부하 모델은 bytes/sec로</h3><p>피크 RPS × 기록 페이로드 크기로 용량을 계획하십시오. 64KB는 300 RPS에서도 드롭이 발생했습니다.</p><span class="evidence confirmed">확정 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>SKU별 권위 지표 선택</h3><p>v1은 클래식 티어 Capacity를 사용하고, v2는 Capacity 대신 CPU/메모리 지표를 수집하도록 테스트 계획을 바꾸십시오.</p><span class="evidence conditional">조건부 · RESULTS.md</span></article>
-            <article class="panel-card"><h3>본문 크기 축소</h3><p>전체 본문 대신 필요한 필드, 요약, 해시, 샘플, 또는 크기 제한을 적용해 게이트웨이 로깅 비용을 낮추십시오. 이 권고는 RESULTS.md 기준으로 제한해, 무손실 보장이나 보편 임계값으로 확장하지 않습니다.</p><span class="evidence confirmed">확정 · RESULTS.md + DECISION-TREE.md</span></article>
-            <article class="panel-card"><h3>고객 환경 재시험</h3><p>리전, SKU, 정책 조합, 백엔드 지연, 페이로드 분포가 바뀌면 결과가 달라질 수 있으므로 고객 환경에서 재측정하십시오. 이 권고는 RESULTS.md 기준으로 제한해, 본 실험 수치를 다른 환경 보증으로 쓰지 않습니다.</p><span class="evidence conditional">조건부 · RESULTS.md + DECISION-TREE.md</span></article>
-          </div>
-        </section>
-
-        <section role="tabpanel" id="panel-sources" aria-labelledby="tab-sources" class="panel-stack">
-          <h2>출처</h2>
-          <div class="source-list">
-            <article class="source-item"><h3><a href="EXPERIMENT-SPEC.md"><code>EXPERIMENT-SPEC.md</code></a></h3><p>가설, 성공 기준, 3회 반복 계획, 요청 ID/해시/메시지 크기 대조 요구.</p><span class="pill">원문 문서</span></article>
-            <article class="source-item"><h3><a href="EXPERIMENT-LOG.md"><code>EXPERIMENT-LOG.md</code></a></h3><p>실행 조건, 시간창, 8KB/64KB 서버 메트릭, 메타데이터만 기준선 설명.</p><span class="pill">원문 문서</span></article>
-            <article class="source-item"><h3><a href="RESULTS.md"><code>RESULTS.md</code></a></h3><p>활성 공식 결과 보고서. HTML 요약과 다섯 질문 판정의 권위 출처입니다.</p><span class="pill">활성 공식 결과</span></article>
-            <article class="source-item"><h3><a href="old/RESULTS.md"><code>old/RESULTS.md</code></a></h3><p>보관된 이전 해석입니다. 현재 고객용 판정의 권위 출처가 아니며 비교·변경 이력 확인용입니다.</p><span class="pill">보관 원문</span></article>
-            <article class="source-item"><h3><a href="old/REVIEW.md"><code>old/REVIEW.md</code></a></h3><p>반복, 워밍업, 요청 ID/해시, 메타데이터만 기준선, 클라이언트 지연, v1/v2 지표 비대칭 한계를 정리한 보관된 검토 근거입니다.</p><span class="pill">보관 검토 근거</span></article>
-            <article class="source-item"><h3><a href="DECISION-TREE.md"><code>DECISION-TREE.md</code></a></h3><p>고객 의사결정 가드레일과 권장 운영 모델을 담은 보완 문서입니다. 손실 여부·임계값·지연·인과 표현이 충돌하면 RESULTS.md가 우선합니다.</p><span class="pill">보완 문서(RESULTS.md 우선)</span></article>
-              <article class="source-item">
-                <h3><a href="results/r100-A8/result.json"><code>results/r100-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r100-E8/result.json"><code>results/r100-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r100-N8/result.json"><code>results/r100-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 100 RPS · 목표 요청=18000, 성공 요청=18000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r200-A8/result.json"><code>results/r200-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 200 RPS · 목표 요청=36000, 성공 요청=36000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r200-E8/result.json"><code>results/r200-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 200 RPS · 목표 요청=36000, 성공 요청=36000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r200-N8/result.json"><code>results/r200-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 200 RPS · 목표 요청=36000, 성공 요청=36000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r300-A8/result.json"><code>results/r300-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r300-E64/result.json"><code>results/r300-E64/result.json</code></a></h3>
-                <p>E64 · 65536 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r300-E8/result.json"><code>results/r300-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r300-N64/result.json"><code>results/r300-N64/result.json</code></a></h3>
-                <p>N64 · 65536 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r300-N8/result.json"><code>results/r300-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 300 RPS · 목표 요청=54000, 성공 요청=54000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r400-A8/result.json"><code>results/r400-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 400 RPS · 목표 요청=72000, 성공 요청=72000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r400-E8/result.json"><code>results/r400-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 400 RPS · 목표 요청=72000, 성공 요청=72000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r400-N8/result.json"><code>results/r400-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 400 RPS · 목표 요청=72000, 성공 요청=72000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r500-E64/result.json"><code>results/r500-E64/result.json</code></a></h3>
-                <p>E64 · 65536 bytes · 500 RPS · 목표 요청=90000, 성공 요청=90000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/r500-N64/result.json"><code>results/r500-N64/result.json</code></a></h3>
-                <p>N64 · 65536 bytes · 500 RPS · 목표 요청=90000, 성공 요청=90000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/real-A8/result.json"><code>results/real-A8/result.json</code></a></h3>
-                <p>A8 · 8192 bytes · 500 RPS · 목표 요청=150000, 성공 요청=150000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/real-E8/result.json"><code>results/real-E8/result.json</code></a></h3>
-                <p>E8 · 8192 bytes · 500 RPS · 목표 요청=150000, 성공 요청=150000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-              <article class="source-item">
-                <h3><a href="results/real-N8/result.json"><code>results/real-N8/result.json</code></a></h3>
-                <p>N8 · 8192 bytes · 500 RPS · 목표 요청=150000, 성공 요청=150000, 오류=0</p>
-                <span class="pill">클라이언트 결과 JSON</span>
-              </article>
-          </div>
-        </section>
+        </dl>
+        <p class="source-jump">판정 근거 원문(<code>RESULTS.md</code> 전문)은 바로 아래 <a href="#results-full">결과 보고서 원문</a> 섹션에 수록</p>
+        <ul class="evidence-legend" aria-label="증거 등급 범례">
+          <li class="evidence confirmed"><span class="legend-icon" aria-hidden="true">●</span>측정</li>
+          <li class="evidence conditional"><span class="legend-icon" aria-hidden="true">▲</span>조건부</li>
+          <li class="evidence risk"><span class="legend-icon" aria-hidden="true">■</span>위험</li>
+          <li class="evidence unverified"><span class="legend-icon" aria-hidden="true">○</span>미검증</li>
+        </ul>
       </section>
 
-      <noscript>
-        JavaScript가 꺼져 있어도 모든 패널은 계속 표시됩니다. 이 보고서는 외부 스크립트나 네트워크 호출 없이 동작하며, 정적 차트와 표를 포함합니다.
-      </noscript>
+      <section id="results-full" aria-labelledby="results-full-title">
+        <span class="eyebrow">결과 원문</span>
+        <h2 id="results-full-title">결과 보고서 원문</h2>
+        <p>이 보고서는 HTML 한 파일로 공유되므로 원천 파일은 이름으로만 표기합니다. 판정의 권위 문서인 활성 공식 결과 보고서 <code>RESULTS.md</code>는 아래에 전문을 그대로 담았습니다. 위 요약과 표현이 충돌하면 이 원문의 RESULTS.md가 우선합니다.</p>
+        <p class="source-jump">각 차트 하단에 해당 수치의 원천 문서를 표기했고, 19개 실행의 파일명과 값은 실험 설계 섹션의 <a href="#run-ledger">19개 실행 원장</a>에 있습니다. <code>old/</code> 폴더 문서는 보관된 이전 해석으로 현재 판정의 권위 출처가 아닙니다.</p>
+        <details class="result-details source-details">
+          <summary>RESULTS.md 원문 펼치기</summary>
+          <div class="embedded-doc">
+          <h3>Lab 13 최종 결과 보고서 — APIM 로깅 성능·로그 전달 벤치마크</h3>
+          <h4>실험 결과 요약</h4>
+          <p><strong>한 줄 요약:</strong> 두 경로 모두 API 요청은 100% 성공했으나, 포화 시 App Insights는 처리시간을 늘려 로그를 보존하고 Event Hub는 로그를 폐기한다.</p>
+          <p><strong>핵심 발견</strong></p>
+          <ol>
+          <li>본문 로깅은 APIM 처리시간 증가</li>
+          <li>App Insights 본문 상한은 8,192 bytes. 초과 시 Event Hub 필요</li>
+          <li>평시(100~400 RPS)에는 Event Hub 경로가 게이트웨이를 더 무겁게 사용(200 RPS Capacity: N8 58% / A8 66% / E8 85%)</li>
+          <li>포화(500 RPS)에서는 역전. E8 Duration 0.4~1.7 ms &lt; A8 0.9~2.5 ms이나 로그 폐기가 대가</li>
+          <li>드롭 주체는 Event Hubs가 아닌 APIM 게이트웨이</li>
+          <li>부하를 낮추거나 SKU를 올리면 드롭 소멸. 500 RPS는 Developer v1의 공식 예상 최대치</li>
+          </ol>
+          <p><strong>상황별 선택 기준</strong></p>
+          <div class="table-wrap"><table><thead><tr><th>상황</th><th>권장 경로</th><th>조건</th></tr></thead><tbody><tr><td>메타데이터만 필요</td><td>App Insights 메타데이터</td><td>처리시간 부담 최소</td></tr><tr><td>본문 8KB 이하, 조회·분석 중심</td><td>App Insights 본문 로깅</td><td>8KB 구간에서는 Event Hub보다 게이트웨이 부하가 작고 로그 보존에 유리</td></tr><tr><td>본문 8KB 초과</td><td>Event Hub</td><td>200KB 초과분 자동 절단</td></tr><tr><td>로그 유실 불가(감사·규제)</td><td>Event Hub + 게이트웨이 여유 확보</td><td>Event Hub는 포화 시 로그를 버리므로 목표 부하에서 드롭 0 검증 필수</td></tr><tr><td>이미 드롭 발생 중</td><td>부하 완화 또는 SKU 상향</td><td>Event Hubs 증설이 아닌 게이트웨이부터 점검</td></tr></tbody></table></div>
+          <p><strong>함께 볼 지표:</strong> APIM 전송 성공·드롭 수 + Event Hubs 수신·스로틀링. API 응답 성공률만으로는 로그 유실 감지 불가</p>
+          <p><strong>적용 범위:</strong> Developer v1, Korea Central, 8KB·64KB, 100~500 RPS, 대부분 1회 실행. 고객 환경 재검증 필요</p>
+          <hr />
+          <h4>검증 범위</h4>
+          <ul>
+          <li>환경: <ul>
+          <li>Azure API Management(APIM) Developer v1 SKU</li>
+          <li>Korea Central; </li>
+          <li>Basic v2는 공식 가격표에 예상 최대 RPS가 없고 포함 요청 초과분을 추가 과금하는 체계(= RPS 차이에 의해 EH Drop을 확인하기 위함)</li>
+          </ul>
+          </li>
+          <li>조건: 로그 저장소는 App Insights와 Event Hub. payload(요청 데이터 크기)는 8KB와 64KB, RPS는 초당 요청 수.</li>
+          <li>기준선: metadata-only 기준선(N8/N64)은 App Insights 메타데이터만 기록. App Insights diagnostic을 완전히 끈 상태가 아님. 즉, body bytes만 0으로 설정.</li>
+          <li>정의: 무손실은 요청 로그가 모두 도착했다는 의미이나 요청 단위 증명은 완료되지 않음. 드롭은 APIM <code>EventHubDroppedEvents</code>, Capacity는 classic v1 부하, Duration은 APIM 서버측 처리시간</li>
+          </ul>
+          <h5>측정 조건 정의</h5>
+          <p>숫자는 요청 크기(8=8KB, 64=64KB), 문자는 로깅 방식(N=기준선, A=App Insights 본문, E=Event Hub)이다.</p>
+          <div class="table-wrap"><table><thead><tr><th>조건</th><th>요청 크기</th><th>App Insights body</th><th>Event Hub 로깅</th><th>역할</th></tr></thead><tbody><tr><td>N8</td><td>8KB</td><td>기록 안 함(메타데이터만)</td><td>없음</td><td>8KB 기준선</td></tr><tr><td>A8</td><td>8KB</td><td>8KB 기록</td><td>없음</td><td>App Insights 본문 로깅 비용</td></tr><tr><td>E8</td><td>8KB</td><td>기록 안 함(메타데이터만)</td><td>8KB 전송</td><td>Event Hub 로그 전달</td></tr><tr><td>N64</td><td>64KB</td><td>기록 안 함(메타데이터만)</td><td>없음</td><td>64KB 기준선</td></tr><tr><td>E64</td><td>64KB</td><td>기록 안 함(메타데이터만)</td><td>64KB 전송</td><td>대용량 Event Hub 로그 전달</td></tr></tbody></table></div>
+          <h4>핵심 결론</h4>
+          <div class="table-wrap"><table><thead><tr><th>No</th><th>질문</th><th>판정</th><th>핵심 근거</th></tr></thead><tbody><tr><td>Q1</td><td>App Insights 본문 로깅 영향</td><td>조건부 지지</td><td>A8 Duration이 모든 8KB RPS 포인트에서 N8보다 높음</td></tr><tr><td>Q2</td><td>8KB 초과 본문 로깅 경로</td><td>확인</td><td>App Insights 진단 설정은 8,192 bytes 상한, <code>log-to-eventhub</code>는 200KB까지 전송</td></tr><tr><td>Q3</td><td>성능 저하 없는 모든 요청 로깅</td><td>조건부 지지</td><td>8KB 기준. 평시(~400 RPS)는 E8 Duration이 A8보다 높지만, 포화(500 RPS)에서는 E8 0.4~1.7 ms &lt; A8 0.9~2.5 ms로 역전. 대가는 로그 폐기</td></tr><tr><td>Q4</td><td>Event Hub 무손실 보장</td><td>반박(본 Developer v1 고부하 조건)</td><td>E8 400 RPS부터 APIM-reported drop 관측. 드롭 주체는 Event Hubs가 아닌 APIM 게이트웨이이며 300 RPS에서는 드롭 0</td></tr><tr><td>Q5</td><td>요청 크기 영향</td><td>조건부 강함</td><td>500 RPS 기준선 Duration이 8KB 0.1~0.35 ms에서 64KB 7.32 ms로 증가. 드롭 시작도 8KB는 400 RPS, 64KB는 300 RPS</td></tr><tr><td>Q6</td><td>v1/v2 전달 결과 차이</td><td>지지</td><td>SKU만 교체하자 드롭 소멸. 500 RPS는 Developer v1의 공식 예상 최대치</td></tr></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th style="text-align: right;">RPS</th><th style="text-align: right;">N8 Capacity</th><th style="text-align: right;">A8 Capacity</th><th style="text-align: right;">E8 Capacity</th></tr></thead><tbody><tr><td style="text-align: right;">100</td><td style="text-align: right;">31.5%</td><td style="text-align: right;">39%</td><td style="text-align: right;">38%</td></tr><tr><td style="text-align: right;">200</td><td style="text-align: right;">58%</td><td style="text-align: right;">66%</td><td style="text-align: right;">85%</td></tr><tr><td style="text-align: right;">300</td><td style="text-align: right;">79%</td><td style="text-align: right;">88.5%</td><td style="text-align: right;">86.5%</td></tr><tr><td style="text-align: right;">400</td><td style="text-align: right;">85.5%</td><td style="text-align: right;">84.5%</td><td style="text-align: right;">85.5%</td></tr><tr><td style="text-align: right;">500</td><td style="text-align: right;">약 89%</td><td style="text-align: right;">약 89%</td><td style="text-align: right;">약 87%</td></tr></tbody></table></div>
+          <p><strong>해석:</strong><br />
+          1) 200 RPS에서 E8 Capacity는 85%였고 N8은 58%, A8은 66%.<br />
+          2) 400~500 RPS에서는 세 조건 모두 상단 범위에 가까워 Capacity만으로 로깅 효과를 분리할 수 없었음. <br />
+          3) 이 단일 실행들에서 보편 Capacity 임계값을 제시하지 않음.  </p>
+          <hr />
+          <h4>질문 1 — App Insights 본문 로깅은 APIM 처리에 영향을 주는가</h4>
+          <ul>
+          <li><strong>가설:</strong> App Insights body 8KB 로깅(App Insights Max 로깅용량)은 APIM 처리시간을 늘린다.</li>
+          <li><strong>판정:</strong> 조건부 지지</li>
+          <li>
+          <p><strong>근거:</strong> 모든 RPS 구간에서 A8이 기준선보다 높음</p>
+          <div class="table-wrap"><table><thead><tr><th style="text-align: right;">RPS</th><th style="text-align: right;">N8 — 메타데이터만 기록한 기준선 Duration</th><th style="text-align: right;">A8 — body 8KB Duration</th></tr></thead><tbody><tr><td style="text-align: right;">100</td><td style="text-align: right;">0.01 ms</td><td style="text-align: right;">0.03 ms</td></tr><tr><td style="text-align: right;">200</td><td style="text-align: right;">0.02 ms</td><td style="text-align: right;">0.05 ms</td></tr><tr><td style="text-align: right;">300</td><td style="text-align: right;">0.06 ms</td><td style="text-align: right;">0.13 ms</td></tr><tr><td style="text-align: right;">400</td><td style="text-align: right;">0.03 ms</td><td style="text-align: right;">0.64 ms</td></tr><tr><td style="text-align: right;">500</td><td style="text-align: right;">0.1~0.35 ms</td><td style="text-align: right;">0.9~2.5 ms</td></tr></tbody></table></div>
+          </li>
+          </ul>
+          <p><strong>결론:</strong> 본문 로깅은 APIM Duration을 증가시킴</p>
+          <h4>질문 2 — 8KB를 넘는 본문은 어떻게 로깅해야 하는가</h4>
+          <ul>
+          <li><strong>가설:</strong> App Insights 진단 설정만으로는 8KB를 넘는 본문을 남길 수 없어 다른 경로가 필요하다.</li>
+          <li><strong>판정:</strong> 확인</li>
+          <li>
+          <p><strong>근거:</strong> 두 경로의 본문 상한</p>
+          <div class="table-wrap"><table><thead><tr><th>경로</th><th>본문 상한</th><th>근거</th></tr></thead><tbody><tr><td>App Insights 진단 설정</td><td>8,192 bytes(8KB)</td><td><code>BodyDiagnosticSettings.bytes</code>의 <code>maximum: 8192</code></td></tr><tr><td><code>log-to-eventhub</code> 정책</td><td>200KB, 초과분 자동 절단</td><td>정책 문서 Usage notes</td></tr></tbody></table></div>
+          </li>
+          <li>
+          <p><strong>본 실험의 적용</strong></p>
+          <ul>
+          <li>64KB 본문(N64/E64)은 Event Hub 경로로만 측정</li>
+          <li>8KB 초과 본문 감사는 사실상 Event Hub 계열만 가능</li>
+          </ul>
+          </li>
+          </ul>
+          <p><strong>결론:</strong>
+          1) 8KB 초과 본문은 Event Hub 경로 필수
+          2) Event Hub를 함께 설계한다면, 이벤트 미처리 가능성을 전제로 설계</p>
+          <h4>질문 3 — 성능 저하 없이 모든 요청을 로깅할 수 있는가</h4>
+          <ul>
+          <li><strong>가설:</strong> 성능 저하 없이 모든 요청 로그를 남길 수 있다.</li>
+          <li><strong>판정:</strong> 조건부 지지</li>
+          <li>
+          <p><strong>비교 전제:</strong> App Insights 본문 상한이 8,192 bytes이므로 두 경로 직접 비교는 8KB에서만 가능(64KB에는 A64 조건 없음)</p>
+          <p><strong>근거 1. Duration 우열이 부하 구간에 따라 뒤바뀜</strong></p>
+          <div class="table-wrap"><table><thead><tr><th style="text-align: right;">RPS</th><th style="text-align: right;">N8 Duration</th><th style="text-align: right;">A8 Duration</th><th style="text-align: right;">E8 Duration</th><th>더 느린 쪽</th><th style="text-align: right;">E8 drop</th><th>Capacity</th></tr></thead><tbody><tr><td style="text-align: right;">100</td><td style="text-align: right;">0.01 ms</td><td style="text-align: right;">0.03 ms</td><td style="text-align: right;">0.03 ms</td><td>동일</td><td style="text-align: right;">0</td><td>~38%</td></tr><tr><td style="text-align: right;">200</td><td style="text-align: right;">0.02 ms</td><td style="text-align: right;">0.05 ms</td><td style="text-align: right;">0.04 ms</td><td>A8</td><td style="text-align: right;">0</td><td>N8 58 / A8 66 / E8 85%</td></tr><tr><td style="text-align: right;">300</td><td style="text-align: right;">0.06 ms</td><td style="text-align: right;">0.13 ms</td><td style="text-align: right;">0.36 ms</td><td><strong>E8</strong></td><td style="text-align: right;">0</td><td>~86%</td></tr><tr><td style="text-align: right;">400</td><td style="text-align: right;">0.03 ms</td><td style="text-align: right;">0.64 ms</td><td style="text-align: right;">1.00 ms</td><td><strong>E8</strong></td><td style="text-align: right;">2,933</td><td>~85%</td></tr><tr><td style="text-align: right;">500</td><td style="text-align: right;">0.1~0.35 ms</td><td style="text-align: right;">0.9~2.5 ms</td><td style="text-align: right;">0.4~1.7 ms</td><td><strong>A8</strong></td><td style="text-align: right;">대량</td><td>~89%</td></tr></tbody></table></div>
+          <ul>
+          <li><strong>여유~중부하(100~400 RPS):</strong> Event Hub 경로가 게이트웨이를 더 무겁게 씀. 200 RPS Capacity는 E8 85%로 A8 66%보다 높음</li>
+          <li><strong>포화(500 RPS):</strong> E8 Duration이 A8보다 낮아짐. 로그 폐기로 작업량이 줄어든 결과</li>
+          </ul>
+          <p><strong>근거 2. 같은 포화 상태에서 포기한 대상이 다름</strong></p>
+          <div class="table-wrap"><table><thead><tr><th>로깅 경로</th><th style="text-align: right;">클라이언트 성공</th><th>로그 기록 결과</th><th style="text-align: right;">Duration</th><th>포화 시 결과</th></tr></thead><tbody><tr><td>A8 — App Insights body 8KB</td><td style="text-align: right;">150,000 / 150,000</td><td>AppRequests 150,178건, 누락 없음</td><td style="text-align: right;">0.9~2.5 ms</td><td>처리시간 증가, 로그 보존</td></tr><tr><td>E8 — Event Hub 8KB</td><td style="text-align: right;">150,000 / 150,000</td><td>APIM-reported drop 대량 발생</td><td style="text-align: right;">0.4~1.7 ms</td><td>로그 폐기, 로깅 작업량 감소</td></tr></tbody></table></div>
+          <p>Capacity는 두 조건 모두 ~87~89%로 이미 포화 상태였고, 차이는 그 상태에서 무엇을 포기했는가에서 갈렸다.</p>
+          <p><strong>주의. 드롭 주체는 Event Hub가 아님</strong></p>
+          <ul>
+          <li>Event Hubs 스로틀링 0, 드롭은 APIM 게이트웨이 보고값</li>
+          <li>게이트웨이가 API 처리를 우선하고 로깅 큐 초과분을 폐기하는 구조</li>
+          <li>부하 완화(질문 4: 300 RPS 드롭 0) 또는 상위 SKU(질문 6)에서 드롭 미관측</li>
+          </ul>
+          <p><strong>단서.</strong> 로그 ID 대조 없이 총 수량으로만 판단</p>
+          </li>
+          </ul>
+          <p><strong>결론:</strong>
+          1) 두 경로 모두 API 요청은 100% 성공. 차이는 포화 시 무엇을 포기하는가
+          2) 평시에는 Event Hub 경로가 게이트웨이를 더 무겁게 사용
+          3) 포화 시 Event Hub는 로그를 폐기해 로깅 작업량이 줄고, App Insights는 처리시간을 내주고 로그 보존
+          4) API 응답 성공률과 로그 전달 성공률은 분리 관리</p>
+          <h4>질문 4 — Event Hub 연결은 무손실 로그 전송을 보장하는가</h4>
+          <ul>
+          <li><strong>가설:</strong> Event Hub 연결은 요청 로그를 손실 없이 전달한다.</li>
+          <li><strong>판정:</strong> 반박(본 Developer v1 고부하 조건)</li>
+          <li>
+          <p><strong>근거:</strong> 부하 완화 시 드롭 미관측, 같은 구간 Event Hubs 스로틀링 0</p>
+          <div class="table-wrap"><table><thead><tr><th>조건</th><th style="text-align: right;">RPS</th><th style="text-align: right;">클라이언트 성공</th><th style="text-align: right;">APIM-reported EH drop</th><th>해석</th></tr></thead><tbody><tr><td>E8</td><td style="text-align: right;">300</td><td style="text-align: right;">54,000 / 54,000</td><td style="text-align: right;">0</td><td>게이트웨이 여유 구간, 드롭 없음</td></tr><tr><td>E8</td><td style="text-align: right;">400</td><td style="text-align: right;">72,000 / 72,000</td><td style="text-align: right;">2,933</td><td>API 성공과 로그 전달 실패 분리</td></tr><tr><td>E8</td><td style="text-align: right;">500</td><td style="text-align: right;">150,000 / 150,000</td><td style="text-align: right;">대량, 약 절반</td><td>정확한 비율 미확정</td></tr></tbody></table></div>
+          </li>
+          </ul>
+          <p><strong>결론:</strong>
+          1) 무손실 여부는 Event Hub 연결이 아니라 게이트웨이 부하 수준에 의존
+          2) 같은 경로도 300 RPS에서는 드롭 없음
+          3) 운영 시 APIM 전송 성공·드롭 수와 Event Hubs 수신·스로틀링을 함께 확인</p>
+          <h4>질문 5 — 요청 크기는 APIM 처리와 로그 전달에 영향을 주는가</h4>
+          <ul>
+          <li><strong>가설:</strong> 요청 크기가 커지면 Duration과 로그 전달 범위가 악화된다.</li>
+          <li>
+          <p><strong>판정:</strong> 조건부 강함</p>
+          <p><strong>근거 1. 요청 크기가 커지면 Duration 증가</strong></p>
+          <div class="table-wrap"><table><thead><tr><th>500 RPS 기준선</th><th>요청 크기</th><th style="text-align: right;">Duration</th></tr></thead><tbody><tr><td>N8</td><td>8KB</td><td style="text-align: right;">0.1~0.35 ms</td></tr><tr><td>N64</td><td>64KB</td><td style="text-align: right;">7.32 ms</td></tr></tbody></table></div>
+          <p><strong>근거 2. 요청 크기가 커지면 드롭 시작 지점이 앞당겨짐</strong></p>
+          <div class="table-wrap"><table><thead><tr><th style="text-align: right;">RPS</th><th style="text-align: right;">8KB(E8) drop</th><th style="text-align: right;">64KB(E64) drop</th></tr></thead><tbody><tr><td style="text-align: right;">300</td><td style="text-align: right;">0</td><td style="text-align: right;">41,435</td></tr><tr><td style="text-align: right;">500</td><td style="text-align: right;">대량, 약 절반</td><td style="text-align: right;">76,434</td></tr></tbody></table></div>
+          <p><strong>주의. 64KB 내부 비교로는 로깅 비용을 알 수 없음</strong></p>
+          <div class="table-wrap"><table><thead><tr><th style="text-align: right;">RPS</th><th style="text-align: right;">N64 Duration</th><th style="text-align: right;">E64 Duration</th><th style="text-align: right;">E64 drop</th></tr></thead><tbody><tr><td style="text-align: right;">300</td><td style="text-align: right;">6.04 ms</td><td style="text-align: right;">5.24 ms</td><td style="text-align: right;">41,435</td></tr><tr><td style="text-align: right;">500</td><td style="text-align: right;">7.32 ms</td><td style="text-align: right;">7.58 ms</td><td style="text-align: right;">76,434</td></tr></tbody></table></div>
+          <p>300 RPS 역전은 E64가 빠른 것이 아니라 드롭된 41,435건만큼 전송하지 않은 결과다. 드롭 구간의 Duration은 비교 근거로 사용 불가.</p>
+          </li>
+          </ul>
+          <p><strong>결론:</strong>
+          1) 요청 크기가 Duration을 지배(8KB 0.1~0.35 ms vs 64KB 7.32 ms)
+          2) 요청 크기 증가 시 안전 로깅 부하 범위 축소
+          3) 드롭 구간 Duration은 성능 우열 근거로 사용 금지</p>
+          <h4>질문 6 — Developer v1과 Basic v2 비교에서 전달 결과가 달랐는가</h4>
+          <ul>
+          <li><strong>가설:</strong> v1, v2의 기본 RPS 처리량이 다르다.</li>
+          <li><strong>비교 이유:</strong> 공식 가격표상 Developer v1은 예상 최대 500 requests/sec, Basic v2는 대응 RPS 수치 없이 포함 요청 초과분 추가 과금</li>
+          <li>
+          <p><strong>판정:</strong> 지지</p>
+          <p><strong>근거 1. SKU만 교체한 통제 조건</strong></p>
+          <p>요청 크기(8KB)·부하(500 RPS)·정책 XML·Event Hub(40 TU)·부하 생성 VM·유닛 수(1)를 고정.</p>
+          <p><strong>근거 2. 판정에 쓴 지표는 두 SKU에서 동일 수집</strong></p>
+          <div class="table-wrap"><table><thead><tr><th>지표</th><th>Developer v1 관측</th><th>Basic v2 관측</th><th>수집</th></tr></thead><tbody><tr><td>EH 도달</td><td>약 절반만 도달, 대량 drop</td><td>분당 약 30,000건: 30056, 29900, 29926, 30108, 29796, 30186</td><td>동일</td></tr><tr><td>EH throttling</td><td>0</td><td>0</td><td>동일</td></tr><tr><td>클라이언트 결과</td><td>200 성공, p99 약 500 ms</td><td>200 성공, p99 약 30 ms</td><td>동일</td></tr><tr><td>APIM EventHubDroppedEvents</td><td>대량 drop 보고</td><td>미수집</td><td>비대칭</td></tr><tr><td>게이트웨이 리소스</td><td>classic Capacity 관측</td><td>v2 CPU/메모리 미수집</td><td>비대칭</td></tr></tbody></table></div>
+          <p>측정한 500 RPS는 Developer v1의 공식 예상 최대 처리량과 같은 값이다. v1은 정격 상한에서, v2는 상한이 공표되지 않은 여유 구간에서 측정됐다.</p>
+          </li>
+          </ul>
+          <p><strong>결론:</strong>
+          1) 같은 정책·같은 부하에서 SKU 교체만으로 드롭 소멸
+          2) 드롭은 <code>log-to-eventhub</code>의 성질이 아니라 게이트웨이를 정격 상한으로 운영한 결과
+          3) 게이트웨이 리소스 지표는 비대칭이라 메커니즘 자체는 미확정</p>
+          <hr />
+          <h4>한계</h4>
+          <ul>
+          <li>조건별 대부분 1회 실행. 3회 반복 계획 미완료</li>
+          <li>요청 ID·페이로드 해시·메시지 크기 대조 미수행. App Insights 150,178건에 warmup 경계 레코드 포함 가능</li>
+          <li>클라이언트 p95/p99에 부하 생성기·TLS 영향 혼입. 서버측 Duration과 구분 필요</li>
+          <li>v1/v2 게이트웨이 리소스 지표 비대칭으로 드롭 메커니즘 미확정. v2 조건은 App Insights diagnostic 미설정</li>
+          <li>미검증: v2 CPU·메모리·Duration·drop 카운터, Standard/Premium, streaming/SSE, 응답 본문 로깅, 1,000 RPS, 다중 단위·리전·백엔드 구성</li>
+          </ul>
+          <h4>원천 문서</h4>
+          <div class="table-wrap"><table><thead><tr><th>문서</th><th>역할</th></tr></thead><tbody><tr><td><code>EXPERIMENT-SPEC.md</code></td><td>원래 가설, 성공 조건, 측정 계획</td></tr><tr><td><code>EXPERIMENT-LOG.md</code></td><td>실제 실행 창, RPS, 수치 출처</td></tr><tr><td><code>old/RESULTS-Old.md</code></td><td>보관된 이전 결과 원문</td></tr><tr><td><code>old/REVIEW.md</code></td><td>보관된 검토 근거</td></tr><tr><td><code>DECISION-TREE.md</code></td><td>앞선 의사결정 가이드; 손실 여부·임계값·지연·인과 표현이 충돌하면 활성 RESULTS.md가 우선한다</td></tr><tr><td><code>REPORT.html</code></td><td>시각 보고서 참조; 활성 고객 결과보고서는 이 문서다</td></tr></tbody></table></div>
+          </div>
+        </details>
+      </section>
+
+      <section id="decision" aria-labelledby="decision-title">
+        <span class="eyebrow">의사결정 흐름</span>
+        <h2 id="decision-title">저장소 선택 의사결정 흐름</h2>
+        <p>로깅 목적을 먼저 정하고, 본문 필요 여부와 8KB 초과 여부로 저장소 후보를 좁힌 뒤, 드롭이 실제로 발생하는 Event Hub 경로에서 목표 부하를 검증합니다.</p>
+        <div class="diagram-scroll">
+          <svg class="decision-connectors flowchart" viewBox="0 0 1060 1240" role="img" aria-label="APIM 로그 저장소 선택 의사결정 트리. 로깅 목적에서 시작해 모니터링·진단 경로는 App Insights와 적정 기록 비율로 종료된다. 무손실 감사 경로는 본문 필요 여부와 8KB 초과 여부로 후보를 좁힌다. 본문 8KB 초과는 Event Hub로 고정되고, 메타데이터만이거나 8KB 이하이면 목적지 기준으로 저장소를 선택한다. App Insights를 고르면 데이터 수집 한도 확인으로 종료되고, Event Hub로 가는 두 경우는 공통으로 목표 부하 판정을 거쳐 드롭 0을 확인한 뒤 Event Hub와 드롭 알림으로 종료된다. 부하를 견디지 못하면 용량 확보와 부하 재측정을 거쳐 다시 판정한다.">
+            <title>APIM 로그 저장소 선택 의사결정 트리</title>
+            <rect class="flow-terminal" x="405" y="20" width="230" height="44" rx="22"></rect>
+            <text class="flow-text" x="520" y="48" text-anchor="middle">APIM 로깅 설계 시작</text>
+            <path class="connector-line" d="M520 64 L520 100" marker-end="url(#arrow)"></path>
+            <polygon class="flow-decision" points="520,102 640,150 520,198 400,150"></polygon>
+            <text class="flow-text" x="520" y="156" text-anchor="middle">로깅 목적?</text>
+            <path class="connector-line" d="M400 150 L150 150 L150 242" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="275" y="142" text-anchor="middle">모니터링·진단 (일부 기록 허용)</text>
+            <rect class="connector-node" x="10" y="244" width="280" height="92" rx="10"></rect>
+            <text class="flow-text" x="150" y="272" text-anchor="middle">App Insights 선택</text>
+            <text class="flow-text sub" x="150" y="296" text-anchor="middle">기록 비율로 비용·부하 관리</text>
+            <text class="flow-text sub" x="150" y="318" text-anchor="middle">본문 로깅은 8KB 상한</text>
+            <path class="connector-line" d="M150 336 L150 398" marker-end="url(#arrow)"></path>
+            <rect class="flow-terminal" x="15" y="400" width="270" height="56" rx="28"></rect>
+            <text class="flow-text" x="150" y="434" text-anchor="middle">App Insights + 적정 기록 비율</text>
+            <path class="connector-line" d="M640 150 L700 150 L700 238" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="790" y="142" text-anchor="middle">무손실 감사 (모든 로그 보존)</text>
+            <polygon class="flow-decision" points="700,240 830,288 700,336 570,288"></polygon>
+            <text class="flow-text" x="700" y="282" text-anchor="middle">본문(body) 로깅이</text>
+            <text class="flow-text" x="700" y="302" text-anchor="middle">필요한가?</text>
+            <path class="connector-line" d="M700 336 L700 378" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="716" y="362" text-anchor="start">필요</text>
+            <polygon class="flow-decision" points="700,380 830,428 700,476 570,428"></polygon>
+            <text class="flow-text" x="700" y="434" text-anchor="middle">본문 크기 &gt; 8KB?</text>
+            <path class="connector-line" d="M830 428 L890 428 L890 498" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="846" y="420" text-anchor="start">예</text>
+            <rect class="connector-node" x="750" y="500" width="280" height="90" rx="10"></rect>
+            <text class="flow-text" x="890" y="528" text-anchor="middle">Event Hub 경로만 가능</text>
+            <text class="flow-text sub" x="890" y="552" text-anchor="middle">App Insights 상한 8,192 bytes</text>
+            <text class="flow-text sub" x="890" y="574" text-anchor="middle">log-to-eventhub 200KB · 초과분 절단</text>
+            <path class="connector-line" d="M700 476 L700 520 L430 520"></path>
+            <text class="connector-label" x="690" y="505" text-anchor="end">아니오 (≤ 8KB)</text>
+            <path class="connector-line" d="M570 288 L430 288 L430 520"></path>
+            <text class="connector-label" x="424" y="380" text-anchor="end">불필요 (메타데이터만)</text>
+            <circle class="flow-junction" cx="430" cy="520" r="4"></circle>
+            <path class="connector-line" d="M430 520 L430 558" marker-end="url(#arrow)"></path>
+            <polygon class="flow-decision" data-role="sink-choice" points="430,560 580,620 430,680 280,620"></polygon>
+            <text class="flow-text" x="430" y="614" text-anchor="middle">저장소 선택</text>
+            <text class="flow-text sub" x="430" y="636" text-anchor="middle">목적지 기준</text>
+            <path class="connector-line" d="M280 620 L200 620 L200 760" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="270" y="606" text-anchor="end">Azure Monitor 통합(쿼리·알림·분석)</text>
+            <rect class="flow-terminal" x="80" y="762" width="240" height="56" rx="28"></rect>
+            <text class="flow-text" x="200" y="796" text-anchor="middle">App Insights 100% 기록</text>
+            <path class="connector-line" d="M200 818 L200 873" marker-end="url(#arrow)"></path>
+            <rect class="connector-alert" x="60" y="875" width="280" height="70" rx="10"></rect>
+            <text class="flow-text" x="200" y="903" text-anchor="middle">데이터 수집 한도·일일 상한</text>
+            <text class="flow-text sub" x="200" y="925" text-anchor="middle">드롭 미관측 · 처리시간 증가 감안</text>
+            <path class="connector-line" d="M580 620 L760 620 L760 690"></path>
+            <text class="connector-label" x="700" y="606" text-anchor="middle">외부 실시간 스트리밍(SIEM·데이터레이크)</text>
+            <path class="connector-line" d="M890 590 L890 690 L760 690"></path>
+            <circle class="flow-junction" cx="760" cy="690" r="4"></circle>
+            <path class="connector-line" d="M760 690 L760 728" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="790" y="716" text-anchor="start">Event Hub 경로 전용 판정</text>
+            <polygon class="flow-decision" data-role="eh-load-check" points="760,730 920,790 760,850 600,790"></polygon>
+            <text class="flow-text" x="760" y="784" text-anchor="middle">목표 부하(RPS × payload)를</text>
+            <text class="flow-text" x="760" y="804" text-anchor="middle">드롭 없이 견디는가?</text>
+            <path class="connector-line" d="M600 790 L510 790 L510 891" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="590" y="775" text-anchor="end">아니오 / 불확실</text>
+            <rect class="connector-node" x="360" y="893" width="300" height="112" rx="10"></rect>
+            <text class="flow-text" x="510" y="921" text-anchor="middle">① 게이트웨이 용량 확보</text>
+            <text class="flow-text sub" x="510" y="945" text-anchor="middle">APIM 등급 상향 또는 용량 증설</text>
+            <text class="flow-text sub" x="510" y="967" text-anchor="middle">로깅 데이터 축소(헤더·요약)</text>
+            <text class="flow-text sub" x="510" y="989" text-anchor="middle">Event Hubs TU 증설은 해법 아님</text>
+            <path class="connector-line" d="M510 1005 L510 1065" marker-end="url(#arrow)"></path>
+            <rect class="connector-node" x="360" y="1067" width="300" height="86" rx="10"></rect>
+            <text class="flow-text" x="510" y="1095" text-anchor="middle">부하 재측정</text>
+            <text class="flow-text sub" x="510" y="1119" text-anchor="middle">목표 RPS·payload로 재현</text>
+            <text class="flow-text sub" x="510" y="1141" text-anchor="middle">EventHubDroppedEvents = 0 확인</text>
+            <path class="connector-loop" d="M660 1090 C 640 1000, 700 900, 752 856" marker-end="url(#arrow-loop)"></path>
+            <text class="connector-label" x="510" y="1185" text-anchor="middle">드롭 0 달성 → 재판정</text>
+            <path class="connector-line" d="M760 850 L760 900 L830 900 L830 930" marker-end="url(#arrow)"></path>
+            <text class="connector-label" x="775" y="878" text-anchor="start">예 (여유)</text>
+            <rect class="flow-terminal" x="710" y="932" width="240" height="56" rx="28"></rect>
+            <text class="flow-text" x="830" y="966" text-anchor="middle">Event Hub + 드롭 알림</text>
+            <path class="connector-line" d="M830 988 L830 1043" marker-end="url(#arrow)"></path>
+            <rect class="connector-alert" x="690" y="1045" width="280" height="70" rx="10"></rect>
+            <text class="flow-text sub" x="830" y="1073" text-anchor="middle">EventHubDroppedEvents 알림 필수</text>
+            <text class="flow-text sub" x="830" y="1095" text-anchor="middle">드롭이 나도 요청은 200</text>
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="var(--cp-border-strong)"></path>
+              </marker>
+              <marker id="arrow-loop" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="var(--cp-warning)"></path>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+        <details class="result-details step-details">
+          <summary>단계별 상세 보기(클릭해 주세요) — 각 단계의 근거와 운영 종단</summary>
+          <div class="decision-flow" role="group" aria-label="저장소 선택 단계별 상세">
+            <ol class="decision-track">
+              <li class="decision-node" data-node="purpose">
+                <h3>1. 로깅 목적</h3>
+                <p>모니터링·진단 목적인지, 무손실 감사 목적인지 먼저 정의합니다.</p>
+                <p class="branch-exit" data-node="monitoring-exit">모니터링·진단이면 여기서 종료: App Insights + 적정 기록 비율 (본문 8KB 상한)</p>
+              </li>
+              <li class="decision-node" data-node="body-needed">
+                <h3>2. 본문 필요 여부</h3>
+                <p>감사 경로라면 요청·응답 본문 기록이 필요한지 확인합니다.</p>
+              </li>
+              <li class="decision-node" data-node="body-size">
+                <h3>3. 8KB 초과 여부</h3>
+                <p>필요한 본문이 8KB 초과 여부에 해당하는지 확인합니다. 초과하면 Event Hub만 본문 저장소 후보가 되며, 200KB를 넘는 부분은 잘립니다.</p>
+              </li>
+              <li class="decision-node" data-node="sink-choice">
+                <h3>4. 저장소 선택</h3>
+                <p>본문 8KB 초과는 앞서 Event Hub로 고정되어 이 분기에 오지 않습니다. 여기에 도달하는 것은 메타데이터만 또는 본문 8KB 이하이며, 본문이 필요 없어도 Event Hub는 닫히지 않습니다. 갈림은 목적지입니다 — 외부 실시간 스트리밍이면 Event Hub, Azure Monitor 통합이면 App Insights.</p>
+                <ul class="sink-branches">
+                  <li class="sink-node" data-node="app-insights">
+                    <h4>App Insights 100%</h4>
+                    <p>메타데이터만 또는 본문 8KB 이하 · Azure Monitor 쿼리·알림 통합 중심 · 평시 게이트웨이 부담이 더 작음</p>
+                    <p class="sink-alert" data-node="app-insights-alert">운영 종단: 데이터 수집 한도·일일 상한 확인 · 본 관측에서 드롭 미관측, 대신 처리시간 증가</p>
+                  </li>
+                  <li class="sink-node" data-node="event-hub">
+                    <h4>Event Hub</h4>
+                    <p>외부 실시간 스트리밍(SIEM·데이터레이크) 또는 본문 8KB 초과 · 200KB까지 지원 · 본문 없이 메타데이터만 보내도 선택 가능</p>
+                    <p class="sink-alert" data-node="event-hub-alert">운영 종단: EventHubDroppedEvents 알림 필수 — 드롭이 나도 요청은 200</p>
+                  </li>
+                </ul>
+              </li>
+              <li class="decision-node" data-node="load-check">
+                <h3>5. Event Hub 경로 부하 판정</h3>
+                <p>드롭은 Event Hub 경로에서만 관측됐습니다. 8KB 초과로 고정된 경우와 스트리밍 목적으로 Event Hub를 고른 경우 모두, 목표 RPS × payload에서 드롭 0을 증명해야 합니다. 8KB에서도 400 RPS에서 2,933건이 드롭됐습니다.</p>
+              </li>
+            </ol>
+            <div class="decision-branches">
+              <div class="decision-branch decision-branch-no">
+                <span class="branch-label">부하 초과 (아니오)</span>
+                <ol class="decision-steps">
+                  <li class="decision-node" data-node="capacity-action">
+                    <h3>6. 용량 확보</h3>
+                    <p>SKU·용량 상향 또는 기록 페이로드 축소로 용량을 확보합니다. Event Hubs TU 증설은 APIM 드롭의 기본 해법이 아닙니다.</p>
+                  </li>
+                  <li class="decision-node" data-node="retest">
+                    <h3>7. 같은 부하로 재시험</h3>
+                    <p>용량을 확보한 뒤 같은 부하로 재시험합니다.</p>
+                    <p class="loop-callout">재시험 → 부하 판정 (드롭 0 확인 후 재판정)</p>
+                  </li>
+                </ol>
+              </div>
+              <div class="decision-branch decision-branch-yes">
+                <span class="branch-label">부하 통과 (예)</span>
+                <ol class="decision-steps">
+                  <li class="decision-node" data-node="eh-confirmed">
+                    <h3>8. Event Hub 확정</h3>
+                    <p>드롭 0을 확인한 뒤 Event Hub 전달로 확정하고, EventHubDroppedEvents 알림을 상시 유지합니다.</p>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section id="evidence" aria-labelledby="evidence-title">
+        <span class="eyebrow">측정 근거</span>
+        <h2 id="evidence-title">측정 근거</h2>
+        <p>아래 8개 차트는 모두 인라인 SVG이며, 값은 화면 텍스트와 접근 가능한 표로 함께 제공됩니다. 각 차트 하단에 원천 문서를 표기하고, 정량값이 없는 항목은 정성 표식으로만 표현합니다.</p>
+        <div class="chart-grid">
+          <figure class="chart-card" id="chart-capacity-8k" aria-labelledby="chart-capacity-8k-title">
+            <h3 id="chart-capacity-8k-title">8KB APIM Capacity</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>Capacity는 게이트웨이가 가진 처리 여력을 몇 % 쓰고 있는지 나타냅니다. 100%에 가까울수록 포화입니다. <strong>어떤 로깅 방식이 게이트웨이를 더 무겁게 쓰는지</strong> 보여줍니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 644" role="img" aria-label="8KB APIM Capacity, 100에서 500 RPS까지 N8 A8 E8 게이트웨이 부하 퍼센트 비교">
+              <title>8KB APIM Capacity — 게이트웨이 부하%</title>
+              <text class="group-label" x="8" y="26">100 RPS</text>
+              <g class="metric-row" data-rps="100" data-series="N8" data-value="31.5">
+              <rect class="bar bar-n" x="60" y="39" width="126" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="52">N8</text>
+              <text class="value-label" x="192" y="52">31.5%</text>
+              </g>
+              <g class="metric-row" data-rps="100" data-series="A8" data-value="39">
+              <rect class="bar bar-a" x="60" y="69" width="156" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="82">A8</text>
+              <text class="value-label" x="222" y="82">39%</text>
+              </g>
+              <g class="metric-row" data-rps="100" data-series="E8" data-value="38">
+              <rect class="bar bar-e" x="60" y="99" width="152" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="112">E8</text>
+              <text class="value-label" x="218" y="112">38%</text>
+              </g>
+              <text class="group-label" x="8" y="152">200 RPS</text>
+              <g class="metric-row" data-rps="200" data-series="N8" data-value="58">
+              <rect class="bar bar-n" x="60" y="165" width="232" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="178">N8</text>
+              <text class="value-label" x="298" y="178">58%</text>
+              </g>
+              <g class="metric-row" data-rps="200" data-series="A8" data-value="66">
+              <rect class="bar bar-a" x="60" y="195" width="264" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="208">A8</text>
+              <text class="value-label" x="330" y="208">66%</text>
+              </g>
+              <g class="metric-row" data-rps="200" data-series="E8" data-value="85">
+              <rect class="bar bar-e" x="60" y="225" width="340" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="238">E8</text>
+              <text class="value-label" x="406" y="238">85%</text>
+              </g>
+              <text class="group-label" x="8" y="278">300 RPS</text>
+              <g class="metric-row" data-rps="300" data-series="N8" data-value="79">
+              <rect class="bar bar-n" x="60" y="291" width="316" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="304">N8</text>
+              <text class="value-label" x="382" y="304">79%</text>
+              </g>
+              <g class="metric-row" data-rps="300" data-series="A8" data-value="88.5">
+              <rect class="bar bar-a" x="60" y="321" width="354" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="334">A8</text>
+              <text class="value-label" x="420" y="334">88.5%</text>
+              </g>
+              <g class="metric-row" data-rps="300" data-series="E8" data-value="86.5">
+              <rect class="bar bar-e" x="60" y="351" width="346" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="364">E8</text>
+              <text class="value-label" x="412" y="364">86.5%</text>
+              </g>
+              <text class="group-label" x="8" y="404">400 RPS</text>
+              <g class="metric-row" data-rps="400" data-series="N8" data-value="85.5">
+              <rect class="bar bar-n" x="60" y="417" width="342" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="430">N8</text>
+              <text class="value-label" x="408" y="430">85.5%</text>
+              </g>
+              <g class="metric-row" data-rps="400" data-series="A8" data-value="84.5">
+              <rect class="bar bar-a" x="60" y="447" width="338" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="460">A8</text>
+              <text class="value-label" x="404" y="460">84.5%</text>
+              </g>
+              <g class="metric-row" data-rps="400" data-series="E8" data-value="85.5">
+              <rect class="bar bar-e" x="60" y="477" width="342" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="490">E8</text>
+              <text class="value-label" x="408" y="490">85.5%</text>
+              </g>
+              <text class="group-label" x="8" y="530">500 RPS</text>
+              <g class="metric-row" data-rps="500" data-series="N8" data-value="~89">
+              <rect class="bar bar-n" x="60" y="543" width="356" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="556">N8</text>
+              <text class="value-label" x="422" y="556">~89%</text>
+              </g>
+              <g class="metric-row" data-rps="500" data-series="A8" data-value="~89">
+              <rect class="bar bar-a" x="60" y="573" width="356" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="586">A8</text>
+              <text class="value-label" x="422" y="586">~89%</text>
+              </g>
+              <g class="metric-row" data-rps="500" data-series="E8" data-value="~87">
+              <rect class="bar bar-e" x="60" y="603" width="348" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="616">E8</text>
+              <text class="value-label" x="414" y="616">~87%</text>
+              </g>
+            </svg>
+            <figcaption class="chart-annotation">200 RPS에서 E8 85%로 N8 58%·A8 66%보다 게이트웨이를 더 무겁게 사용. 400~500 RPS는 세 조건 모두 상단 범위에 몰려 Capacity만으로 로깅 효과를 분리할 수 없음(보편 임계값 아님).</figcaption>
+            <p class="chart-source"><span class="evidence confirmed">측정</span> 출처: EXPERIMENT-LOG.md · RESULTS.md 질문 3 Capacity 표.</p>
+          </figure>
+          <figure class="chart-card" id="chart-duration-8k" aria-labelledby="chart-duration-8k-title">
+            <h3 id="chart-duration-8k-title">8KB APIM Duration</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>Duration은 APIM이 요청 하나를 처리하는 데 쓴 서버측 시간입니다. 네트워크와 백엔드 대기가 빠져 있어 게이트웨이 자체 비용에 가깝습니다. <strong>본문 로깅이 처리시간을 얼마나 늘리는지</strong> 보여줍니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 644" role="img" aria-label="8KB APIM Duration, 100에서 500 RPS까지 N8 A8 E8 처리시간 비교, 500 RPS는 관측 범위">
+              <title>8KB APIM Duration — 게이트웨이 처리시간 밀리초</title>
+              <text class="group-label" x="8" y="26">100 RPS</text>
+              <g class="metric-row" data-rps="100" data-series="N8" data-value="0.01">
+              <rect class="bar bar-n" x="60" y="39" width="1" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="52">N8</text>
+              <text class="value-label" x="67" y="52">0.01 ms</text>
+              </g>
+              <g class="metric-row" data-rps="100" data-series="A8" data-value="0.03">
+              <rect class="bar bar-a" x="60" y="69" width="4" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="82">A8</text>
+              <text class="value-label" x="70" y="82">0.03 ms</text>
+              </g>
+              <g class="metric-row" data-rps="100" data-series="E8" data-value="0.03">
+              <rect class="bar bar-e" x="60" y="99" width="4" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="112">E8</text>
+              <text class="value-label" x="70" y="112">0.03 ms</text>
+              </g>
+              <text class="group-label" x="8" y="152">200 RPS</text>
+              <g class="metric-row" data-rps="200" data-series="N8" data-value="0.02">
+              <rect class="bar bar-n" x="60" y="165" width="3" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="178">N8</text>
+              <text class="value-label" x="69" y="178">0.02 ms</text>
+              </g>
+              <g class="metric-row" data-rps="200" data-series="A8" data-value="0.05">
+              <rect class="bar bar-a" x="60" y="195" width="7" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="208">A8</text>
+              <text class="value-label" x="73" y="208">0.05 ms</text>
+              </g>
+              <g class="metric-row" data-rps="200" data-series="E8" data-value="0.04">
+              <rect class="bar bar-e" x="60" y="225" width="6" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="238">E8</text>
+              <text class="value-label" x="72" y="238">0.04 ms</text>
+              </g>
+              <text class="group-label" x="8" y="278">300 RPS</text>
+              <g class="metric-row" data-rps="300" data-series="N8" data-value="0.06">
+              <rect class="bar bar-n" x="60" y="291" width="9" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="304">N8</text>
+              <text class="value-label" x="75" y="304">0.06 ms</text>
+              </g>
+              <g class="metric-row" data-rps="300" data-series="A8" data-value="0.13">
+              <rect class="bar bar-a" x="60" y="321" width="19" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="334">A8</text>
+              <text class="value-label" x="85" y="334">0.13 ms</text>
+              </g>
+              <g class="metric-row" data-rps="300" data-series="E8" data-value="0.36">
+              <rect class="bar bar-e" x="60" y="351" width="52" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="364">E8</text>
+              <text class="value-label" x="118" y="364">0.36 ms</text>
+              </g>
+              <text class="group-label" x="8" y="404">400 RPS</text>
+              <g class="metric-row" data-rps="400" data-series="N8" data-value="0.03">
+              <rect class="bar bar-n" x="60" y="417" width="4" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="430">N8</text>
+              <text class="value-label" x="70" y="430">0.03 ms</text>
+              </g>
+              <g class="metric-row" data-rps="400" data-series="A8" data-value="0.64">
+              <rect class="bar bar-a" x="60" y="447" width="92" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="460">A8</text>
+              <text class="value-label" x="158" y="460">0.64 ms</text>
+              </g>
+              <g class="metric-row" data-rps="400" data-series="E8" data-value="1.00">
+              <rect class="risk-band" x="58" y="472" width="364" height="26" rx="4"></rect>
+              <rect class="bar bar-e" x="60" y="477" width="144" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="490">E8</text>
+              <text class="value-label" x="210" y="490">1.00 ms</text>
+              </g>
+              <text class="group-label" x="8" y="530">500 RPS</text>
+              <g class="metric-row" data-rps="500" data-series="N8" data-value="0.10~0.35">
+              <rect class="bar bar-n bar-range" x="74" y="543" width="36" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="556">N8</text>
+              <text class="value-label" x="116" y="556">0.10~0.35 ms</text>
+              </g>
+              <g class="metric-row" data-rps="500" data-series="A8" data-value="0.90~2.50">
+              <rect class="bar bar-a bar-range" x="190" y="573" width="230" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="586">A8</text>
+              <text class="value-label" x="426" y="586">0.90~2.50 ms</text>
+              </g>
+              <g class="metric-row" data-rps="500" data-series="E8" data-value="0.40~1.70">
+              <rect class="risk-band" x="58" y="598" width="364" height="26" rx="4"></rect>
+              <rect class="bar bar-e bar-range" x="118" y="603" width="187" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="616">E8</text>
+              <text class="value-label" x="311" y="616">0.40~1.70 ms</text>
+              </g>
+            </svg>
+            <figcaption class="chart-annotation risk-note">E8 400·500 RPS는 드롭 구간입니다. E8 500이 A8보다 낮아 보여도 성능 우위가 아니라 로그를 폐기해 작업량이 줄어든 결과입니다. <strong>드롭 구간 Duration은 성능 우열 근거가 아님.</strong></figcaption>
+            <p class="chart-source"><span class="evidence confirmed">측정</span> 출처: EXPERIMENT-LOG.md · RESULTS.md 질문 1·3 Duration 표.</p>
+          </figure>
+          <figure class="chart-card" id="chart-drops-8k" aria-labelledby="chart-drops-8k-title">
+            <h3 id="chart-drops-8k-title">8KB Event Hub 드롭 전이</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>드롭은 APIM이 Event Hub로 보내려다 버린 로그 건수입니다. API 응답은 정상 성공한 채 로그만 사라지므로 응답 성공률로는 감지되지 않습니다. <strong>8KB에서 로그 유실이 시작되는 부하 지점</strong>을 보여줍니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 196" role="img" aria-label="8KB Event Hub 드롭 전이, 300 RPS 드롭 0, 400 RPS 2,933, 500 RPS는 대량이며 정확한 드롭률 미확정">
+              <title>8KB EventHubDroppedEvents — 부하별 드롭 전이</title>
+              <g class="metric-row" data-rps="300" data-value="0">
+                <text class="group-label" x="8" y="49">300 RPS</text>
+                <text class="series-label mono" x="88" y="49">E8</text>
+                <circle class="marker-ok" cx="124" cy="44" r="6"></circle>
+                <text class="value-label" x="138" y="49">0</text>
+                <text class="drop-note ok" x="160" y="49">드롭 없음</text>
+              </g>
+              <g class="metric-row" data-rps="400" data-value="2,933">
+                <text class="group-label" x="8" y="105">400 RPS</text>
+                <text class="series-label mono" x="88" y="105">E8</text>
+                <rect class="bar bar-risk" x="118" y="90" width="240" height="20" rx="3"></rect>
+                <text class="value-label" x="366" y="105">2,933</text>
+              </g>
+              <g class="metric-row" data-rps="500" data-value="unknown">
+                <text class="group-label" x="8" y="161">500 RPS</text>
+                <text class="series-label mono" x="88" y="161">E8</text>
+                <rect class="offscale-zone" x="118" y="144" width="418" height="24" rx="3"></rect>
+                <polygon class="offscale-arrow" points="536,147 558,156 536,165"></polygon>
+                <text class="offscale-marker" x="128" y="160">대량 · 정확한 드롭률 미확정</text>
+              </g>
+            </svg>
+            <figcaption class="chart-annotation">APIM-reported EventHubDroppedEvents. <strong>300~400 RPS 사이에서 드롭 전이가 관측됨</strong>(300=0, 400=2,933). 500 RPS는 대량(약 절반 추정)이나 정확한 비율은 미확정이라 축 범위 밖 정성 표식으로 표시합니다. Event Hubs 스로틀링은 0이며 드롭 주체는 APIM 게이트웨이입니다.</figcaption>
+            <p class="chart-source"><span class="evidence risk">위험</span> 출처: EXPERIMENT-LOG.md 8KB 스윈 · RESULTS.md 질문 4.</p>
+          </figure>
+          <figure class="chart-card" id="chart-duration-64k" aria-labelledby="chart-duration-64k-title">
+            <h3 id="chart-duration-64k-title">64KB APIM Duration</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>같은 서버측 처리시간을 요청 크기 64KB에서 측정한 것입니다. 8KB 차트와 나란히 보면 <strong>로깅 방식보다 요청 크기가 처리시간을 더 크게 좌우한다</strong>는 점이 드러납니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 206" role="img" aria-label="64KB APIM Duration, 300과 500 RPS에서 N64 E64 처리시간 비교">
+              <title>64KB APIM Duration — 게이트웨이 처리시간 밀리초</title>
+              <text class="group-label" x="8" y="26">300 RPS</text>
+              <g class="metric-row" data-rps="300" data-series="N64" data-value="6.04">
+              <rect class="bar bar-n" x="64" y="39" width="272" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="52">N64</text>
+              <text class="value-label" x="342" y="52">6.04 ms</text>
+              </g>
+              <g class="metric-row" data-rps="300" data-series="E64" data-value="5.24">
+              <rect class="risk-band" x="62" y="64" width="364" height="26" rx="4"></rect>
+              <rect class="bar bar-e" x="64" y="69" width="236" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="82">E64</text>
+              <text class="value-label" x="306" y="82">5.24 ms</text>
+              </g>
+              <text class="group-label" x="8" y="122">500 RPS</text>
+              <g class="metric-row" data-rps="500" data-series="N64" data-value="7.32">
+              <rect class="bar bar-n" x="64" y="135" width="329" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="148">N64</text>
+              <text class="value-label" x="399" y="148">7.32 ms</text>
+              </g>
+              <g class="metric-row" data-rps="500" data-series="E64" data-value="7.58">
+              <rect class="risk-band" x="62" y="160" width="364" height="26" rx="4"></rect>
+              <rect class="bar bar-e" x="64" y="165" width="341" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="178">E64</text>
+              <text class="value-label" x="411" y="178">7.58 ms</text>
+              </g>
+            </svg>
+            <figcaption class="chart-annotation risk-note">E64는 두 구간 모두 드롭이 있었습니다(300 RPS 41,435 · 500 RPS 76,434). 300 RPS에서 E64 5.24 ms가 N64 6.04 ms보다 낮은 것은 드롭된 41,435건을 전송하지 않은 결과이며, E64−N64 차이를 순수 Event Hub 로깅 비용으로 해석하지 않습니다. 64KB 지연의 주범은 payload 크기 자체입니다.</figcaption>
+            <p class="chart-source"><span class="evidence conditional">조건부</span> 출처: EXPERIMENT-LOG.md 64KB 스윈 · RESULTS.md 질문 5.</p>
+          </figure>
+          <figure class="chart-card" id="chart-drops-64k" aria-labelledby="chart-drops-64k-title">
+            <h3 id="chart-drops-64k-title">64KB Event Hub 드롭</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>같은 드롭 건수를 요청 크기 64KB에서 측정한 것입니다. <strong>요청이 커지면 로그를 안전하게 남길 수 있는 부하 한계가 얼마나 앞당겨지는지</strong> 보여줍니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 146" role="img" aria-label="64KB Event Hub 드롭, 300 RPS 41,435, 500 RPS 76,434">
+              <title>64KB EventHubDroppedEvents — APIM 보고 드롭 수</title>
+              <text class="group-label" x="8" y="26">300 RPS</text>
+              <g class="metric-row" data-rps="300" data-series="E64" data-value="41,435">
+              <rect class="bar bar-risk" x="64" y="39" width="186" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="52">E64</text>
+              <text class="value-label" x="258" y="52">41,435</text>
+              </g>
+              <text class="group-label" x="8" y="92">500 RPS</text>
+              <g class="metric-row" data-rps="500" data-series="E64" data-value="76,434">
+              <rect class="bar bar-risk" x="64" y="105" width="344" height="15" rx="3"></rect>
+              <text class="series-label mono" x="8" y="118">E64</text>
+              <text class="value-label" x="416" y="118">76,434</text>
+              </g>
+            </svg>
+            <figcaption class="chart-annotation">payload가 커지면 무손실 임계 RPS가 급락합니다. 8KB는 300 RPS에서 드롭 0이었으나 64KB는 300 RPS에서도 41,435건이 드롭됐습니다. EH 스로틀링 0(40 TU의 80% 부하도 견딤) — 드롭 주체는 APIM 게이트웨이입니다.</figcaption>
+            <p class="chart-source"><span class="evidence risk">위험</span> 출처: EXPERIMENT-LOG.md 64KB 스윈 · RESULTS.md 질문 5.</p>
+          </figure>
+          <figure class="chart-card chart-wide" id="chart-saturation-outcomes" aria-labelledby="chart-saturation-outcomes-title">
+            <h3 id="chart-saturation-outcomes-title">포화 시 실패 방식 비교 (8KB · 500 RPS)</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>게이트웨이가 한계에 닿았을 때 두 경로가 각각 무엇을 포기하는지 나란히 놓은 것입니다. <strong>App Insights는 처리시간을, Event Hub는 감사 로그를 내준다</strong>는 이 보고서의 핵심 대비입니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 250" role="img" aria-label="8KB 500 RPS 포화에서 App Insights와 Event Hub의 서로 다른 실패 방식 비교. 두 경로 모두 클라이언트 150,000 대 150,000 HTTP 성공">
+              <title>포화 시 실패 방식 비교 — 같은 성공, 다른 포기</title>
+              <rect class="outcome-input" x="100" y="8" width="400" height="46" rx="8"></rect>
+              <text class="outcome-title" x="300" y="28" text-anchor="middle">클라이언트 Requests 150,000 / 150,000 HTTP 성공</text>
+              <text class="axis" x="300" y="45" text-anchor="middle">8KB · 500 RPS · 두 경로 공통</text>
+              <path class="connector-line" d="M300 54 L150 78" marker-end="url(#sat-arrow)"></path>
+              <path class="connector-line" d="M300 54 L450 78" marker-end="url(#sat-arrow)"></path>
+              <rect class="outcome-box outcome-a" x="18" y="80" width="270" height="158" rx="10"></rect>
+              <text class="outcome-head" x="34" y="104">App Insights (A8)</text>
+              <text class="outcome-line" x="34" y="130">AppRequests 측정창 집계 150,178건</text>
+              <text class="outcome-line" x="34" y="152">Duration 0.90~2.50 ms (처리시간 증가)</text>
+              <text class="outcome-line" x="34" y="174">집계 수는 발신 150,000건 이상</text>
+              <text class="outcome-caveat" x="34" y="204">주의: 요청 ID 단위 대조 없음</text>
+              <text class="outcome-caveat" x="34" y="222">150,178은 워밍업 경계 잔여 포함 가능</text>
+              <rect class="outcome-box outcome-e" x="312" y="80" width="270" height="158" rx="10"></rect>
+              <text class="outcome-head" x="328" y="104">Event Hub (E8)</text>
+              <text class="outcome-line risk" x="328" y="130">APIM 대량 drop (약 절반 폐기)</text>
+              <text class="outcome-line" x="328" y="152">Duration 0.40~1.70 ms (작업량 감소)</text>
+              <text class="outcome-line" x="328" y="174">포화 시 로그를 폐기해 큐를 비움</text>
+              <text class="outcome-caveat" x="328" y="204">주의: 정확한 드롭률 미확정</text>
+              <text class="outcome-caveat" x="328" y="222">Event Hubs 스로틀링 0 · APIM이 드롭</text>
+              <defs><marker id="sat-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--cp-border-strong)"></path></marker></defs>
+            </svg>
+            <figcaption class="chart-annotation">같은 HTTP 성공(150,000 / 150,000) 아래에서 App Insights는 처리시간이 늘면서 측정창 집계가 발신 수 이상이었고, Event Hub는 <strong>로그 전달</strong>을 포기했습니다. App Insights의 요청 ID별 무누락 여부는 대조하지 않았습니다. Capacity는 두 조건 모두 ~87~89%로 이미 포화였습니다.</figcaption>
+            <p class="chart-source"><span class="evidence confirmed">측정</span> 출처: EXPERIMENT-LOG.md real-A8/real-E8 · RESULTS.md 질문 3.</p>
+          </figure>
+          <figure class="chart-card chart-wide" id="chart-sku-comparison" aria-labelledby="chart-sku-comparison-title">
+            <h3 id="chart-sku-comparison-title">Developer v1과 Basic v2 비교 (8KB · 500 RPS · E8)</h3>
+            <p class="chart-lede"><span class="lede-label">의미</span>정책과 Event Hub 용량을 고정한 채 게이트웨이 체급만 바꾼 대조입니다. <strong>드롭의 원인이 Event Hub 로깅 자체인지, 게이트웨이를 정격 한계로 굴린 탓인지</strong>를 가릅니다.</p>
+            <svg class="metric-chart" viewBox="0 0 600 306" role="img" aria-label="동일 조건에서 SKU만 교체한 Event Hub 도달과 클라이언트 p99 비교. Basic v2는 사실상 전량 도달에 p99 30밀리초, Developer v1은 약 절반 도달에 p99 약 500밀리초.">
+              <title>Developer v1 대 Basic v2 — Event Hub 도달과 클라이언트 p99</title>
+              <text class="axis" x="8" y="22">동일 조건 · SKU만 교체 (8KB · 500 RPS · E8 · EH 40 TU · 유닛 1 · 같은 부하 생성 VM)</text>
+              <line class="ref-line" x1="470" y1="36" x2="470" y2="150"></line>
+              <text class="ref-label" x="470" y="32" text-anchor="middle">기대 도달 100%</text>
+              <g class="metric-row" data-sku="basic-v2" data-value="~100%">
+                <text class="series-label mono" x="8" y="72">Basic v2</text>
+                <rect class="bar bar-ok" x="120" y="58" width="350" height="20" rx="3"></rect>
+                <text class="value-label" x="478" y="73">드롭 미관측</text>
+                <text class="axis" x="120" y="96">분당 도달 30,056 · 29,900 · 29,926 · 30,108 · 29,796 · 30,186 (기대 30,000/분)</text>
+              </g>
+              <g class="metric-row" data-sku="developer-v1" data-value="unknown">
+                <text class="series-label mono" x="8" y="136">Developer v1</text>
+                <rect class="offscale-zone" x="120" y="122" width="175" height="20" rx="3"></rect>
+                <text class="value-label" x="303" y="137">약 절반 도달</text>
+                <text class="axis" x="120" y="160">대량 드롭 · 정확한 비율 미확정 · 분당 시계열 미수집</text>
+              </g>
+              <text class="axis" x="8" y="192">두 막대는 기대 도달량(500 RPS × 측정 시간) 대비 비율 · v1 막대는 점선 = 추정값</text>
+              <line class="ref-line" x1="8" y1="212" x2="592" y2="212"></line>
+              <text class="ref-label" x="8" y="236">같은 부하 생성기로 잰 클라이언트 p99</text>
+              <g class="metric-row" data-measure="client-p99" data-sku="basic-v2">
+                <text class="series-label mono" x="8" y="264">Basic v2</text>
+                <rect class="bar bar-ok" x="120" y="252" width="21" height="16" rx="3"></rect>
+                <text class="value-label" x="149" y="265">30 ms</text>
+              </g>
+              <g class="metric-row" data-measure="client-p99" data-sku="developer-v1">
+                <text class="series-label mono" x="8" y="292">Developer v1</text>
+                <rect class="bar series-neutral" x="120" y="280" width="342" height="16" rx="3"></rect>
+                <text class="value-label neutral" x="470" y="293">약 500 ms</text>
+              </g>
+            </svg>
+            <figcaption class="chart-annotation">SKU만 교체하자 전달 결과가 갈렸습니다. Basic v2는 분당 도달이 기대치 30,000에 붙어 <strong>드롭 미관측</strong>, Developer v1은 같은 정책·같은 Event Hub 용량에서 <strong>약 절반만 도달</strong>했습니다. 클라이언트 p99는 절대값에 부하 생성기·TLS 꼬리가 섞여 단독 판정에는 쓰지 않지만, 이 대조는 양쪽을 <strong>같은 방식·같은 장비로 측정</strong>해 공통 오염이 상쇄되므로 비교가 성립합니다. 다만 Basic v2는 EventHubDroppedEvents·CPU·메모리 미수집, 요청 ID 대조 미수행으로 종단 간 무손실이나 원인을 확정할 수 없습니다. 500 RPS는 Developer v1의 공식 예상 최대치입니다.</figcaption>
+            <p class="chart-source"><span class="evidence conditional">조건부</span> 출처: EXPERIMENT-LOG.md SKU 비교 · RESULTS.md 질문 6.</p>
+          </figure>
+        </div>
+      </section>
+
+      <section id="experiment" aria-labelledby="experiment-title">
+        <span class="eyebrow">실험 설계</span>
+        <h2 id="experiment-title">실험 설계와 가설 판정</h2>
+        <p>조건 정의: N8/A8/E8은 8KB 요청, N64/E64는 64KB 요청 기준입니다. N은 App Insights 본문 미기록 기준선, A는 App Insights 본문 기록, E는 Event Hub 로깅입니다.</p>
+        <p>본 실험은 APIM success/drop과 Event Hubs ingress/throttling을 함께 기록했습니다. API 성공률 차트는 로그 전달 성공률을 의미하지 않으며, 요청 ID 및 해시 대조와 워밍업 구간 처리는 한계에서 별도로 다룹니다.</p>
+        <h3 class="subhead">측정 조건 정의</h3>
+        <p>모든 조건에서 App Insights diagnostic이 sampling 100%로 켜져 있어 요청당 메타데이터 텔레메트리(URL·상태코드·duration)를 기록합니다. 조건별 차이는 App Insights body bytes와 Event Hub 로깅 유무뿐이며, N·E는 body 0입니다. 즉 N8/N64는 진단을 끈 상태가 아니라 본문만 기록하지 않는 기준선입니다.</p>
+        <div class="table-wrap">
+          <table>
+            <caption>N8 · A8 · E8 · N64 · E64 조건 정의 (모두 App Insights 메타데이터 텔레메트리 유지)</caption>
+            <thead><tr><th scope="col">조건</th><th scope="col">요청 크기</th><th scope="col">App Insights 메타데이터</th><th scope="col">App Insights body</th><th scope="col">Event Hub 로깅</th><th scope="col">역할</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">N8</td><td>8KB</td><td>sampling 100% 기록</td><td>0 bytes</td><td>없음</td><td>8KB 무로깅 기준선</td></tr>
+              <tr><td class="mono">A8</td><td>8KB</td><td>sampling 100% 기록</td><td>8,192 bytes</td><td>없음</td><td>App Insights 본문 로깅 비용</td></tr>
+              <tr><td class="mono">E8</td><td>8KB</td><td>sampling 100% 기록</td><td>0 bytes</td><td>8KB 전송</td><td>Event Hub 로그 전달</td></tr>
+              <tr><td class="mono">N64</td><td>64KB</td><td>sampling 100% 기록</td><td>0 bytes</td><td>없음</td><td>64KB 무로깅 기준선(요청 크기 비용)</td></tr>
+              <tr><td class="mono">E64</td><td>64KB</td><td>sampling 100% 기록</td><td>0 bytes</td><td>64KB 전송</td><td>대용량 Event Hub 로그 전달</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 class="subhead">가설 질문 1~6 판정 (RESULTS.md 최종)</h3>
+        <div class="table-wrap">
+          <table>
+            <caption>최종 결과 보고서의 질문별 판정과 핵심 근거</caption>
+            <thead><tr><th scope="col">No</th><th scope="col">질문</th><th scope="col">판정</th><th scope="col">핵심 근거</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">Q1</td><td>App Insights 본문 로깅 영향</td><td><span class="evidence conditional">조건부 지지</span></td><td>A8 Duration이 모든 8KB RPS 포인트에서 N8보다 높음</td></tr>
+              <tr><td class="mono">Q2</td><td>8KB 초과 본문 로깅 경로</td><td><span class="evidence confirmed">확인</span></td><td>App Insights 진단 설정 8,192 bytes 상한, log-to-eventhub는 200KB까지 전송(초과분 절단)</td></tr>
+              <tr><td class="mono">Q3</td><td>성능 저하 없는 모든 요청 로깅</td><td><span class="evidence conditional">조건부 지지</span></td><td>평시 E8 Duration이 A8보다 높지만 500 RPS에서 역전(E8 0.4~1.7 ms < A8 0.9~2.5 ms). 대가는 로그 폐기</td></tr>
+              <tr><td class="mono">Q4</td><td>Event Hub 무손실 보장</td><td><span class="evidence risk">반박(Developer v1 고부하 조건)</span></td><td>E8 400 RPS부터 APIM-reported drop, 300 RPS 드롭 0. 드롭 주체는 APIM 게이트웨이</td></tr>
+              <tr><td class="mono">Q5</td><td>요청 크기 영향</td><td><span class="evidence conditional">조건부 강함</span></td><td>500 RPS 기준선 Duration 8KB 0.1~0.35 ms → 64KB 7.32 ms, 드롭 시작도 8KB 400 → 64KB 300 RPS로 앞당겨짐</td></tr>
+              <tr><td class="mono">Q6</td><td>Developer v1과 Basic v2 전달 결과 차이</td><td><span class="evidence confirmed">지지</span></td><td>SKU만 교체하자 드롭 소멸. 500 RPS는 Developer v1의 공식 예상 최대치</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 class="subhead">계획 대비 실제 실행</h3>
+        <p>명세(EXPERIMENT-SPEC.md)는 조건별 3회 반복(8KB 9런 + 64KB 6런 = 15런)을 계획했으나, 실제로는 조건별 <strong>대부분 1회 실행</strong>했습니다. 8KB는 5개 RPS(100~500)의 단조 추세로, 64KB는 2개 RPS로 방향을 뒷받침하지만 분산과 오차막대는 없습니다. 따라서 값은 방향·사실 판정에 사용하고 정밀 임계값으로 확대하지 않습니다.</p>
+        <h3 class="subhead">19개 실행 원장</h3>
+        <div id="run-ledger">
+        <p>부하가 설계대로 걸렸는지 확인하는 원시 기록입니다. 클라이언트 p50/p95/p99는 명세가 <strong>참고 기록</strong>으로 규정한 값이라 Q1~Q5 판정에는 쓰지 않았습니다. 500 RPS에서 클라이언트 p99는 A8 546.83 ms보다 E8 563.79 ms가 커서 E8이 느려 보이지만, 서버측 Duration은 A8 0.9~2.5 ms · E8 0.4~1.7 ms로 <strong>순서가 뒤집힙니다.</strong> 조건 간 우열 판단에 이 표를 쓰지 마십시오.</p>
+        <details class="result-details">
+          <summary>19개 result.json 클라이언트 결과 표 — 전 실행 offered=successful · 오류 0</summary>
+          <div class="table-wrap">
+            <table>
+              <caption>19개 실행의 클라이언트 측정값과 원천 JSON. 모두 offered=successful, 오류 0.</caption>
+              <thead><tr><th scope="col">실행</th><th scope="col">조건</th><th scope="col">payload</th><th scope="col">RPS</th><th scope="col">offered</th><th scope="col">successful</th><th scope="col">errors</th><th scope="col">p50 ms</th><th scope="col">p95 ms</th><th scope="col">p99 ms</th><th scope="col">원천</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">r100-A8</td><td class="mono">A8</td><td>8KB</td><td>100</td><td>18,000</td><td>18,000</td><td>0</td><td>1.42</td><td>2.17</td><td>6.47</td><td><code>results/r100-A8/result.json</code></td></tr>
+                <tr><td class="mono">r100-E8</td><td class="mono">E8</td><td>8KB</td><td>100</td><td>18,000</td><td>18,000</td><td>0</td><td>1.42</td><td>2.68</td><td>10.41</td><td><code>results/r100-E8/result.json</code></td></tr>
+                <tr><td class="mono">r100-N8</td><td class="mono">N8</td><td>8KB</td><td>100</td><td>18,000</td><td>18,000</td><td>0</td><td>1.51</td><td>2.05</td><td>5.86</td><td><code>results/r100-N8/result.json</code></td></tr>
+                <tr><td class="mono">r200-A8</td><td class="mono">A8</td><td>8KB</td><td>200</td><td>36,000</td><td>36,000</td><td>0</td><td>1.35</td><td>3.60</td><td>73.81</td><td><code>results/r200-A8/result.json</code></td></tr>
+                <tr><td class="mono">r200-E8</td><td class="mono">E8</td><td>8KB</td><td>200</td><td>36,000</td><td>36,000</td><td>0</td><td>1.50</td><td>5.06</td><td>105.24</td><td><code>results/r200-E8/result.json</code></td></tr>
+                <tr><td class="mono">r200-N8</td><td class="mono">N8</td><td>8KB</td><td>200</td><td>36,000</td><td>36,000</td><td>0</td><td>1.29</td><td>1.91</td><td>6.67</td><td><code>results/r200-N8/result.json</code></td></tr>
+                <tr><td class="mono">r300-A8</td><td class="mono">A8</td><td>8KB</td><td>300</td><td>54,000</td><td>54,000</td><td>0</td><td>1.53</td><td>28.88</td><td>284.07</td><td><code>results/r300-A8/result.json</code></td></tr>
+                <tr><td class="mono">r300-E64</td><td class="mono">E64</td><td>64KB</td><td>300</td><td>54,000</td><td>54,000</td><td>0</td><td>15.32</td><td>552.08</td><td>1112.23</td><td><code>results/r300-E64/result.json</code></td></tr>
+                <tr><td class="mono">r300-E8</td><td class="mono">E8</td><td>8KB</td><td>300</td><td>54,000</td><td>54,000</td><td>0</td><td>1.40</td><td>52.79</td><td>419.76</td><td><code>results/r300-E8/result.json</code></td></tr>
+                <tr><td class="mono">r300-N64</td><td class="mono">N64</td><td>64KB</td><td>300</td><td>54,000</td><td>54,000</td><td>0</td><td>9.18</td><td>529.65</td><td>581.00</td><td><code>results/r300-N64/result.json</code></td></tr>
+                <tr><td class="mono">r300-N8</td><td class="mono">N8</td><td>8KB</td><td>300</td><td>54,000</td><td>54,000</td><td>0</td><td>1.35</td><td>4.17</td><td>100.04</td><td><code>results/r300-N8/result.json</code></td></tr>
+                <tr><td class="mono">r400-A8</td><td class="mono">A8</td><td>8KB</td><td>400</td><td>72,000</td><td>72,000</td><td>0</td><td>4.58</td><td>424.62</td><td>541.32</td><td><code>results/r400-A8/result.json</code></td></tr>
+                <tr><td class="mono">r400-E8</td><td class="mono">E8</td><td>8KB</td><td>400</td><td>72,000</td><td>72,000</td><td>0</td><td>3.47</td><td>169.56</td><td>515.51</td><td><code>results/r400-E8/result.json</code></td></tr>
+                <tr><td class="mono">r400-N8</td><td class="mono">N8</td><td>8KB</td><td>400</td><td>72,000</td><td>72,000</td><td>0</td><td>1.53</td><td>112.18</td><td>440.18</td><td><code>results/r400-N8/result.json</code></td></tr>
+                <tr><td class="mono">r500-E64</td><td class="mono">E64</td><td>64KB</td><td>500</td><td>90,000</td><td>90,000</td><td>0</td><td>12.16</td><td>542.62</td><td>613.90</td><td><code>results/r500-E64/result.json</code></td></tr>
+                <tr><td class="mono">r500-N64</td><td class="mono">N64</td><td>64KB</td><td>500</td><td>90,000</td><td>90,000</td><td>0</td><td>9.40</td><td>531.68</td><td>574.79</td><td><code>results/r500-N64/result.json</code></td></tr>
+                <tr><td class="mono">real-A8</td><td class="mono">A8</td><td>8KB</td><td>500</td><td>150,000</td><td>150,000</td><td>0</td><td>5.03</td><td>516.04</td><td>546.83</td><td><code>results/real-A8/result.json</code></td></tr>
+                <tr><td class="mono">real-E8</td><td class="mono">E8</td><td>8KB</td><td>500</td><td>150,000</td><td>150,000</td><td>0</td><td>6.31</td><td>483.89</td><td>563.79</td><td><code>results/real-E8/result.json</code></td></tr>
+                <tr><td class="mono">real-N8</td><td class="mono">N8</td><td>8KB</td><td>500</td><td>150,000</td><td>150,000</td><td>0</td><td>3.72</td><td>202.14</td><td>506.87</td><td><code>results/real-N8/result.json</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        </div>
+      </section>
+
+      <section id="guardrails" aria-labelledby="guardrails-title">
+        <span class="eyebrow">운영 가드레일</span>
+        <h2 id="guardrails-title">운영 가드레일</h2>
+        <ul class="guardrail-grid">
+          <li class="guardrail-item">
+            <h3>SLO 분리</h3>
+            <p>API 200 성공률과 감사 로그 전달률을 별도 SLO로 관리하십시오.</p>
+          </li>
+          <li class="guardrail-item">
+            <h3>동시 모니터링</h3>
+            <p>APIM EventHubSuccessfulEvents/EventHubDroppedEvents와 Event Hubs ingress/throttling을 함께 감시하십시오.</p>
+          </li>
+          <li class="guardrail-item">
+            <h3>드롭 구간 비교 금지</h3>
+            <p>드롭 구간 Duration은 성능 우열 근거가 아님. 드롭이 있는 구간의 처리시간을 성능 우위로 해석하지 마십시오.</p>
+          </li>
+          <li class="guardrail-item">
+            <h3>TU 증설 전 부하 확인</h3>
+            <p>Event Hubs TU 증설 전에 게이트웨이가 목표 RPS × payload를 견디는지 먼저 확인하십시오.</p>
+          </li>
+          <li class="guardrail-item">
+            <h3>고객 환경 재시험</h3>
+            <p>리전·SKU·정책 조합이 다르면 결과가 달라지므로 고객 환경에서 재시험하십시오.</p>
+          </li>
+        </ul>
+        <p class="warning">클라이언트 지연은 APIM 권위 지표 아님 · 보조 증거이며, APIM 서버측 Duration/Capacity와 EventHubDroppedEvents가 판정의 우선 근거입니다.</p>
+      </section>
+
+      <section id="limitations" aria-labelledby="limitations-title">
+        <span class="eyebrow">한계</span>
+        <h2 id="limitations-title">한계와 주의</h2>
+        <ul class="limitation-grid">
+          <li class="limitation-item">
+            <h3>반복 실행 부족</h3>
+            <p>명세는 조건별 3회 반복이었지만 실행 데이터는 조건별 대부분 한 번 실행됐습니다. 분산과 오차막대는 없습니다.</p>
+            <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>요청 ID·해시 대조 누락</h3>
+            <p>요청 ID 집합, 페이로드 해시, EH consumer 메시지 크기 대조가 완료되지 않았습니다.</p>
+            <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>메타데이터만 기록한 기준선</h3>
+            <p>N8/N64는 App Insights 본문 0B일 뿐이며 진단 기능 비활성화가 아닙니다.</p>
+            <span class="evidence confirmed">확정 · EXPERIMENT-LOG.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>집계 창 경계</h3>
+            <p>App Insights 집계 창 경계와 워밍업 잔여가 섞였을 수 있어 요청 단위 완전성 증명으로 쓰지 않습니다.</p>
+            <span class="evidence conditional">조건부 · RESULTS.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>드롭 0의 의미</h3>
+            <p>APIM/EH 드롭 0만으로 최종 감사 무손실을 증명하지 않습니다. 종단 간 대조가 필요합니다.</p>
+            <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>임계값 표현</h3>
+            <p>8KB는 300~400 RPS 사이에서 드롭 전이가 관측된 구간이며 안정 임계값은 아닙니다.</p>
+            <span class="evidence conditional">조건부 · RESULTS.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>SKU 지표 비대칭</h3>
+            <p>v1은 Capacity/Duration/드롭, v2는 EH 도달 중심입니다. v2 CPU/메모리 미수집으로 메커니즘은 조건부입니다.</p>
+            <span class="evidence conditional">조건부 · RESULTS.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>클라이언트 지연</h3>
+            <p>단일 asyncio 부하 생성기와 TLS 영향으로 p95/p99 꼬리가 섞였습니다. APIM 판정은 서버측 지표를 우선합니다.</p>
+            <span class="evidence conditional">조건부 · EXPERIMENT-SPEC.md</span>
+          </li>
+          <li class="limitation-item">
+            <h3>미측정 범위</h3>
+            <p>1,000 RPS 초과, streaming/SSE, response body 로깅은 본 실험에서 측정하지 않았습니다. Event Hub를 스트리밍 싱크로 쓸 때의 싱크 소비 지연과 파티션 처리량도 별도 검증이 필요합니다.</p>
+            <span class="evidence unverified">미검증 · EXPERIMENT-SPEC.md</span>
+          </li>
+        </ul>
+      </section>
     </main>
+
+    <noscript>
+      JavaScript가 꺼져 있어도 모든 섹션은 계속 표시됩니다. 이 보고서는 외부 스크립트나 네트워크 호출 없이 동작하며, 정적 차트와 표를 포함합니다.
+    </noscript>
 
     <script>
       (() => {
-        document.documentElement.classList.add("js");
-
-        const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
-        const panels = tabs
-          .map((tab) => document.getElementById(tab.getAttribute("aria-controls")))
+        const navLinks = Array.from(document.querySelectorAll(".report-nav a"));
+        const nav = document.querySelector(".report-nav");
+        const sections = navLinks
+          .map((link) => document.querySelector(link.getAttribute("href")))
           .filter(Boolean);
 
-        const activate = (tab, focus = false) => {
-          const targetId = tab.getAttribute("aria-controls");
+        if (!("IntersectionObserver" in window) || !nav || sections.length === 0) {
+          return;
+        }
 
-          tabs.forEach((item) => {
-            const selected = item === tab;
-            item.setAttribute("aria-selected", String(selected));
-            item.tabIndex = selected ? 0 : -1;
-          });
-
-          panels.forEach((panel) => {
-            panel.classList.toggle("is-active", panel.id === targetId);
-          });
-
-          if (focus) {
-            tab.focus();
-          }
-        };
-
-        tabs.forEach((tab, index) => {
-          tab.addEventListener("click", () => activate(tab));
-          tab.addEventListener("keydown", (event) => {
-            const currentIndex = tabs.indexOf(tab);
-            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-              event.preventDefault();
-              activate(tabs[(currentIndex + 1) % tabs.length], true);
-            } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-              event.preventDefault();
-              activate(tabs[(currentIndex - 1 + tabs.length) % tabs.length], true);
-            } else if (event.key === "Home") {
-              event.preventDefault();
-              activate(tabs[0], true);
-            } else if (event.key === "End") {
-              event.preventDefault();
-              activate(tabs[tabs.length - 1], true);
+        const setCurrent = (id) => {
+          navLinks.forEach((link) => {
+            const isCurrent = link.getAttribute("href") === `#${id}`;
+            if (isCurrent) {
+              link.setAttribute("aria-current", "location");
+            } else {
+              link.removeAttribute("aria-current");
             }
           });
-          if (index !== 0) {
-            tab.tabIndex = -1;
+        };
+
+        const updateCurrent = () => {
+          const atBottom =
+            window.innerHeight + window.scrollY >=
+            document.documentElement.scrollHeight - 2;
+          if (atBottom) {
+            setCurrent(sections[sections.length - 1].id);
+            return;
           }
+
+          const activationLine = nav.getBoundingClientRect().bottom + 24;
+          const active = sections.reduce((current, section) =>
+            section.getBoundingClientRect().top <= activationLine ? section : current
+          , sections[0]);
+          setCurrent(active.id);
+        };
+
+        let updateScheduled = false;
+        const requestUpdate = () => {
+          if (updateScheduled) {
+            return;
+          }
+          updateScheduled = true;
+          requestAnimationFrame(() => {
+            updateCurrent();
+            updateScheduled = false;
+          });
+        };
+
+        const observer = new IntersectionObserver(requestUpdate, {
+          rootMargin: "-20% 0px -70% 0px",
         });
 
-        activate(tabs.find((tab) => tab.getAttribute("aria-selected") === "true") || tabs[0]);
+        sections.forEach((section) => observer.observe(section));
+        window.addEventListener("scroll", requestUpdate, { passive: true });
+        window.addEventListener("resize", requestUpdate);
+        window.addEventListener("hashchange", requestUpdate);
+        updateCurrent();
+      })();
+    </script>
+
+    <script>
+      (() => {
+        const details = Array.from(document.querySelectorAll("details"));
+        let reopened = [];
+
+        window.addEventListener("beforeprint", () => {
+          reopened = details.filter((item) => !item.open);
+          reopened.forEach((item) => {
+            item.open = true;
+          });
+        });
+
+        window.addEventListener("afterprint", () => {
+          reopened.forEach((item) => {
+            item.open = false;
+          });
+          reopened = [];
+        });
       })();
     </script>
   </body>
